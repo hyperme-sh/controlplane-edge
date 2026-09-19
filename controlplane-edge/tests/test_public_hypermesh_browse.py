@@ -61,7 +61,7 @@ def test_hypermesh_browse_is_public_get_only() -> None:
         "/api/v1/hypermesh/path-b/runs/a6400000-0640-4000-8000-000000000001",
         "GET",
     ) is False
-    assert is_public_path("/api/v1/hypermesh/internal/routers", "POST") is False
+    assert is_public_path("/api/v1/hypermesh/internal/gateways", "POST") is False
     # Host enroll is a separate allowlist (POST only). Browse GET rules stay GET-only.
     assert is_public_path("/api/v1/hypermesh/agent/enroll", "GET") is False
 

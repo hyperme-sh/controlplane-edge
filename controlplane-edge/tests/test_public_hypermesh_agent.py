@@ -73,7 +73,7 @@ def test_hypermesh_agent_allowlist_does_not_widen_browse_or_prefix() -> None:
     ) is False
     assert is_public_path("/api/v1/hypermesh/leases", "POST") is False
     assert is_public_path("/api/v1/hypermesh/renter/hosts", "GET") is False
-    assert is_public_path("/api/v1/hypermesh/internal/routers", "POST") is False
+    assert is_public_path("/api/v1/hypermesh/internal/gateways", "POST") is False
     assert is_public_path("/api/v1/hypermesh/renter/chat/completions", "POST") is False
 
 
