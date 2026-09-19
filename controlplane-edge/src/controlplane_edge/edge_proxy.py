@@ -6,9 +6,10 @@ import logging
 
 import httpx
 from fastapi import FastAPI
+from starlette.background import BackgroundTask
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse, Response
+from starlette.responses import JSONResponse, Response, StreamingResponse
 
 from controlplane_edge.aggregation_settings import OpenAPIAggregationSettings
 from controlplane_edge.edge_routes import (
@@ -124,20 +125,26 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
         if client is None:
             client = httpx.AsyncClient(timeout=timeout)
             own_client = True
+
+        # Streamed, so token-by-token chat completions reach the caller as they
+        # are produced instead of being held until the upstream is done.
+        upstream_request = client.build_request(
+            request.method,
+            target,
+            headers=_forward_request_headers(request),
+            content=body,
+            timeout=timeout,
+        )
         try:
-            upstream = await client.request(
-                request.method,
-                target,
-                headers=_forward_request_headers(request),
-                content=body,
-                timeout=timeout,
-            )
+            upstream = await client.send(upstream_request, stream=True)
         except httpx.HTTPError as exc:
             logger.warning(
                 "edge proxy upstream error service=%s: %s",
                 match.service_id,
                 exc,
             )
+            if own_client:
+                await client.aclose()
             return JSONResponse(
                 status_code=502,
                 content={
@@ -145,19 +152,24 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
                     "service": match.service_id,
                 },
             )
-        finally:
-            if own_client:
-                await client.aclose()
 
         headers = {
             k: v
             for k, v in upstream.headers.items()
             if k.lower() not in _STRIP_RESPONSE
         }
-        return Response(
-            content=upstream.content,
+
+        async def _release() -> None:
+            await upstream.aclose()
+            if own_client:
+                await client.aclose()
+
+        return StreamingResponse(
+            # Decoded, because content-encoding is stripped from the response.
+            upstream.aiter_bytes(),
             status_code=upstream.status_code,
             headers=headers,
+            background=BackgroundTask(_release),
         )
 
 
