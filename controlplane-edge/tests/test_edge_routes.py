@@ -43,7 +43,7 @@ def _urls(**overrides: str | None) -> SimpleNamespace:
         template_service_url=None,
         tennessee_windage_service_url=None,
         hypermesh_service_url=None,
-        hypermesh_router_service_url=None,
+        hypermesh_gateway_service_url=None,
         turn_service_url=None,
         oracles_service_url=None,
         payments_service_url=None,
@@ -64,7 +64,7 @@ def test_extracted_prefixes_match_configured_upstreams() -> None:
         template_service_url="http://tpl.example",
         tennessee_windage_service_url="http://tw.example",
         hypermesh_service_url="http://hm.example",
-        hypermesh_router_service_url="http://hmr.example",
+        hypermesh_gateway_service_url="http://hmr.example",
         turn_service_url="http://turn.example",
         oracles_service_url="http://oracles.example",
         payments_service_url="http://payments.example",
@@ -109,7 +109,7 @@ def test_extracted_prefixes_match_configured_upstreams() -> None:
         assert match.base_url == base
 
 
-def test_hypermesh_router_is_never_proxied() -> None:
+def test_hypermesh_gateway_is_never_proxied() -> None:
     """The prompt chokepoint must not depend on this control plane being up.
 
     Configuring its URL is for merging its spec into /openapi.json, not for
@@ -118,13 +118,13 @@ def test_hypermesh_router_is_never_proxied() -> None:
 
     settings = _urls(
         hypermesh_service_url="http://hm.example",
-        hypermesh_router_service_url="http://hmr.example",
+        hypermesh_gateway_service_url="http://hmr.example",
     )
     for path in (
-        "/api/v1/hypermesh-router",
-        "/api/v1/hypermesh-router/v1/chat/completions",
-        "/api/v1/hypermesh-router/v1/ir/receipts",
-        "/api/v1/hypermesh-router/tunnels/apply",
+        "/api/v1/hypermesh-gateway",
+        "/api/v1/hypermesh-gateway/v1/chat/completions",
+        "/api/v1/hypermesh-gateway/v1/ir/receipts",
+        "/api/v1/hypermesh-gateway/tunnels/apply",
     ):
         assert match_edge_route(path, settings) is None, path
 

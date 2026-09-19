@@ -12,7 +12,7 @@ Do not invent new public paths here — only forward surfaces that already exist
 on auth / user / acl / payment / marketplace / ai / api-keys / template /
 tennessee-windage / hypermesh / turn / oracles / payments / fyber.auditor / fyber.privilege_grant.
 
-The hypermesh router is deliberately absent. It is the only chokepoint that
+The hypermesh gateway is deliberately absent. It is the only chokepoint that
 sees prompts, and it must keep serving a paid ticket while this control plane
 is down, so nothing here may put the gateway on its path. Renters reach it on
 its own hostname. Its spec is still merged into ``/openapi.json``.

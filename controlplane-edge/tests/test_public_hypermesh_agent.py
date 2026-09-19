@@ -21,7 +21,7 @@ CPEDGE_AUTH_DETAIL = "Authorization Bearer token or valid X-Api-Key required"
 @pytest.fixture
 def agent_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     monkeypatch.setenv("CPEDGE_HYPERMESH_SERVICE_URL", "http://hm.agent.test")
-    monkeypatch.setenv("CPEDGE_HYPERMESH_ROUTER_SERVICE_URL", "http://hmr.agent.test")
+    monkeypatch.setenv("CPEDGE_HYPERMESH_GATEWAY_SERVICE_URL", "http://hmr.agent.test")
     monkeypatch.setenv("CPEDGE_RATE_LIMIT_PER_MINUTE", "5000")
     import api.core.config as api_config
 

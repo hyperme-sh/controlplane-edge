@@ -26,7 +26,7 @@ def _fake_bearer(sub: str = "11111111-1111-1111-1111-111111111111") -> str:
 @pytest.fixture
 def browse_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     monkeypatch.setenv("CPEDGE_HYPERMESH_SERVICE_URL", "http://hm.browse.test")
-    monkeypatch.setenv("CPEDGE_HYPERMESH_ROUTER_SERVICE_URL", "http://hmr.browse.test")
+    monkeypatch.setenv("CPEDGE_HYPERMESH_GATEWAY_SERVICE_URL", "http://hmr.browse.test")
     monkeypatch.setenv("CPEDGE_RATE_LIMIT_PER_MINUTE", "5000")
     import api.core.config as api_config
 
@@ -49,9 +49,9 @@ def test_hypermesh_browse_is_public_get_only() -> None:
     assert is_public_path("/api/v1/hypermesh/leases", "POST") is False
     assert is_public_path("/api/v1/hypermesh/renter/hosts", "GET") is False
     assert is_public_path("/api/v1/hypermesh/renter/chat/completions", "POST") is False
-    assert is_public_path("/api/v1/hypermesh-router/v1/chat/completions", "POST") is False
-    assert is_public_path("/api/v1/hypermesh-router/v1/ir/chat/completions", "POST") is False
-    assert is_public_path("/api/v1/hypermesh-router/v1/ir/receipts", "GET") is False
+    assert is_public_path("/api/v1/hypermesh-gateway/v1/chat/completions", "POST") is False
+    assert is_public_path("/api/v1/hypermesh-gateway/v1/ir/chat/completions", "POST") is False
+    assert is_public_path("/api/v1/hypermesh-gateway/v1/ir/receipts", "GET") is False
     assert is_public_path("/api/v1/hypermesh/devices", "GET") is False
     assert is_public_path(
         "/api/v1/hypermesh/devices/a6400000-0640-4000-8000-000000000001/path-b/runs",
@@ -148,7 +148,7 @@ def test_checkout_lease_and_chat_still_require_auth(browse_app: FastAPI) -> None
             json={"lease_id": str(uuid.uuid4()), "messages": []},
         )
         router_chat = client.post(
-            "/api/v1/hypermesh-router/v1/chat/completions",
+            "/api/v1/hypermesh-gateway/v1/chat/completions",
             json={"lease_id": str(uuid.uuid4()), "messages": []},
         )
     assert checkout.status_code == 401
