@@ -10,7 +10,7 @@ AI is split on purpose: ai-service owns ``/inference``, ``/complete``, and
 
 Do not invent new public paths here — only forward surfaces that already exist
 on auth / user / acl / payment / marketplace / ai / api-keys / template /
-tennessee-windage / hypermesh / turn / oracles / payments / fyber.auditor / fyber.privilege_grant.
+tennessee-windage / hypermesh / aiuditor / turn / oracles / payments / fyber.auditor / fyber.privilege_grant.
 
 The hypermesh gateway is deliberately absent. It is the only chokepoint that
 sees prompts, and it must keep serving a paid ticket while this control plane
@@ -61,6 +61,7 @@ EDGE_ROUTES: tuple[EdgeRoute, ...] = (
     EdgeRoute("/api/v1/turn", "turn", "turn_service_url"),
     EdgeRoute("/api/v1/oracles", "oracles", "oracles_service_url"),
     EdgeRoute("/api/v1/hypermesh", "hypermesh", "hypermesh_service_url"),
+    EdgeRoute("/api/v1/aiuditor", "aiuditor", "aiuditor_service_url"),
     EdgeRoute("/api/v1/auditor", "hypermesh", "hypermesh_service_url"),
     EdgeRoute("/api/v1/grants", "hypermesh", "hypermesh_service_url"),
 )

@@ -173,6 +173,29 @@ async def test_merged_openapi_includes_hypermesh_upstream(minimal_app, monkeypat
 
 
 @pytest.mark.asyncio
+async def test_merged_openapi_includes_aiuditor_upstream(minimal_app, monkeypatch):
+    monkeypatch.setenv("CPEDGE_AIUDITOR_SERVICE_URL", "http://aiuditor.chk")
+    settings = OpenAPIAggregationSettings()
+    doc = _stub_openapi(
+        {
+            "/api/v1/aiuditor/connections": {
+                "get": {"responses": {"200": {"description": "ok"}}}
+            }
+        }
+    )
+    with respx.mock:
+        respx.get("http://aiuditor.chk/openapi.json").mock(
+            return_value=httpx.Response(200, json=doc)
+        )
+        merged = await build_merged_openapi_for_version(
+            minimal_app, settings, version_label="v1"
+        )
+    validate(merged)
+    assert "/_upstream/aiuditor/api/v1/aiuditor/connections" in merged["paths"]
+    assert "aiuditor" in merged.get("x-controlplane-edge-meta", {}).get("sources", [])
+
+
+@pytest.mark.asyncio
 async def test_merged_openapi_includes_turn_upstream(minimal_app, monkeypatch):
     monkeypatch.setenv("CPEDGE_TURN_SERVICE_URL", "http://turn.chk")
     settings = OpenAPIAggregationSettings()

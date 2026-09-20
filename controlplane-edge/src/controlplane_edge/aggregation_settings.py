@@ -77,6 +77,13 @@ class OpenAPIAggregationSettings(BaseSettings):
             "HYPERMESH_GATEWAY_SERVICE_URL",
         ),
     )
+    aiuditor_service_url: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "CPEDGE_AIUDITOR_SERVICE_URL",
+            "AIUDITOR_SERVICE_URL",
+        ),
+    )
     turn_service_url: str | None = Field(
         default=None,
         validation_alias=AliasChoices(
@@ -115,6 +122,7 @@ class OpenAPIAggregationSettings(BaseSettings):
             ("tennessee_windage", self.tennessee_windage_service_url),
             ("hypermesh", self.hypermesh_service_url),
             ("hypermesh_gateway", self.hypermesh_gateway_service_url),
+            ("aiuditor", self.aiuditor_service_url),
             ("turn", self.turn_service_url),
             ("oracles", self.oracles_service_url),
             ("payments", self.payments_service_url),
