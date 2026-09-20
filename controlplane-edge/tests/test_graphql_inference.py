@@ -10,18 +10,21 @@ import respx
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from api.infrastructure.security.tenant_session_jwt import mint_tenant_session_jwt
 from controlplane_edge.graphql.register import register_graphql_routes
 
 
-def _fake_bearer() -> str:
-    import base64
-    import json
-
-    header = base64.urlsafe_b64encode(json.dumps({"alg": "none"}).encode()).decode().rstrip("=")
-    payload = base64.urlsafe_b64encode(
-        json.dumps({"sub": "11111111-1111-1111-1111-111111111111"}).encode()
-    ).decode().rstrip("=")
-    return f"{header}.{payload}.sig"
+def _auth_headers(tenant_id: str) -> dict[str, str]:
+    tid = uuid.UUID(tenant_id)
+    token = mint_tenant_session_jwt(
+        claims={
+            "sub": "11111111-1111-1111-1111-111111111111",
+            "email": "renter@example.com",
+        },
+        tenant_id=tid,
+        extra_roles=["renter"],
+    )
+    return {"Authorization": f"Bearer {token}", "X-Tenant-ID": tenant_id}
 
 
 @pytest.fixture
@@ -67,10 +70,7 @@ def test_run_inference(gql_app: FastAPI) -> None:
                     "input": {"prompt": "hi", "model": "m", "billingMode": "none"},
                 },
             },
-            headers={
-                "Authorization": f"Bearer {_fake_bearer()}",
-                "X-Tenant-ID": tid,
-            },
+            headers=_auth_headers(tid),
         )
     assert r.status_code == 200
     body = r.json()

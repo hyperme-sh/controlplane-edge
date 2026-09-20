@@ -26,6 +26,41 @@ def _shared_http() -> httpx.AsyncClient:
     return _http_singleton
 
 
+async def _verified_bearer_claims(token: str) -> dict | None:
+    """Honor a bound JWT or Keycloak. Never an unsigned decode."""
+
+    if not token:
+        return None
+    try:
+        from api.infrastructure.security.tenant_session_jwt import (
+            try_decode_tenant_session_jwt,
+        )
+    except Exception:
+        try_decode_tenant_session_jwt = None
+    if try_decode_tenant_session_jwt is not None:
+        session = try_decode_tenant_session_jwt(token)
+        if session:
+            return session
+    try:
+        from api.infrastructure.security.api_key_exchange_jwt import (
+            try_decode_api_key_session_jwt,
+        )
+    except Exception:
+        try_decode_api_key_session_jwt = None
+    if try_decode_api_key_session_jwt is not None:
+        exchanged = try_decode_api_key_session_jwt(token)
+        if exchanged:
+            return exchanged
+    if api_settings.keycloak_jwks_url and api_settings.keycloak_issuer:
+        try:
+            from api.infrastructure.security.keycloak_jwt import get_keycloak_jwt_validator
+
+            return await get_keycloak_jwt_validator().validate(token)
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("GraphQL JWT rejected: %s", exc)
+    return None
+
+
 async def get_graphql_context(request: Request) -> GraphQLContext:
     auth = request.headers.get("Authorization")
     tenant_id = getattr(request.state, "tenant_id", None)
@@ -44,26 +79,9 @@ async def get_graphql_context(request: Request) -> GraphQLContext:
                 tenant_id = None
     if user_sub is None and auth and auth.startswith("Bearer "):
         token = auth[7:].strip()
-        if api_settings.keycloak_jwks_url and api_settings.keycloak_issuer:
-            try:
-                from api.infrastructure.security.keycloak_jwt import get_keycloak_jwt_validator
-
-                claims = await get_keycloak_jwt_validator().validate(token)
-                user_sub = str(claims.get("sub") or "") or None
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("GraphQL JWT fallback: %s", exc)
-                user_sub = None
-        if user_sub is None and token:
-            try:
-                import jwt as pyjwt
-
-                payload = pyjwt.decode(
-                    token,
-                    options={"verify_signature": False, "verify_aud": False, "verify_exp": False},
-                )
-                user_sub = str(payload.get("sub") or "") or None
-            except Exception:
-                user_sub = None
+        verified = await _verified_bearer_claims(token)
+        if verified:
+            user_sub = str(verified.get("sub") or "") or None
 
     agg = OpenAPIAggregationSettings()
     ctx = GraphQLContext(
