@@ -69,3 +69,45 @@ def test_acl_policies_ok_with_headers_no_upstream(
         )
     # No mock: request fails at httpx — GraphQL may return errors
     assert r.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_graphql_context_ignores_unsigned_jwt() -> None:
+    from starlette.requests import Request
+
+    from controlplane_edge.graphql.register import get_graphql_context
+
+    token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMTEiLCJ0ZXN0IjoxfQ.fake"
+    scope = {
+        "type": "http",
+        "method": "POST",
+        "path": "/graphql",
+        "headers": [(b"authorization", f"Bearer {token}".encode("ascii"))],
+        "query_string": b"",
+    }
+    ctx = await get_graphql_context(Request(scope))
+    assert ctx.user_sub is None
+
+
+@pytest.mark.asyncio
+async def test_graphql_context_honors_bound_session_jwt() -> None:
+    from starlette.requests import Request
+
+    from api.infrastructure.security.tenant_session_jwt import mint_tenant_session_jwt
+    from controlplane_edge.graphql.register import get_graphql_context
+
+    tid = uuid.uuid4()
+    token = mint_tenant_session_jwt(
+        claims={"sub": "u1", "email": "chris@fyberlabs.com", "azp": "controlplane-m2m"},
+        tenant_id=tid,
+        extra_roles=["admin"],
+    )
+    scope = {
+        "type": "http",
+        "method": "POST",
+        "path": "/graphql",
+        "headers": [(b"authorization", f"Bearer {token}".encode("ascii"))],
+        "query_string": b"",
+    }
+    ctx = await get_graphql_context(Request(scope))
+    assert ctx.user_sub == "u1"

@@ -10,8 +10,33 @@ import respx
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from api.infrastructure.security.tenant_session_jwt import mint_tenant_session_jwt
 from controlplane_edge.graphql.clients import page_items
 from controlplane_edge.graphql.register import register_graphql_routes
+
+
+def _auth_headers(tenant_id: str | uuid.UUID) -> dict[str, str]:
+    tid = uuid.UUID(str(tenant_id))
+    token = mint_tenant_session_jwt(
+        claims={
+            "sub": "11111111-1111-1111-1111-111111111111",
+            "email": "renter@example.com",
+        },
+        tenant_id=tid,
+        extra_roles=["renter"],
+    )
+    return {"Authorization": f"Bearer {token}", "X-Tenant-ID": str(tid)}
+
+
+def _unsigned_bearer() -> str:
+    import base64
+    import json
+
+    header = base64.urlsafe_b64encode(json.dumps({"alg": "none"}).encode()).decode().rstrip("=")
+    payload = base64.urlsafe_b64encode(
+        json.dumps({"sub": "11111111-1111-1111-1111-111111111111"}).encode()
+    ).decode().rstrip("=")
+    return f"{header}.{payload}.sig"
 
 
 def test_page_items_reads_user_list_page() -> None:
@@ -21,15 +46,6 @@ def test_page_items_reads_user_list_page() -> None:
     ]
     assert page_items({"total": 0, "limit": 50, "offset": 0}) == []
     assert page_items("not-a-page") == []
-
-
-def _fake_bearer(sub: str = "11111111-1111-1111-1111-111111111111") -> str:
-    import base64
-    import json
-
-    header = base64.urlsafe_b64encode(json.dumps({"alg": "none"}).encode()).decode().rstrip("=")
-    payload = base64.urlsafe_b64encode(json.dumps({"sub": sub}).encode()).decode().rstrip("=")
-    return f"{header}.{payload}.sig"
 
 
 @pytest.fixture
@@ -80,10 +96,7 @@ def test_tenant_users_returns_data(gql_app: FastAPI) -> None:
         r = client.post(
             "/graphql",
             json={"query": q},
-            headers={
-                "Authorization": f"Bearer {_fake_bearer()}",
-                "X-Tenant-ID": tid,
-            },
+            headers=_auth_headers(tid),
         )
     assert r.status_code == 200
     body = r.json()
@@ -132,15 +145,61 @@ def test_listings_and_acl_filter(gql_app: FastAPI) -> None:
         r = client.post(
             "/graphql",
             json={"query": q},
+            headers=_auth_headers(tid),
+        )
+    assert r.status_code == 200
+    body = r.json()
+    assert "errors" not in body, body
+    assert body["data"]["listings"][0]["title"] == "t"
+
+
+@respx.mock
+def test_unsigned_jwt_does_not_pass_acl_filter(gql_app: FastAPI) -> None:
+    tid = str(uuid.uuid4())
+    lid = str(uuid.uuid4())
+    respx.get("http://mkt.gql.test/api/v1/marketplace/listings").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "items": [
+                    {
+                        "id": lid,
+                        "tenant_id": tid,
+                        "seller_id": tid,
+                        "title": "hidden",
+                        "description": "",
+                        "listing_type": "agent",
+                        "price_type": "free",
+                        "price_amount": None,
+                        "metadata": {},
+                        "is_public": False,
+                    }
+                ],
+                "total": 1,
+                "limit": 50,
+                "offset": 0,
+            },
+        )
+    )
+    respx.post("http://acl.gql.test/api/v1/acl/enforce").mock(
+        return_value=httpx.Response(200, json={"allow": True})
+    )
+    with TestClient(gql_app) as client:
+        r = client.post(
+            "/graphql",
+            json={"query": "{ listings(applyAclFilter: true) { title } }"},
             headers={
-                "Authorization": f"Bearer {_fake_bearer()}",
+                "Authorization": f"Bearer {_unsigned_bearer()}",
                 "X-Tenant-ID": tid,
             },
         )
     assert r.status_code == 200
     body = r.json()
     assert "errors" not in body, body
-    assert body["data"]["listings"][0]["title"] == "t"
+    assert body["data"]["listings"] == []
+    assert not any(
+        call.request.url.path.endswith("/acl/enforce") for call in respx.calls
+    )
 
 
 @respx.mock
@@ -157,10 +216,7 @@ def test_acl_policies(gql_app: FastAPI) -> None:
         r = client.post(
             "/graphql",
             json={"query": q},
-            headers={
-                "Authorization": f"Bearer {_fake_bearer()}",
-                "X-Tenant-ID": tid,
-            },
+            headers=_auth_headers(tid),
         )
     assert r.status_code == 200
     d = r.json()["data"]["aclPolicies"]
@@ -181,10 +237,7 @@ def test_ai_usage_empty_page(gql_app: FastAPI) -> None:
         r = client.post(
             "/graphql",
             json={"query": q},
-            headers={
-                "Authorization": f"Bearer {_fake_bearer()}",
-                "X-Tenant-ID": tid,
-            },
+            headers=_auth_headers(tid),
         )
     assert r.status_code == 200
     body = r.json()
@@ -228,10 +281,7 @@ def test_ai_usage_maps_history_page(gql_app: FastAPI) -> None:
         r = client.post(
             "/graphql",
             json={"query": q},
-            headers={
-                "Authorization": f"Bearer {_fake_bearer()}",
-                "X-Tenant-ID": tid,
-            },
+            headers=_auth_headers(tid),
         )
     assert r.status_code == 200
     body = r.json()
