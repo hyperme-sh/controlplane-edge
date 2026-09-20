@@ -24,6 +24,21 @@ def looks_like_site_machine_token(raw: str) -> bool:
     return raw.startswith(SITE_TOKEN_HEAD) and len(raw) > len(SITE_TOKEN_HEAD)
 
 
+TENANT_CLAIM = "https://panopticon.dev/tenant_id"
+
+
+def _tenant_from_claims(claims: dict[str, Any] | None) -> uuid.UUID | None:
+    if not claims:
+        return None
+    raw = claims.get(TENANT_CLAIM) or claims.get("tenant_id")
+    if raw is None or str(raw).strip() == "":
+        return None
+    try:
+        return uuid.UUID(str(raw))
+    except (ValueError, AttributeError, TypeError):
+        return None
+
+
 class GatewayAuthMiddleware(BaseHTTPMiddleware):
     """Populate ``request.state.jwt_claims``, ``tenant_id``, ``user_sub``; enforce auth on protected routes."""
 
@@ -102,6 +117,19 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
                     claims = await resolve_bearer_claims(minted)
                     if claims is not None:
                         user_sub = str(claims.get("sub") or "") or None
+
+        claimed = _tenant_from_claims(claims)
+        if claimed is not None:
+            if tenant_id is not None and tenant_id != claimed:
+                return JSONResponse(
+                    status_code=403,
+                    content={"detail": "X-Tenant-ID must match token tenant"},
+                )
+            tenant_id = claimed
+        elif claims is not None:
+            # Bound session/exchange JWTs carry tenant. A raw Keycloak (or
+            # other) JWT must not bind X-Tenant-ID — switch-tenant first.
+            tenant_id = None
 
         request.state.jwt_claims = claims
         request.state.bearer_token = bearer

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import uuid
 
 import httpx
 from fastapi import FastAPI, Request
@@ -31,10 +30,15 @@ async def get_graphql_context(request: Request) -> GraphQLContext:
     auth = request.headers.get("Authorization")
     tenant_id = getattr(request.state, "tenant_id", None)
     user_sub = getattr(request.state, "user_sub", None)
-    if tenant_id is None:
+    claims = getattr(request.state, "jwt_claims", None)
+    # Header is a cross-check only when the edge policy has not bound a
+    # credential. If policy ran and left tenant unset, do not take the header.
+    if tenant_id is None and claims is None:
         tid_raw = request.headers.get("x-tenant-id") or request.headers.get("X-Tenant-ID")
         if tid_raw:
             try:
+                import uuid
+
                 tenant_id = uuid.UUID(str(tid_raw).strip())
             except ValueError:
                 tenant_id = None
