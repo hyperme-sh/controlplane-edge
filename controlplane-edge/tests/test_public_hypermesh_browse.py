@@ -52,6 +52,8 @@ def test_hypermesh_browse_is_public_get_only() -> None:
     assert is_public_path("/api/v1/hypermesh-gateway/v1/chat/completions", "POST") is False
     assert is_public_path("/api/v1/hypermesh-gateway/v1/ir/chat/completions", "POST") is False
     assert is_public_path("/api/v1/hypermesh-gateway/v1/ir/receipts", "GET") is False
+    assert is_public_path("/api/v1/aiuditor/connections", "GET") is False
+    assert is_public_path("/api/v1/aiuditor/connections", "POST") is False
     assert is_public_path("/api/v1/hypermesh/devices", "GET") is False
     assert is_public_path(
         "/api/v1/hypermesh/devices/a6400000-0640-4000-8000-000000000001/path-b/runs",

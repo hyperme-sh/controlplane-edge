@@ -44,6 +44,7 @@ def _urls(**overrides: str | None) -> SimpleNamespace:
         tennessee_windage_service_url=None,
         hypermesh_service_url=None,
         hypermesh_gateway_service_url=None,
+        aiuditor_service_url=None,
         turn_service_url=None,
         oracles_service_url=None,
         payments_service_url=None,
@@ -65,6 +66,7 @@ def test_extracted_prefixes_match_configured_upstreams() -> None:
         tennessee_windage_service_url="http://tw.example",
         hypermesh_service_url="http://hm.example",
         hypermesh_gateway_service_url="http://hmr.example",
+        aiuditor_service_url="http://aiuditor.example",
         turn_service_url="http://turn.example",
         oracles_service_url="http://oracles.example",
         payments_service_url="http://payments.example",
@@ -93,6 +95,7 @@ def test_extracted_prefixes_match_configured_upstreams() -> None:
         "/api/v1/tw/missions": ("tennessee_windage", "http://tw.example"),
         "/api/v1/turn/allocate": ("turn", "http://turn.example"),
         "/api/v1/oracles/v0/attest": ("oracles", "http://oracles.example"),
+        "/api/v1/aiuditor/connections": ("aiuditor", "http://aiuditor.example"),
         "/api/v1/hypermesh/leases": ("hypermesh", "http://hm.example"),
         "/api/v1/hypermesh/site/jobs": ("hypermesh", "http://hm.example"),
         "/api/v1/hypermesh/site/devices/a6400000-0640-4000-8000-000000000001": (
@@ -127,6 +130,21 @@ def test_hypermesh_gateway_is_never_proxied() -> None:
         "/api/v1/hypermesh-gateway/tunnels/apply",
     ):
         assert match_edge_route(path, settings) is None, path
+
+
+def test_aiuditor_prefix_does_not_steal_site_inbox() -> None:
+    """/api/v1/auditor is fyber.auditor on hypermesh. /api/v1/aiuditor is AIuditor."""
+
+    settings = _urls(
+        hypermesh_service_url="http://hm.example",
+        aiuditor_service_url="http://aiuditor.example",
+    )
+    inbox = match_edge_route("/api/v1/auditor/v0/tickets", settings)
+    assert inbox is not None
+    assert inbox.service_id == "hypermesh"
+    grant = match_edge_route("/api/v1/aiuditor/connections", settings)
+    assert grant is not None
+    assert grant.service_id == "aiuditor"
 
 
 def test_monolith_leftovers_are_not_proxied() -> None:

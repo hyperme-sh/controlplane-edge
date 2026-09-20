@@ -204,6 +204,8 @@ def test_users_require_auth_when_not_public(edge_app: FastAPI) -> None:
         r = client.get("/api/v1/users")
     assert r.status_code == 401
     assert is_public_path("/api/v1/auditor/v0/tickets", "POST") is False
+    assert is_public_path("/api/v1/aiuditor/connections", "GET") is False
+    assert is_public_path("/api/v1/aiuditor/connections", "POST") is False
 
 
 @respx.mock
