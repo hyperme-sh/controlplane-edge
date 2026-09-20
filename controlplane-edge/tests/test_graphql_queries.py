@@ -153,6 +153,59 @@ def test_listings_and_acl_filter(gql_app: FastAPI) -> None:
     assert body["data"]["listings"][0]["title"] == "t"
 
 
+@pytest.fixture
+def gql_app_no_acl(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
+    monkeypatch.setenv("CPEDGE_USER_SERVICE_URL", "http://user.gql.test")
+    monkeypatch.setenv("CPEDGE_MARKETPLACE_SERVICE_URL", "http://mkt.gql.test")
+    monkeypatch.delenv("CPEDGE_ACL_SERVICE_URL", raising=False)
+    monkeypatch.delenv("ACL_SERVICE_URL", raising=False)
+    monkeypatch.setenv("CPEDGE_AI_SERVICE_URL", "http://ai.gql.test")
+    app = FastAPI()
+    register_graphql_routes(app)
+    return app
+
+
+@respx.mock
+def test_missing_acl_url_filters_listings_closed(gql_app_no_acl: FastAPI) -> None:
+    tid = str(uuid.uuid4())
+    lid = str(uuid.uuid4())
+    respx.get("http://mkt.gql.test/api/v1/marketplace/listings").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "items": [
+                    {
+                        "id": lid,
+                        "tenant_id": tid,
+                        "seller_id": tid,
+                        "title": "hidden",
+                        "description": "",
+                        "listing_type": "agent",
+                        "price_type": "free",
+                        "price_amount": None,
+                        "metadata": {},
+                        "is_public": False,
+                    }
+                ],
+                "total": 1,
+                "limit": 50,
+                "offset": 0,
+            },
+        )
+    )
+    with TestClient(gql_app_no_acl) as client:
+        r = client.post(
+            "/graphql",
+            json={"query": "{ listings(applyAclFilter: true) { title } }"},
+            headers=_auth_headers(tid),
+        )
+    assert r.status_code == 200
+    body = r.json()
+    assert "errors" not in body, body
+    assert body["data"]["listings"] == []
+    assert not any(call.request.url.path.endswith("/acl/enforce") for call in respx.calls)
+
+
 @respx.mock
 def test_unsigned_jwt_does_not_pass_acl_filter(gql_app: FastAPI) -> None:
     tid = str(uuid.uuid4())

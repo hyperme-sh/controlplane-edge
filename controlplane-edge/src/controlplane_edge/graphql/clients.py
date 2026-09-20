@@ -84,9 +84,9 @@ async def fetch_acl_policies_json(ctx: GraphQLContext) -> list[dict[str, Any]]:
 
 async def enforce_listing_read(ctx: GraphQLContext, listing_id: uuid.UUID) -> bool:
     """POST /acl/enforce for RBAC read on a concrete listing object."""
-    base = ctx.settings.acl_service_url
+    base = (ctx.settings.acl_service_url or "").strip()
     if not base:
-        return True
+        return False
     sub = ctx.user_sub
     if not sub:
         return False
