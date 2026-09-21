@@ -118,8 +118,9 @@ async def test_grpc_echo_requires_metadata(monkeypatch: pytest.MonkeyPatch) -> N
 
     from controlplane_edge.grpc_server import grpc_server_lifespan
 
-    async with grpc_server_lifespan(host="127.0.0.1", port=50552, enabled=True):
-        async with grpc.aio.insecure_channel("127.0.0.1:50552") as channel:
+    async with grpc_server_lifespan(host="127.0.0.1", port=0, enabled=True) as server:
+        assert server is not None
+        async with grpc.aio.insecure_channel(f"127.0.0.1:{server.bound_port}") as channel:
             stub = contractecho_pb2_grpc.ContractEchoStub(channel)
             req = contractecho_pb2.UserWire(id=str(uuid.uuid4()), email="a@b.com", display_name="x")
             with pytest.raises(grpc.aio.AioRpcError) as ei:
@@ -137,8 +138,9 @@ async def test_grpc_echo_with_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
     from controlplane_edge.grpc_server import grpc_server_lifespan
 
     tid = str(uuid.uuid4())
-    async with grpc_server_lifespan(host="127.0.0.1", port=50553, enabled=True):
-        async with grpc.aio.insecure_channel("127.0.0.1:50553") as channel:
+    async with grpc_server_lifespan(host="127.0.0.1", port=0, enabled=True) as server:
+        assert server is not None
+        async with grpc.aio.insecure_channel(f"127.0.0.1:{server.bound_port}") as channel:
             stub = contractecho_pb2_grpc.ContractEchoStub(channel)
             req = contractecho_pb2.UserWire(id=str(uuid.uuid4()), email="a@b.com", display_name="x")
             md = (
