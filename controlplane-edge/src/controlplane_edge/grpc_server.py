@@ -70,8 +70,9 @@ async def grpc_server_lifespan(
 
     server = grpc.aio.server()
     contractecho_pb2_grpc.add_ContractEchoServicer_to_server(ContractEchoServicer(), server)
-    listen = f"{host}:{port}"
-    server.add_insecure_port(listen)
+    bound = server.add_insecure_port(f"{host}:{port}")
+    listen = f"{host}:{bound}"
+    setattr(server, "bound_port", bound)
     await server.start()
     logger.info("gRPC ContractEcho listening on %s", listen)
     try:
