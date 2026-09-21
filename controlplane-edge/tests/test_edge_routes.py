@@ -96,6 +96,15 @@ def test_extracted_prefixes_match_configured_upstreams() -> None:
         "/api/v1/turn/allocate": ("turn", "http://turn.example"),
         "/api/v1/oracles/v0/attest": ("oracles", "http://oracles.example"),
         "/api/v1/aiuditor/connections": ("aiuditor", "http://aiuditor.example"),
+        "/api/v1/aiuditor/catalog": ("aiuditor", "http://aiuditor.example"),
+        "/api/v1/aiuditor/catalog/cccccccc-cccc-4ccc-8ccc-cccccccccc01/allocate": (
+            "aiuditor",
+            "http://aiuditor.example",
+        ),
+        "/api/v1/aiuditor/contracts/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/grant": (
+            "aiuditor",
+            "http://aiuditor.example",
+        ),
         "/api/v1/hypermesh/leases": ("hypermesh", "http://hm.example"),
         "/api/v1/hypermesh/site/jobs": ("hypermesh", "http://hm.example"),
         "/api/v1/hypermesh/site/devices/a6400000-0640-4000-8000-000000000001": (
@@ -130,6 +139,31 @@ def test_hypermesh_gateway_is_never_proxied() -> None:
         "/api/v1/hypermesh-gateway/tunnels/apply",
     ):
         assert match_edge_route(path, settings) is None, path
+
+
+def test_aiuditor_does_not_wrap_sibling_products() -> None:
+    """TURN / oracles / payments stay on their prefixes. Catalog is AIuditor."""
+
+    settings = _urls(
+        aiuditor_service_url="http://aiuditor.example",
+        turn_service_url="http://turn.example",
+        oracles_service_url="http://oracles.example",
+        payments_service_url="http://payments.example",
+    )
+    siblings = {
+        "/api/v1/turn/allocate": "turn",
+        "/api/v1/oracles/v0/attest": "oracles",
+        "/api/v1/payments/v0/intent": "payments",
+        "/api/v1/payments/v0/receipt": "payments",
+    }
+    for path, service_id in siblings.items():
+        match = match_edge_route(path, settings)
+        assert match is not None, path
+        assert match.service_id == service_id
+        assert match.service_id != "aiuditor"
+    catalog = match_edge_route("/api/v1/aiuditor/catalog", settings)
+    assert catalog is not None
+    assert catalog.service_id == "aiuditor"
 
 
 def test_aiuditor_prefix_does_not_steal_site_inbox() -> None:
