@@ -1,4 +1,4 @@
-"""Documented public Hypermesh browse paths (GET catalog + GET classes).
+"""Documented public Hypermesh browse paths (GET catalog, classes, and nodes).
 
 These paths already exist on hypermesh-service. The gateway lists them on
 ``/openapi.json`` so the marketing site and renters can find them without
@@ -15,6 +15,7 @@ PUBLIC_HYPERMESH_BROWSE_PATHS = frozenset(
     {
         "/api/v1/hypermesh/catalog",
         "/api/v1/hypermesh/classes",
+        "/api/v1/hypermesh/nodes",
     }
 )
 
@@ -22,7 +23,7 @@ router = APIRouter(prefix="/api/v1/hypermesh", tags=["hypermesh"])
 
 
 def is_public_hypermesh_browse(path: str, method: str = "GET") -> bool:
-    """True for unauthenticated GET catalog / GET classes only."""
+    """True for unauthenticated GET catalog, classes, and nodes only."""
 
     if method.upper() != "GET":
         return False
@@ -76,4 +77,28 @@ async def list_public_hypermesh_classes() -> list[dict]:
     raise HTTPException(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         detail="Hypermesh classes are served by hypermesh-service",
+    )
+
+
+@router.get(
+    "/nodes",
+    summary="List public Hypermesh nodes",
+    description=(
+        "Public Hypermesh / Hyperme.sh boxes. No key. Returns public_sku "
+        "classes only. Public label is class plus a short id. No serial, "
+        "org, keys, or device id. Checkout, lease, and chat stay "
+        "authenticated. Served by hypermesh-service via the gateway edge proxy."
+    ),
+    operation_id="listPublicHypermeshNodes",
+    openapi_extra={"security": []},
+    responses={
+        200: {
+            "description": "Public Hypermesh nodes (public_sku=true classes only)",
+        }
+    },
+)
+async def list_public_hypermesh_nodes() -> list[dict]:
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="Hypermesh nodes are served by hypermesh-service",
     )

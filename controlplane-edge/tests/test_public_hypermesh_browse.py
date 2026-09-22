@@ -41,10 +41,13 @@ def browse_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
 def test_hypermesh_browse_is_public_get_only() -> None:
     assert is_public_path("/api/v1/hypermesh/catalog", "GET") is True
     assert is_public_path("/api/v1/hypermesh/classes", "GET") is True
+    assert is_public_path("/api/v1/hypermesh/nodes", "GET") is True
     assert is_public_path("/api/v1/hypermesh/catalog/", "GET") is True
     assert is_public_path("/api/v1/hypermesh/classes/", "GET") is True
+    assert is_public_path("/api/v1/hypermesh/nodes/", "GET") is True
     assert is_public_path("/api/v1/hypermesh/catalog", "POST") is False
     assert is_public_path("/api/v1/hypermesh/classes", "POST") is False
+    assert is_public_path("/api/v1/hypermesh/nodes", "POST") is False
     assert is_public_path("/api/v1/hypermesh/leases", "GET") is False
     assert is_public_path("/api/v1/hypermesh/leases", "POST") is False
     assert is_public_path("/api/v1/hypermesh/renter/hosts", "GET") is False
@@ -74,13 +77,17 @@ def test_openapi_lists_public_hypermesh_browse_paths(browse_app: FastAPI) -> Non
     paths = spec["paths"]
     assert "/api/v1/hypermesh/catalog" in paths
     assert "/api/v1/hypermesh/classes" in paths
+    assert "/api/v1/hypermesh/nodes" in paths
     assert "get" in paths["/api/v1/hypermesh/catalog"]
     assert "get" in paths["/api/v1/hypermesh/classes"]
+    assert "get" in paths["/api/v1/hypermesh/nodes"]
     assert "post" not in paths["/api/v1/hypermesh/catalog"]
     catalog_op = paths["/api/v1/hypermesh/catalog"]["get"]
     classes_op = paths["/api/v1/hypermesh/classes"]["get"]
+    nodes_op = paths["/api/v1/hypermesh/nodes"]["get"]
     assert catalog_op.get("security") == []
     assert classes_op.get("security") == []
+    assert nodes_op.get("security") == []
     catalog_text = f"{catalog_op.get('summary')} {catalog_op.get('description')}".lower()
     classes_text = f"{classes_op.get('summary')} {classes_op.get('description')}".lower()
     assert "hypermesh" in catalog_text
@@ -113,6 +120,18 @@ def test_unauthenticated_catalog_and_classes_are_proxied(browse_app: FastAPI) ->
     respx.get("http://hm.browse.test/api/v1/hypermesh/classes").mock(
         return_value=httpx.Response(200, json=classes_body)
     )
+    nodes_body = [
+        {
+            "public_label": "agx-large-a6400000",
+            "class_id": "agx-large",
+            "certified": True,
+            "online": True,
+            "selling": True,
+        }
+    ]
+    respx.get("http://hm.browse.test/api/v1/hypermesh/nodes").mock(
+        return_value=httpx.Response(200, json=nodes_body)
+    )
     with TestClient(browse_app) as client:
         catalog = client.get(
             "/api/v1/hypermesh/catalog",
@@ -122,12 +141,19 @@ def test_unauthenticated_catalog_and_classes_are_proxied(browse_app: FastAPI) ->
             "/api/v1/hypermesh/classes",
             headers={"Origin": "https://hyperme.sh"},
         )
+        nodes = client.get(
+            "/api/v1/hypermesh/nodes",
+            headers={"Origin": "https://hyperme.sh"},
+        )
     assert catalog.status_code == 200, catalog.text
     assert classes.status_code == 200, classes.text
+    assert nodes.status_code == 200, nodes.text
     assert catalog.json()[0]["id"] == "llama-3.1-8b-q4"
     assert all(row["public_sku"] is True for row in classes.json())
     assert {row["id"] for row in classes.json()} == {"nx-volume", "agx-large"}
     assert all(row["id"] != "thor" for row in classes.json())
+    assert nodes.json()[0]["public_label"] == "agx-large-a6400000"
+    assert "device_id" not in nodes.json()[0]
 
 
 @respx.mock

@@ -55,6 +55,7 @@ def test_hypermesh_agent_device_secret_routes_are_public() -> None:
 def test_hypermesh_agent_allowlist_does_not_widen_browse_or_prefix() -> None:
     assert is_public_path("/api/v1/hypermesh/catalog", "GET") is True
     assert is_public_path("/api/v1/hypermesh/classes", "GET") is True
+    assert is_public_path("/api/v1/hypermesh/nodes", "GET") is True
     assert is_public_path("/api/v1/hypermesh/catalog", "POST") is False
     assert is_public_path("/api/v1/hypermesh/classes", "POST") is False
     assert is_public_path("/api/v1/hypermesh", "GET") is False

@@ -272,5 +272,7 @@ async def test_merged_openapi_lists_live_public_hypermesh_browse(minimal_app):
     validate(merged)
     assert "/api/v1/hypermesh/catalog" in merged["paths"]
     assert "/api/v1/hypermesh/classes" in merged["paths"]
+    assert "/api/v1/hypermesh/nodes" in merged["paths"]
     assert "get" in merged["paths"]["/api/v1/hypermesh/catalog"]
     assert "get" in merged["paths"]["/api/v1/hypermesh/classes"]
+    assert "get" in merged["paths"]["/api/v1/hypermesh/nodes"]

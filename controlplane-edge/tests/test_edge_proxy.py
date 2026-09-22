@@ -197,6 +197,7 @@ def test_users_require_auth_when_not_public(edge_app: FastAPI) -> None:
     assert is_public_path("/api/v1/payments/stripe/webhook", "POST") is True
     assert is_public_path("/api/v1/hypermesh/catalog", "GET") is True
     assert is_public_path("/api/v1/hypermesh/classes", "GET") is True
+    assert is_public_path("/api/v1/hypermesh/nodes", "GET") is True
     assert is_public_path("/api/v1/hypermesh/agent/enroll", "POST") is True
     assert is_public_path("/api/v1/hypermesh/agent/enroll", "GET") is False
     assert is_public_path("/api/v1/hypermesh/leases", "POST") is False
