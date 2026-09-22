@@ -17,6 +17,7 @@ PUBLIC_HYPERMESH_AGENT_EXACT: frozenset[tuple[str, str]] = frozenset(
         ("POST", "/api/v1/hypermesh/agent/enroll"),
         ("POST", "/api/v1/hypermesh/agent/heartbeat"),
         ("GET", "/api/v1/hypermesh/agent/jobs"),
+        ("POST", "/api/v1/hypermesh/agent/scorecard"),
         ("GET", "/api/v1/hypermesh/agent/tunnel"),
         ("POST", "/api/v1/hypermesh/agent/tunnel/ack"),
     }
@@ -42,7 +43,7 @@ def _is_agent_job_result(path: str) -> bool:
 
 
 def is_public_hypermesh_agent(path: str, method: str = "GET") -> bool:
-    """True for Host agent enroll / heartbeat / jobs / tunnel only."""
+    """True for Host agent enroll / heartbeat / jobs / scorecard / tunnel only."""
 
     method = method.upper()
     norm = path.rstrip("/") or "/"

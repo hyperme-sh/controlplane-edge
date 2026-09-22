@@ -48,6 +48,9 @@ def test_hypermesh_agent_device_secret_routes_are_public() -> None:
     assert is_public_path("/api/v1/hypermesh/agent/jobs/", "GET") is True
     assert is_public_path(f"/api/v1/hypermesh/agent/jobs/{JOB_ID}/result", "POST") is True
     assert is_public_path(f"/api/v1/hypermesh/agent/jobs/{JOB_ID}/result/", "POST") is True
+    assert is_public_path("/api/v1/hypermesh/agent/scorecard", "POST") is True
+    assert is_public_path("/api/v1/hypermesh/agent/scorecard/", "POST") is True
+    assert is_public_path("/api/v1/hypermesh/agent/scorecard", "GET") is False
     assert is_public_path("/api/v1/hypermesh/agent/tunnel", "GET") is True
     assert is_public_path("/api/v1/hypermesh/agent/tunnel/ack", "POST") is True
 
@@ -142,6 +145,9 @@ def test_device_secret_agent_routes_are_proxied(agent_app: FastAPI) -> None:
     respx.post("http://hm.agent.test/api/v1/hypermesh/agent/tunnel/ack").mock(
         return_value=httpx.Response(200, json={"applied": True})
     )
+    respx.post("http://hm.agent.test/api/v1/hypermesh/agent/scorecard").mock(
+        return_value=httpx.Response(200, json={"catalog_id": "llama-3.1-8b-q4"})
+    )
     with TestClient(agent_app) as client:
         beat = client.post(
             "/api/v1/hypermesh/agent/heartbeat",
@@ -164,11 +170,17 @@ def test_device_secret_agent_routes_are_proxied(agent_app: FastAPI) -> None:
             headers=headers,
             json={"applied": True},
         )
+        scorecard = client.post(
+            "/api/v1/hypermesh/agent/scorecard",
+            headers=headers,
+            json={"device_id": str(JOB_ID), "catalog_id": "llama-3.1-8b-q4"},
+        )
     assert beat.status_code == 200, beat.text
     assert jobs.status_code == 204
     assert result.status_code == 200, result.text
     assert tunnel.status_code == 204
     assert ack.status_code == 200, ack.text
+    assert scorecard.status_code == 200, scorecard.text
 
 
 @respx.mock
