@@ -26,6 +26,9 @@ def is_public_path(path: str, method: str = "GET") -> bool:
         "/auth/login",
         "/auth/callback",
         "/auth/refresh",
+        # GitHub OIDC is not a Keycloak or tenant-session JWT. The auth
+        # service verifies it. The edge must not reject it first.
+        "/auth/hypermesh-smoke/session",
         "/api/v1/payments/stripe/webhook",
     )
     if any(path == p or path.startswith(p + "/") for p in edge_public):

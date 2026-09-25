@@ -180,6 +180,28 @@ def test_upstream_error_returns_502(edge_app: FastAPI) -> None:
 
 
 @respx.mock
+def test_hypermesh_smoke_session_is_public_and_proxied(edge_app: FastAPI) -> None:
+    """GitHub OIDC is not a Keycloak JWT. The edge must proxy it anyway."""
+
+    route = respx.post("http://auth.edge.test/auth/hypermesh-smoke/session").mock(
+        return_value=httpx.Response(200, json={"token_type": "Bearer"})
+    )
+    bearer = _fake_bearer(sub="repo:FyberLabs/panopticon:environment:test")
+    with TestClient(edge_app) as client:
+        missing = client.post("/auth/hypermesh-smoke/session", json={})
+        present = client.post(
+            "/auth/hypermesh-smoke/session",
+            headers={"Authorization": f"Bearer {bearer}"},
+            json={},
+        )
+    assert is_public_path("/auth/hypermesh-smoke/session", "POST") is True
+    assert missing.status_code == 200
+    assert present.status_code == 200
+    assert present.json() == {"token_type": "Bearer"}
+    assert route.calls[-1].request.headers["authorization"] == f"Bearer {bearer}"
+
+
+@respx.mock
 def test_stripe_webhook_is_public_and_proxied(edge_app: FastAPI) -> None:
     respx.post("http://pay.edge.test/api/v1/payments/stripe/webhook").mock(
         return_value=httpx.Response(200, json={"received": True})
@@ -193,6 +215,7 @@ def test_stripe_webhook_is_public_and_proxied(edge_app: FastAPI) -> None:
 def test_users_require_auth_when_not_public(edge_app: FastAPI) -> None:
     assert is_public_path("/api/v1/users", "GET") is False
     assert is_public_path("/auth/login", "POST") is True
+    assert is_public_path("/auth/hypermesh-smoke/session", "POST") is True
     assert is_public_path("/auth/me", "GET") is False
     assert is_public_path("/api/v1/payments/stripe/webhook", "POST") is True
     assert is_public_path("/api/v1/hypermesh/catalog", "GET") is True
