@@ -53,6 +53,11 @@ def test_hypermesh_agent_device_secret_routes_are_public() -> None:
     assert is_public_path("/api/v1/hypermesh/agent/scorecard", "GET") is False
     assert is_public_path("/api/v1/hypermesh/agent/tunnel", "GET") is True
     assert is_public_path("/api/v1/hypermesh/agent/tunnel/ack", "POST") is True
+    assert is_public_path("/api/v1/hypermesh/agent/tunnel/peer", "POST") is True
+    assert is_public_path("/api/v1/hypermesh/agent/tunnel/peer/", "POST") is True
+    assert is_public_path("/api/v1/hypermesh/agent/tunnel/peer", "GET") is False
+    assert is_public_path("/api/v1/hypermesh/agent/tunnel/peer", "PUT") is False
+    assert is_public_path("/api/v1/hypermesh/agent/tunnel/peer", "DELETE") is False
 
 
 def test_hypermesh_agent_allowlist_does_not_widen_browse_or_prefix() -> None:
@@ -66,6 +71,10 @@ def test_hypermesh_agent_allowlist_does_not_widen_browse_or_prefix() -> None:
     assert is_public_path("/api/v1/hypermesh/agent/enroll/extra", "POST") is False
     assert is_public_path("/api/v1/hypermesh/agent/heartbeat", "GET") is False
     assert is_public_path("/api/v1/hypermesh/agent/jobs", "POST") is False
+    assert is_public_path("/api/v1/hypermesh/agent/tunnel", "POST") is False
+    assert is_public_path("/api/v1/hypermesh/agent/tunnel/peer/extra", "POST") is False
+    assert is_public_path("/api/v1/hypermesh/agent/not-a-listed-route", "GET") is False
+    assert is_public_path("/api/v1/hypermesh/agent/not-a-listed-route", "POST") is False
     assert is_public_path(f"/api/v1/hypermesh/agent/jobs/{JOB_ID}/result", "GET") is False
     assert is_public_path("/api/v1/hypermesh/agent/jobs/not-a-uuid/result", "POST") is False
     assert is_public_path(
@@ -145,6 +154,9 @@ def test_device_secret_agent_routes_are_proxied(agent_app: FastAPI) -> None:
     respx.post("http://hm.agent.test/api/v1/hypermesh/agent/tunnel/ack").mock(
         return_value=httpx.Response(200, json={"applied": True})
     )
+    respx.post("http://hm.agent.test/api/v1/hypermesh/agent/tunnel/peer").mock(
+        return_value=httpx.Response(200, json={"peer_public_key": "host-pub"})
+    )
     respx.post("http://hm.agent.test/api/v1/hypermesh/agent/scorecard").mock(
         return_value=httpx.Response(200, json={"catalog_id": "llama-3.1-8b-q4"})
     )
@@ -170,6 +182,11 @@ def test_device_secret_agent_routes_are_proxied(agent_app: FastAPI) -> None:
             headers=headers,
             json={"applied": True},
         )
+        peer = client.post(
+            "/api/v1/hypermesh/agent/tunnel/peer",
+            headers=headers,
+            json={"peer_public_key": "host-pub"},
+        )
         scorecard = client.post(
             "/api/v1/hypermesh/agent/scorecard",
             headers=headers,
@@ -180,7 +197,18 @@ def test_device_secret_agent_routes_are_proxied(agent_app: FastAPI) -> None:
     assert result.status_code == 200, result.text
     assert tunnel.status_code == 204
     assert ack.status_code == 200, ack.text
+    assert peer.status_code == 200, peer.text
+    assert peer.json().get("detail") != "Invalid or missing JWT claims"
     assert scorecard.status_code == 200, scorecard.text
+    peer_calls = [
+        call.request
+        for call in respx.calls
+        if call.request.method == "POST"
+        and call.request.url.path == "/api/v1/hypermesh/agent/tunnel/peer"
+    ]
+    assert len(peer_calls) == 1
+    assert peer_calls[0].headers["authorization"] == "Bearer hm_dev_not-a-jwt"
+    assert peer_calls[0].headers["x-tenant-id"] == str(TENANT_ID)
 
 
 @respx.mock
@@ -206,3 +234,62 @@ def test_lease_and_device_mint_still_require_auth(agent_app: FastAPI) -> None:
     assert catalog_post.status_code == 401
     assert lease.json()["detail"] == CPEDGE_AUTH_DETAIL
     assert mint.json()["detail"] == CPEDGE_AUTH_DETAIL
+
+
+@respx.mock
+def test_tunnel_peer_non_device_bearer_is_not_a_success(agent_app: FastAPI) -> None:
+    """Public agent paths skip gateway JWT and forward the bearer.
+
+    hypermesh-service ``_require_device_auth`` rejects anything that is not
+    a device secret. A garbage token and an ``hm_site_`` token must not
+    receive a 2xx from this route. The edge propagates the service 401
+    rather than answering success itself.
+    """
+
+    route = respx.post("http://hm.agent.test/api/v1/hypermesh/agent/tunnel/peer").mock(
+        return_value=httpx.Response(401, json={"detail": "Invalid device credential"})
+    )
+    body = {"peer_public_key": "a" * 44}
+    with TestClient(agent_app) as client:
+        garbage = client.post(
+            "/api/v1/hypermesh/agent/tunnel/peer",
+            headers={
+                "X-Tenant-ID": str(TENANT_ID),
+                "Authorization": "Bearer not-a-jwt",
+            },
+            json=body,
+        )
+        site = client.post(
+            "/api/v1/hypermesh/agent/tunnel/peer",
+            headers={
+                "X-Tenant-ID": str(TENANT_ID),
+                "Authorization": "Bearer hm_site_cottage-token",
+            },
+            json=body,
+        )
+    assert garbage.status_code == 401, garbage.text
+    assert site.status_code == 401, site.text
+    assert not 200 <= garbage.status_code < 300
+    assert not 200 <= site.status_code < 300
+    assert garbage.json()["detail"] == "Invalid device credential"
+    assert site.json()["detail"] == "Invalid device credential"
+    assert route.call_count == 2
+    assert [call.request.headers["authorization"] for call in route.calls] == [
+        "Bearer not-a-jwt",
+        "Bearer hm_site_cottage-token",
+    ]
+
+
+def test_unlisted_hypermesh_agent_path_stays_non_public(agent_app: FastAPI) -> None:
+    assert is_public_path("/api/v1/hypermesh/agent/not-a-listed-route", "POST") is False
+    with TestClient(agent_app) as client:
+        denied = client.post(
+            "/api/v1/hypermesh/agent/not-a-listed-route",
+            headers={
+                "X-Tenant-ID": str(TENANT_ID),
+                "Authorization": "Bearer hm_dev_not-a-jwt",
+            },
+            json={},
+        )
+    assert denied.status_code == 401
+    assert denied.json()["detail"] == "Invalid or missing JWT claims"

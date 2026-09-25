@@ -5,6 +5,10 @@ either no Authorization (enroll: one-time ``enroll_token`` in the JSON
 body) or ``Authorization: Bearer <device_secret>`` (``hm_dev_…``).
 hypermesh-service validates those credentials via ``_require_device_auth``
 and the enroll-token hash. Do not prefix-match ``/api/v1/hypermesh``.
+
+Exact ``(method, path)`` pairs only. ``POST /api/v1/hypermesh/agent/tunnel/peer``
+is the host WireGuard public-key post (the plane never sees the private key).
+No prefix match.
 """
 
 from __future__ import annotations
@@ -20,6 +24,7 @@ PUBLIC_HYPERMESH_AGENT_EXACT: frozenset[tuple[str, str]] = frozenset(
         ("POST", "/api/v1/hypermesh/agent/scorecard"),
         ("GET", "/api/v1/hypermesh/agent/tunnel"),
         ("POST", "/api/v1/hypermesh/agent/tunnel/ack"),
+        ("POST", "/api/v1/hypermesh/agent/tunnel/peer"),
     }
 )
 
@@ -43,7 +48,11 @@ def _is_agent_job_result(path: str) -> bool:
 
 
 def is_public_hypermesh_agent(path: str, method: str = "GET") -> bool:
-    """True for Host agent enroll / heartbeat / jobs / scorecard / tunnel only."""
+    """True for Host agent enroll / heartbeat / jobs / scorecard / tunnel paths.
+
+    Includes GET tunnel, POST tunnel/ack, and POST tunnel/peer. Exact
+    method and path only (trailing slash stripped). Not a prefix match.
+    """
 
     method = method.upper()
     norm = path.rstrip("/") or "/"
