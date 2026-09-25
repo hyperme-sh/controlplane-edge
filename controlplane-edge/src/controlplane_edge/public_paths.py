@@ -20,15 +20,17 @@ def is_public_path(path: str, method: str = "GET") -> bool:
         return True
     if path.startswith("/changelog/openapi"):
         return True
+    # GitHub OIDC is not a Keycloak or tenant-session JWT. The auth
+    # service verifies it. Allow this one method and path, not a prefix
+    # and not GET.
+    if method.upper() == "POST" and path == "/auth/hypermesh-smoke/session":
+        return True
     # Extracted-service surfaces that must work without a session JWT
     # (OIDC start/callback/refresh; Stripe webhook).
     edge_public = (
         "/auth/login",
         "/auth/callback",
         "/auth/refresh",
-        # GitHub OIDC is not a Keycloak or tenant-session JWT. The auth
-        # service verifies it. The edge must not reject it first.
-        "/auth/hypermesh-smoke/session",
         "/api/v1/payments/stripe/webhook",
     )
     if any(path == p or path.startswith(p + "/") for p in edge_public):

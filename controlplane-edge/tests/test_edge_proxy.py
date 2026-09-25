@@ -202,6 +202,34 @@ def test_hypermesh_smoke_session_is_public_and_proxied(edge_app: FastAPI) -> Non
 
 
 @respx.mock
+def test_hypermesh_smoke_session_rejects_get_and_subpath(edge_app: FastAPI) -> None:
+    """POST /auth/hypermesh-smoke/session is exact. GET and subpaths stay closed."""
+
+    session = respx.post("http://auth.edge.test/auth/hypermesh-smoke/session").mock(
+        return_value=httpx.Response(200, json={"token_type": "Bearer"})
+    )
+    session_get = respx.get("http://auth.edge.test/auth/hypermesh-smoke/session").mock(
+        return_value=httpx.Response(200, json={"token_type": "Bearer"})
+    )
+    nested = respx.post("http://auth.edge.test/auth/hypermesh-smoke/session/x").mock(
+        return_value=httpx.Response(200, json={"token_type": "Bearer"})
+    )
+    assert is_public_path("/auth/hypermesh-smoke/session", "GET") is False
+    assert is_public_path("/auth/hypermesh-smoke/session/x", "POST") is False
+    with TestClient(edge_app) as client:
+        got = client.get("/auth/hypermesh-smoke/session")
+        subpath = client.post("/auth/hypermesh-smoke/session/x", json={})
+    assert got.status_code == 401
+    assert subpath.status_code == 401
+    assert got.json()["detail"] == (
+        "Authorization Bearer token or valid X-Api-Key required"
+    )
+    assert session.called is False
+    assert session_get.called is False
+    assert nested.called is False
+
+
+@respx.mock
 def test_stripe_webhook_is_public_and_proxied(edge_app: FastAPI) -> None:
     respx.post("http://pay.edge.test/api/v1/payments/stripe/webhook").mock(
         return_value=httpx.Response(200, json={"received": True})
@@ -216,6 +244,8 @@ def test_users_require_auth_when_not_public(edge_app: FastAPI) -> None:
     assert is_public_path("/api/v1/users", "GET") is False
     assert is_public_path("/auth/login", "POST") is True
     assert is_public_path("/auth/hypermesh-smoke/session", "POST") is True
+    assert is_public_path("/auth/hypermesh-smoke/session", "GET") is False
+    assert is_public_path("/auth/hypermesh-smoke/session/x", "POST") is False
     assert is_public_path("/auth/me", "GET") is False
     assert is_public_path("/api/v1/payments/stripe/webhook", "POST") is True
     assert is_public_path("/api/v1/hypermesh/catalog", "GET") is True
