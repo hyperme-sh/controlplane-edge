@@ -42,6 +42,9 @@ def test_hypermesh_browse_is_public_get_only() -> None:
     assert is_public_path("/api/v1/hypermesh/catalog", "GET") is True
     assert is_public_path("/api/v1/hypermesh/classes", "GET") is True
     assert is_public_path("/api/v1/hypermesh/nodes", "GET") is True
+    assert is_public_path("/api/v1/hypermesh/ready", "GET") is True
+    assert is_public_path("/api/v1/hypermesh/ready/", "GET") is True
+    assert is_public_path("/api/v1/hypermesh/ready", "POST") is False
     assert is_public_path("/api/v1/hypermesh/catalog/", "GET") is True
     assert is_public_path("/api/v1/hypermesh/classes/", "GET") is True
     assert is_public_path("/api/v1/hypermesh/nodes/", "GET") is True

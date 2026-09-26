@@ -16,6 +16,7 @@ PUBLIC_HYPERMESH_BROWSE_PATHS = frozenset(
         "/api/v1/hypermesh/catalog",
         "/api/v1/hypermesh/classes",
         "/api/v1/hypermesh/nodes",
+        "/api/v1/hypermesh/ready",
     }
 )
 
@@ -23,7 +24,7 @@ router = APIRouter(prefix="/api/v1/hypermesh", tags=["hypermesh"])
 
 
 def is_public_hypermesh_browse(path: str, method: str = "GET") -> bool:
-    """True for unauthenticated GET catalog, classes, and nodes only."""
+    """True for unauthenticated GET catalog, classes, nodes, and ready only."""
 
     if method.upper() != "GET":
         return False
@@ -101,4 +102,23 @@ async def list_public_hypermesh_nodes() -> list[dict]:
     raise HTTPException(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         detail="Hypermesh nodes are served by hypermesh-service",
+    )
+
+
+@router.get(
+    "/ready",
+    summary="Hypermesh process is listening",
+    description=(
+        "Cheap liveness for the deployed hypermesh image. No key. The live "
+        "response carries x-hypermesh-revision. Served by hypermesh-service "
+        "via the gateway edge proxy."
+    ),
+    operation_id="getPublicHypermeshReady",
+    openapi_extra={"security": []},
+    responses={200: {"description": "Hypermesh process is listening"}},
+)
+async def get_public_hypermesh_ready() -> dict:
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="Hypermesh ready is served by hypermesh-service",
     )
