@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+import time
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
 
@@ -19,6 +20,7 @@ from fastapi.responses import JSONResponse
 
 from api.interfaces.api_controllers.version_endpoint import version_payload
 from controlplane_edge.aggregation_settings import OpenAPIAggregationSettings
+from controlplane_edge.edge_settings import versions_access_mode
 
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
 _GIT_SHA = re.compile(r"^[0-9a-f]{40}$")
@@ -49,8 +51,48 @@ VERSION_UPSTREAMS: tuple[tuple[str, str], ...] = (
 )
 
 FetchVersion = Callable[[str], Awaitable[Mapping[str, Any]]]
+VersionDocument = dict[str, list[dict[str, str]]]
+LoadVersions = Callable[[], Awaitable[VersionDocument]]
 
 _PROBE_TIMEOUT_S = 2.0
+# Inside the 15–30s window. Short enough that a refresh shows up on the next
+# freshness pass, long enough that a burst of GETs is one upstream fan-out.
+VERSIONS_CACHE_TTL_S = 20.0
+
+_cache_lock = asyncio.Lock()
+_cached_body: VersionDocument | None = None
+_cached_until = 0.0
+
+
+def reset_versions_cache() -> None:
+    """Drop the in-process /versions cache. Tests call this between cases."""
+
+    global _cached_body, _cached_until
+    _cached_body = None
+    _cached_until = 0.0
+
+
+async def cached_service_versions(
+    loader: LoadVersions,
+    *,
+    now: Callable[[], float] | None = None,
+    ttl: float = VERSIONS_CACHE_TTL_S,
+) -> VersionDocument:
+    """Return the last fan-out while it is fresh. One loader runs at a time."""
+
+    global _cached_body, _cached_until
+    clock = now or time.monotonic
+    moment = clock()
+    if _cached_body is not None and moment < _cached_until:
+        return _cached_body
+    async with _cache_lock:
+        moment = clock()
+        if _cached_body is not None and moment < _cached_until:
+            return _cached_body
+        payload = await loader()
+        _cached_body = payload
+        _cached_until = clock() + ttl
+        return payload
 
 
 def public_version_fields(body: Mapping[str, Any], *, fallback_service: str) -> dict[str, str]:
@@ -113,8 +155,7 @@ async def collect_service_versions(
     return {"services": rows}
 
 
-@router.get("/versions")
-async def versions() -> JSONResponse:
+async def _probe_service_versions() -> VersionDocument:
     settings = OpenAPIAggregationSettings()
     async with httpx.AsyncClient(timeout=_PROBE_TIMEOUT_S) as client:
 
@@ -126,5 +167,12 @@ async def versions() -> JSONResponse:
                 raise ValueError("version payload was not an object")
             return body
 
-        payload = await collect_service_versions(settings, fetch)
+        return await collect_service_versions(settings, fetch)
+
+
+@router.get("/versions")
+async def versions() -> JSONResponse:
+    if versions_access_mode() == "off":
+        return JSONResponse(status_code=404, content={"detail": "versions is disabled"})
+    payload = await cached_service_versions(_probe_service_versions)
     return JSONResponse(payload)

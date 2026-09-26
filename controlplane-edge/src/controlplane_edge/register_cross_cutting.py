@@ -69,7 +69,7 @@ def register_gateway_cross_cutting(app: FastAPI) -> None:
     # Live GET is proxied to hypermesh-service. These routes exist so
     # /openapi.json lists the public Hypermesh browse paths at their real URLs.
     app.include_router(public_hypermesh_browse_router)
-    # Peer /version summary. Unauthenticated; see public_paths.
+    # Peer /version summary. Public only when EDGE_VERSIONS_ACCESS=public.
     app.include_router(service_versions_router)
 
     # Innermost: proxy matched prefixes after auth / rate-limit have run.

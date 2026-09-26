@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import asyncio
 from pathlib import Path
 
 import pytest
@@ -11,12 +12,15 @@ from fastapi.testclient import TestClient
 from starlette.routing import Match
 
 from api.interfaces.api_controllers.version_endpoint import router, version_payload
-from controlplane_edge.public_paths import is_public_path
+from controlplane_edge.public_paths import is_public_path, is_versions_path
 from controlplane_edge.service_versions import (
     VERSION_UPSTREAMS,
+    cached_service_versions,
     collect_service_versions,
     public_version_fields,
+    reset_versions_cache,
 )
+from controlplane_edge.service_versions import router as versions_router
 
 SHA_A = "a" * 40
 SHA_B = "b" * 40
@@ -120,15 +124,18 @@ def test_get_version_is_json_and_post_is_not_the_route() -> None:
     [
         ("/version", "GET", True),
         ("/version/", "GET", True),
-        ("/versions", "GET", True),
-        ("/versions/", "GET", True),
+        ("/versions", "GET", False),
+        ("/versions/", "GET", False),
         ("/version", "POST", False),
         ("/versions", "POST", False),
         ("/version/admin", "GET", False),
         ("/versions/extra", "GET", False),
     ],
 )
-def test_version_paths_are_public_get_only(path: str, method: str, expected: bool) -> None:
+def test_version_paths_are_public_get_only(
+    path: str, method: str, expected: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("EDGE_VERSIONS_ACCESS", "authenticated")
     assert is_public_path(path, method) is expected
 
 
@@ -187,6 +194,106 @@ async def test_collect_versions_names_peers_and_marks_the_down_ones(monkeypatch:
     assert by_name["turn-service"] == {"service": "turn-service", "error": "unreachable"}
     assert "user-service" not in by_name
     assert len(VERSION_UPSTREAMS) == 15
+
+
+def test_versions_access_setting(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("EDGE_VERSIONS_ACCESS", "public")
+    assert is_public_path("/versions", "GET") is True
+    monkeypatch.setenv("EDGE_VERSIONS_ACCESS", "off")
+    assert is_public_path("/versions", "GET") is True
+    monkeypatch.setenv("EDGE_VERSIONS_ACCESS", "authenticated")
+    assert is_public_path("/versions", "GET") is False
+    monkeypatch.setenv("EDGE_VERSIONS_ACCESS", "nope")
+    assert is_public_path("/versions", "GET") is False
+    assert is_public_path("/version", "GET") is True
+    assert is_versions_path("/versions", "GET") is True
+    assert is_versions_path("/version", "GET") is False
+
+
+def test_versions_off_does_not_probe(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("EDGE_VERSIONS_ACCESS", "off")
+    reset_versions_cache()
+    app = FastAPI()
+    app.include_router(versions_router)
+    response = TestClient(app).get("/versions")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "versions is disabled"
+
+
+@pytest.mark.asyncio
+async def test_versions_cache_serves_one_fanout_until_the_ttl() -> None:
+    reset_versions_cache()
+    calls = {"n": 0}
+    clock = {"now": 0.0}
+
+    async def loader():
+        calls["n"] += 1
+        return {"services": [{"service": "controlplane-edge", "git_sha": SHA_A}]}
+
+    first = await cached_service_versions(loader, now=lambda: clock["now"], ttl=20)
+    second = await cached_service_versions(loader, now=lambda: clock["now"] + 19, ttl=20)
+    assert first == second
+    assert calls["n"] == 1
+    clock["now"] = 20
+    await cached_service_versions(loader, now=lambda: clock["now"], ttl=20)
+    assert calls["n"] == 2
+    reset_versions_cache()
+
+
+@pytest.mark.asyncio
+async def test_versions_cache_single_flight() -> None:
+    reset_versions_cache()
+    calls = {"n": 0}
+    started = asyncio.Event()
+    release = asyncio.Event()
+
+    async def loader():
+        calls["n"] += 1
+        started.set()
+        await release.wait()
+        return {"services": []}
+
+    first = asyncio.create_task(cached_service_versions(loader, ttl=20))
+    await started.wait()
+    second = asyncio.create_task(cached_service_versions(loader, ttl=20))
+    await asyncio.sleep(0)
+    release.set()
+    assert await first == await second
+    assert calls["n"] == 1
+    reset_versions_cache()
+
+
+def test_versions_stays_behind_the_rate_limiter_when_public(monkeypatch: pytest.MonkeyPatch) -> None:
+    from controlplane_edge.middleware.rate_limit import GatewayRateLimitMiddleware
+
+    monkeypatch.setenv("EDGE_VERSIONS_ACCESS", "public")
+
+    class Limiter:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def allow(self, tenant_id, user_sub) -> bool:
+            del tenant_id, user_sub
+            self.calls += 1
+            return True
+
+    app = FastAPI()
+    app.add_middleware(GatewayRateLimitMiddleware)
+
+    @app.get("/versions")
+    def versions() -> dict[str, bool]:
+        return {"ok": True}
+
+    @app.get("/version")
+    def version() -> dict[str, bool]:
+        return {"ok": True}
+
+    limiter = Limiter()
+    app.state.gateway_rate_limiter = limiter
+    client = TestClient(app)
+    assert client.get("/versions").status_code == 200
+    assert client.get("/version").status_code == 200
+    assert limiter.calls == 1
 
 
 def test_monolith_serves_version_ahead_of_the_catch_all() -> None:

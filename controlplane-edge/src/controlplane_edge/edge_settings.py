@@ -2,8 +2,26 @@
 
 from __future__ import annotations
 
-from pydantic import Field
+import os
+
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_VERSIONS_ACCESS = frozenset({"public", "authenticated", "off"})
+
+
+def versions_access_mode() -> str:
+    """Who may GET /versions. Unknown values fail closed to authenticated.
+
+    ``public`` is the test plane: the freshness workflow has no token.
+    ``authenticated`` is the default, including production. ``off`` answers
+    404 and does not probe upstreams.
+    """
+
+    raw = os.environ.get("EDGE_VERSIONS_ACCESS", "authenticated").strip().lower()
+    if raw in _VERSIONS_ACCESS:
+        return raw
+    return "authenticated"
 
 
 class GatewayCrossCuttingSettings(BaseSettings):
@@ -63,6 +81,22 @@ class GatewayCrossCuttingSettings(BaseSettings):
         description="HTTP timeout for edge proxy upstreams",
         validation_alias="CPEDGE_PROXY_TIMEOUT_S",
     )
+    versions_access: str = Field(
+        default="authenticated",
+        description=(
+            "GET /versions. public is the test plane. authenticated is the "
+            "default, including production. off returns 404 and does not probe."
+        ),
+        validation_alias="EDGE_VERSIONS_ACCESS",
+    )
+
+    @field_validator("versions_access", mode="before")
+    @classmethod
+    def _versions_access(cls, value: object) -> str:
+        text = str(value or "").strip().lower()
+        if text in _VERSIONS_ACCESS:
+            return text
+        return "authenticated"
 
 
 def parse_cors_origins(raw: str) -> list[str]:
