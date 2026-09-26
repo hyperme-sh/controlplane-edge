@@ -19,6 +19,8 @@ def test_allowed_audiences_include_account_and_clients():
 def test_default_allow_list_includes_hypermesh_native():
     default = Settings.model_fields["keycloak_allowed_client_ids"].default
     assert "hypermesh-native" in default.split(",")
+    # s3r.ch backup OAuth is not a control-plane API client.
+    assert "s3rch-web" not in default.split(",")
 
 
 def test_operator_revokes_hypermesh_native_by_omitting_it_from_env(monkeypatch):
