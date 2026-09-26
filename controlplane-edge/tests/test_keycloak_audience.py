@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from jwt import InvalidTokenError
 
-from api.core.config import settings
+from api.core.config import Settings, settings
 from api.infrastructure.security import keycloak_jwt as kc
 
 
@@ -13,14 +13,18 @@ def test_allowed_audiences_include_account_and_clients():
     allowed = settings.keycloak_allowed_audience_set()
     assert "account" in allowed
     assert "controlplane-frontend" in allowed
-    assert "hypermesh-native" in settings.keycloak_allowed_azp_set()
     assert settings.keycloak_allowed_azp_set() <= allowed
 
 
-def test_hypermesh_native_stays_allowed_when_the_env_list_omits_it(monkeypatch):
+def test_default_allow_list_includes_hypermesh_native():
+    default = Settings.model_fields["keycloak_allowed_client_ids"].default
+    assert "hypermesh-native" in default.split(",")
+
+
+def test_operator_revokes_hypermesh_native_by_omitting_it_from_env(monkeypatch):
     monkeypatch.setattr(settings, "keycloak_allowed_client_ids", "controlplane-frontend")
-    assert "hypermesh-native" in settings.keycloak_allowed_azp_set()
-    assert "hypermesh-native" in settings.keycloak_allowed_audience_set()
+    assert "hypermesh-native" not in settings.keycloak_allowed_azp_set()
+    assert "hypermesh-native" not in settings.keycloak_allowed_audience_set()
 
 
 def test_empty_audience_set_is_rejected(monkeypatch):
