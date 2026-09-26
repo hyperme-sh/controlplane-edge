@@ -22,7 +22,7 @@ RUN uv sync --frozen --package controlplane-edge \
 ENV PYTHONPATH=/app/controlplane-edge/src:/app/core/lib/controlplane-core/src:/app/core/lib/controlplane-db/src
 # GIT_SHA and BUILT_AT identify this image. Below the venv layer so a new
 # commit does not reinstall dependencies. imagetools carry keeps these
-# values; PANOPTICON_IMAGE_TAG is the deploy pointer /version prefers.
+# values. /version reports this build, not the deploy tag.
 ARG GIT_SHA=
 ARG BUILT_AT=
 ENV GIT_SHA=${GIT_SHA}

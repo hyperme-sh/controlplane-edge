@@ -49,7 +49,7 @@ def test_version_modules_do_not_import_stripe_or_products() -> None:
     assert _imported_modules(_FLEET_SOURCE).isdisjoint(forbidden)
 
 
-def test_version_payload_prefers_the_deploy_tag_over_a_carried_bake() -> None:
+def test_version_payload_reports_the_baked_sha_not_the_deploy_tag() -> None:
     body = version_payload(
         {
             "SERVICE_NAME": "controlplane-edge",
@@ -63,12 +63,13 @@ def test_version_payload_prefers_the_deploy_tag_over_a_carried_bake() -> None:
     )
     assert body == {
         "service": "controlplane-edge",
-        "git_sha": SHA_B,
+        "git_sha": SHA_A,
         "built_at": STAMP,
     }
     encoded = str(body)
     assert "secret" not in encoded
     assert "password" not in encoded
+    assert SHA_B not in encoded
 
 
 def test_version_payload_ignores_a_mutable_tag_and_omits_an_unknown_digest() -> None:
