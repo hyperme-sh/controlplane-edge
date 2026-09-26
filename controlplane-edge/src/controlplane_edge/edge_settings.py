@@ -14,8 +14,8 @@ def versions_access_mode() -> str:
     """Who may GET /versions. Unknown values fail closed to authenticated.
 
     ``public`` is the test plane: the freshness workflow has no token.
-    ``authenticated`` is the default, including production. ``off`` answers
-    404 and does not probe upstreams.
+    ``authenticated`` is the code default. Production must set ``off``.
+    ``off`` answers 404 and does not probe upstreams.
     """
 
     raw = os.environ.get("EDGE_VERSIONS_ACCESS", "authenticated").strip().lower()
@@ -85,7 +85,7 @@ class GatewayCrossCuttingSettings(BaseSettings):
         default="authenticated",
         description=(
             "GET /versions. public is the test plane. authenticated is the "
-            "default, including production. off returns 404 and does not probe."
+            "code default. Production must set off. off returns 404 and does not probe."
         ),
         validation_alias="EDGE_VERSIONS_ACCESS",
     )
