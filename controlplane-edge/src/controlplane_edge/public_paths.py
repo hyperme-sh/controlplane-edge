@@ -25,6 +25,10 @@ def is_public_path(path: str, method: str = "GET") -> bool:
     # and not GET.
     if method.upper() == "POST" and path == "/auth/hypermesh-smoke/session":
         return True
+    # Build identity. GET only, exact path: /version/admin must not inherit it.
+    # /versions is the edge's peer summary for the freshness check.
+    if method.upper() == "GET" and path in ("/version", "/versions"):
+        return True
     # Extracted-service surfaces that must work without a session JWT
     # (OIDC start/callback/refresh; Stripe webhook).
     edge_public = (
