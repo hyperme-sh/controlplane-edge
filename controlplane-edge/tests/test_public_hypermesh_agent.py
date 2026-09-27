@@ -58,6 +58,13 @@ def test_hypermesh_agent_device_secret_routes_are_public() -> None:
     assert is_public_path("/api/v1/hypermesh/agent/tunnel/peer", "GET") is False
     assert is_public_path("/api/v1/hypermesh/agent/tunnel/peer", "PUT") is False
     assert is_public_path("/api/v1/hypermesh/agent/tunnel/peer", "DELETE") is False
+    assert is_public_path("/api/v1/hypermesh/agent/updates/test", "GET") is True
+    assert is_public_path("/api/v1/hypermesh/agent/updates/prod", "GET") is True
+    assert is_public_path("/api/v1/hypermesh/agent/updates/prod/", "GET") is True
+    assert is_public_path("/api/v1/hypermesh/agent/updates/test", "POST") is False
+    assert is_public_path("/api/v1/hypermesh/agent/updates/canary", "GET") is False
+    assert is_public_path("/api/v1/hypermesh/agent/updates/test/extra", "GET") is False
+    assert is_public_path("/api/v1/hypermesh/agent/updates", "GET") is False
 
 
 def test_hypermesh_agent_allowlist_does_not_widen_browse_or_prefix() -> None:
@@ -278,6 +285,36 @@ def test_tunnel_peer_non_device_bearer_is_not_a_success(agent_app: FastAPI) -> N
         "Bearer not-a-jwt",
         "Bearer hm_site_cottage-token",
     ]
+
+
+@respx.mock
+def test_agent_update_channel_is_proxied_with_device_secret(agent_app: FastAPI) -> None:
+    respx.get("http://hm.agent.test/api/v1/hypermesh/agent/updates/test").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "channel": "test",
+                "version": "0.0.0",
+                "commit": "abc",
+                "artifacts": [],
+            },
+        )
+    )
+    with TestClient(agent_app) as client:
+        got = client.get(
+            "/api/v1/hypermesh/agent/updates/test",
+            headers={
+                "X-Tenant-ID": str(TENANT_ID),
+                "Authorization": "Bearer hm_dev_not-a-jwt",
+            },
+        )
+        denied = client.get("/api/v1/hypermesh/agent/updates/canary")
+    assert got.status_code == 200, got.text
+    assert denied.status_code == 401
+    sent = respx.calls.last.request
+    assert sent.url.path == "/api/v1/hypermesh/agent/updates/test"
+    assert sent.headers["authorization"] == "Bearer hm_dev_not-a-jwt"
+    assert sent.headers["x-tenant-id"] == str(TENANT_ID)
 
 
 def test_unlisted_hypermesh_agent_path_stays_non_public(agent_app: FastAPI) -> None:

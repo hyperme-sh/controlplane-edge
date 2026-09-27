@@ -6,9 +6,11 @@ body) or ``Authorization: Bearer <device_secret>`` (``hm_dev_…``).
 hypermesh-service validates those credentials via ``_require_device_auth``
 and the enroll-token hash. Do not prefix-match ``/api/v1/hypermesh``.
 
-Exact ``(method, path)`` pairs only. ``POST /api/v1/hypermesh/agent/tunnel/peer``
+Exact ``(method, path)`` pairs only, plus two shaped paths: job results
+(UUID) and agent updates (``test`` or ``prod``). ``POST /api/v1/hypermesh/agent/tunnel/peer``
 is the host WireGuard public-key post (the plane never sees the private key).
-No prefix match.
+``GET /api/v1/hypermesh/agent/updates/{test|prod}`` is the signed update
+relay. No prefix match.
 """
 
 from __future__ import annotations
@@ -30,6 +32,8 @@ PUBLIC_HYPERMESH_AGENT_EXACT: frozenset[tuple[str, str]] = frozenset(
 
 _JOB_RESULT_PREFIX = "/api/v1/hypermesh/agent/jobs/"
 _JOB_RESULT_SUFFIX = "/result"
+_UPDATE_PREFIX = "/api/v1/hypermesh/agent/updates/"
+_UPDATE_CHANNELS = frozenset({"test", "prod"})
 
 
 def _is_agent_job_result(path: str) -> bool:
@@ -47,15 +51,26 @@ def _is_agent_job_result(path: str) -> bool:
     return True
 
 
-def is_public_hypermesh_agent(path: str, method: str = "GET") -> bool:
-    """True for Host agent enroll / heartbeat / jobs / scorecard / tunnel paths.
+def _is_agent_update(path: str) -> bool:
+    """GET /api/v1/hypermesh/agent/updates/{test|prod} only. Not a prefix."""
 
-    Includes GET tunnel, POST tunnel/ack, and POST tunnel/peer. Exact
-    method and path only (trailing slash stripped). Not a prefix match.
+    if not path.startswith(_UPDATE_PREFIX):
+        return False
+    return path[len(_UPDATE_PREFIX) :] in _UPDATE_CHANNELS
+
+
+def is_public_hypermesh_agent(path: str, method: str = "GET") -> bool:
+    """True for Host agent enroll / heartbeat / jobs / scorecard / tunnel / updates.
+
+    Includes GET tunnel, POST tunnel/ack, POST tunnel/peer, and GET updates
+    for the test and prod channels. Exact method and path only (trailing
+    slash stripped). Not a prefix match.
     """
 
     method = method.upper()
     norm = path.rstrip("/") or "/"
     if (method, norm) in PUBLIC_HYPERMESH_AGENT_EXACT:
+        return True
+    if method == "GET" and _is_agent_update(norm):
         return True
     return method == "POST" and _is_agent_job_result(norm)
