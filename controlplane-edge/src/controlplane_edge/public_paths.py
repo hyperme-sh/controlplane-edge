@@ -2,8 +2,16 @@
 
 from __future__ import annotations
 
+from controlplane_edge.edge_settings import versions_access_mode
 from controlplane_edge.public_hypermesh_agent import is_public_hypermesh_agent
 from controlplane_edge.public_hypermesh_browse import is_public_hypermesh_browse
+
+
+def is_versions_path(path: str, method: str = "GET") -> bool:
+    """Exact GET /versions. The peer summary, not /version and not a prefix."""
+
+    normalized = path.rstrip("/") or "/"
+    return method.upper() == "GET" and normalized == "/versions"
 
 
 def is_public_path(path: str, method: str = "GET") -> bool:
@@ -25,6 +33,14 @@ def is_public_path(path: str, method: str = "GET") -> bool:
     # and not GET.
     if method.upper() == "POST" and path == "/auth/hypermesh-smoke/session":
         return True
+    # Build identity for this process. GET only, exact path.
+    if method.upper() == "GET" and path == "/version":
+        return True
+    # Peer summary. public and off skip the session JWT (off returns 404).
+    # authenticated stays on the gateway auth middleware. The rate limiter
+    # still sees this path; see GatewayRateLimitMiddleware.
+    if is_versions_path(path, method):
+        return versions_access_mode() != "authenticated"
     # Extracted-service surfaces that must work without a session JWT
     # (OIDC start/callback/refresh; Stripe webhook).
     edge_public = (

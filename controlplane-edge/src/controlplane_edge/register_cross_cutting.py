@@ -12,6 +12,7 @@ from api.infrastructure.tenant_user_rate_limiter import TenantUserRateLimiter
 from controlplane_edge.edge_proxy import register_edge_proxy
 from controlplane_edge.edge_settings import GatewayCrossCuttingSettings, parse_cors_origins
 from controlplane_edge.public_hypermesh_browse import router as public_hypermesh_browse_router
+from controlplane_edge.service_versions import router as service_versions_router
 from controlplane_edge.middleware.api_events import GatewayApiAccessEventMiddleware
 from controlplane_edge.middleware.api_key_bruteforce import ApiKeyFailureTracker
 from controlplane_edge.middleware.policy import GatewayAuthMiddleware
@@ -68,6 +69,8 @@ def register_gateway_cross_cutting(app: FastAPI) -> None:
     # Live GET is proxied to hypermesh-service. These routes exist so
     # /openapi.json lists the public Hypermesh browse paths at their real URLs.
     app.include_router(public_hypermesh_browse_router)
+    # Peer /version summary. Public only when EDGE_VERSIONS_ACCESS=public.
+    app.include_router(service_versions_router)
 
     # Innermost: proxy matched prefixes after auth / rate-limit have run.
     register_edge_proxy(app)
