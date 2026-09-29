@@ -213,3 +213,31 @@ def test_authenticated_lease_is_still_proxied(browse_app: FastAPI) -> None:
         )
     assert offered.status_code == 201
     assert offered.json()["status"] == "offered"
+
+
+def test_pricing_transparency_is_exact_public_get(browse_app: FastAPI) -> None:
+    path = "/api/v1/hypermesh/pricing/transparency"
+    assert is_public_path(path, "GET")
+    assert is_public_path(path + "/", "GET")
+    for method in ("POST", "PUT", "DELETE", "PATCH"):
+        assert not is_public_path(path, method)
+    assert not is_public_path(path + "/private", "GET")
+    assert not is_public_path("/api/v1/hypermesh/pricing", "GET")
+    with TestClient(browse_app) as client:
+        operation = client.get("/openapi.json").json()["paths"][path]["get"]
+    assert operation["security"] == []
+
+
+@respx.mock
+def test_public_pricing_transparency_is_proxied(browse_app: FastAPI) -> None:
+    path = "/api/v1/hypermesh/pricing/transparency"
+    body = {"ruleset": {"version": "EXAMPLE", "active": True,
+                        "public_summary": ["EXAMPLE rules"]}, "pools": []}
+    upstream = respx.get("http://hm.browse.test" + path).mock(
+        return_value=httpx.Response(200, json=body)
+    )
+    with TestClient(browse_app) as client:
+        response = client.get(path, headers={"Origin": "https://hyperme.sh"})
+    assert response.status_code == 200
+    assert response.json() == body
+    assert upstream.called
