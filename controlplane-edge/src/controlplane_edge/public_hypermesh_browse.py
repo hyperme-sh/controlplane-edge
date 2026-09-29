@@ -17,6 +17,7 @@ PUBLIC_HYPERMESH_BROWSE_PATHS = frozenset(
         "/api/v1/hypermesh/classes",
         "/api/v1/hypermesh/nodes",
         "/api/v1/hypermesh/ready",
+        "/api/v1/hypermesh/pricing/transparency",
     }
 )
 
@@ -24,7 +25,7 @@ router = APIRouter(prefix="/api/v1/hypermesh", tags=["hypermesh"])
 
 
 def is_public_hypermesh_browse(path: str, method: str = "GET") -> bool:
-    """True for unauthenticated GET catalog, classes, nodes, and ready only."""
+    """True only for exact public browse GET paths, including pricing metadata."""
 
     if method.upper() != "GET":
         return False
@@ -121,4 +122,24 @@ async def get_public_hypermesh_ready() -> dict:
     raise HTTPException(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         detail="Hypermesh ready is served by hypermesh-service",
+    )
+
+
+@router.get(
+    "/pricing/transparency",
+    summary="Read public Hypermesh pricing rules and pool flags",
+    description=(
+        "No key required. Marketplace public_sku pools only. Returns the active "
+        "ruleset version and public_summary, plus latest realtime pool flags. "
+        "Null flags mean no completed round. Served by hypermesh-service."
+    ),
+    operation_id="getPublicHypermeshPricingTransparency",
+    openapi_extra={"security": []},
+    responses={200: {"description": "Public ruleset and pool flags"},
+               503: {"description": "Pricing transparency unavailable"}},
+)
+async def get_public_hypermesh_pricing_transparency() -> dict:
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="Hypermesh pricing transparency is served by hypermesh-service",
     )
