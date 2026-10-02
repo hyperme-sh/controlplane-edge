@@ -349,3 +349,10 @@ def test_onboarding_device_routes_reach_service_verification(agent_app, suffix):
     assert not is_public_path(path, "GET")
     assert not is_public_path(path + "/extra", "POST")
     assert not is_public_path("/api/v1/hypermesh/host-onboarding/approve-activation", "POST")
+
+def test_resume_uses_device_auth_but_owner_approval_still_requires_jwt():
+    path = "/api/v1/hypermesh/agent/onboarding/certification/resume"
+    assert is_public_path(path, "POST")
+    assert not is_public_path(path, "GET")
+    assert not is_public_path(path + "/extra", "POST")
+    assert not is_public_path("/api/v1/hypermesh/host-onboarding/approve-resume", "POST")
