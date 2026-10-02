@@ -330,3 +330,22 @@ def test_unlisted_hypermesh_agent_path_stays_non_public(agent_app: FastAPI) -> N
         )
     assert denied.status_code == 401
     assert denied.json()["detail"] == "Invalid or missing JWT claims"
+
+
+@pytest.mark.parametrize("suffix", ["check", "heartbeat", "tunnel", "certification/plan",
+                                    "certification/result", "certification/activation"])
+@respx.mock
+def test_onboarding_device_routes_reach_service_verification(agent_app, suffix):
+    path = "/api/v1/hypermesh/agent/onboarding/" + suffix
+    route = respx.post("http://hm.agent.test" + path).mock(
+        return_value=httpx.Response(401, json={"detail": "registered device required"}))
+    with TestClient(agent_app) as client:
+        response = client.post(path, headers={"Authorization": "Bearer hm_dev_test",
+                                              "X-Tenant-ID": str(TENANT_ID)}, json={})
+    assert response.status_code == 401
+    assert response.json()["detail"] == "registered device required"
+    assert route.call_count == 1
+    assert route.calls[0].request.headers["authorization"] == "Bearer hm_dev_test"
+    assert not is_public_path(path, "GET")
+    assert not is_public_path(path + "/extra", "POST")
+    assert not is_public_path("/api/v1/hypermesh/host-onboarding/approve-activation", "POST")
