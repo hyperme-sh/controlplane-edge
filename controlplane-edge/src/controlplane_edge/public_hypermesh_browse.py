@@ -8,6 +8,8 @@ the live GET to hypermesh-service.
 
 from __future__ import annotations
 
+import re
+
 from fastapi import APIRouter, HTTPException, status
 
 # Exact paths only. Do not prefix-match /api/v1/hypermesh.
@@ -30,7 +32,17 @@ def is_public_hypermesh_browse(path: str, method: str = "GET") -> bool:
     if method.upper() != "GET":
         return False
     norm = path.rstrip("/") or "/"
-    return norm in PUBLIC_HYPERMESH_BROWSE_PATHS
+    if norm in PUBLIC_HYPERMESH_BROWSE_PATHS:
+        return True
+    # Read-only bootstrap: exact channel index or bounded immutable artifact.
+    # Device and mutation paths remain authenticated.
+    return re.fullmatch(
+        r"/api/v1/hypermesh/public/host-releases/(?:test|prod)"
+        r"(?:/[A-Za-z0-9][A-Za-z0-9.-]{0,63}/"
+        r"(?:release[.]json|checksums[.]txt(?:[.]sig|[.]asc)?|bootstrap[.]py|hypermesh-release[.]pub|"
+        r"hypermesh-(?:agent|deploy)_[0-9]+\.[0-9]+\.[0-9]+_linux_(?:arm64|amd64)))?",
+        norm,
+    ) is not None
 
 
 @router.get(
