@@ -15,6 +15,7 @@ from fastapi import APIRouter, HTTPException, status
 # Exact paths only. Do not prefix-match /api/v1/hypermesh.
 PUBLIC_HYPERMESH_BROWSE_PATHS = frozenset(
     {
+        "/api/v1/hypermesh/public/host-installation",
         "/api/v1/hypermesh/catalog",
         "/api/v1/hypermesh/classes",
         "/api/v1/hypermesh/nodes",
