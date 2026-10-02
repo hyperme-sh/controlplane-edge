@@ -241,3 +241,25 @@ def test_public_pricing_transparency_is_proxied(browse_app: FastAPI) -> None:
     assert response.status_code == 200
     assert response.json() == body
     assert upstream.called
+
+def test_bootstrap_public_paths_are_exact_and_read_only():
+    base = "/api/v1/hypermesh/public/host-releases"
+    for path in (base + "/test", base + "/prod", base + "/test/12-aaaaaaaaaaaa/checksums.txt.sig",
+                 base + "/prod/1.2.3/hypermesh-deploy_1.2.3_linux_arm64"):
+        assert is_public_path(path, "GET")
+        assert not is_public_path(path, "POST")
+    for path in (base + "/other", base + "/test/12-aaaaaaaaaaaa/private.key",
+                 base + "/test/12-aaaaaaaaaaaa/releaseXjson", base + "/test/../../agent"):
+        assert not is_public_path(path, "GET")
+
+@respx.mock
+def test_public_installer_redirect_survives_gateway(browse_app):
+    path = "/api/v1/hypermesh/public/host-releases/test/12-aaaaaaaaaaaa/checksums.txt"
+    destination = "https://updates.example.invalid/test/checksums.txt?sp=r&sig=example"
+    respx.get("http://hm.browse.test" + path).mock(return_value=httpx.Response(
+        307, headers={"Location": destination, "Cache-Control": "no-store", "Referrer-Policy": "no-referrer"}))
+    with TestClient(browse_app, follow_redirects=False) as client:
+        response = client.get(path)
+    assert response.status_code == 307
+    assert response.headers["location"] == destination
+    assert response.headers["cache-control"] == "no-store"
