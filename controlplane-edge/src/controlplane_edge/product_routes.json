@@ -43,6 +43,12 @@
     "product": "hypermesh-orchestrator",
     "schema_version": 1
   },
+  "hypermesh-ticket": {
+    "edge_routes": [],
+    "exposure": "Library package; no HTTP routes.",
+    "product": "hypermesh-ticket",
+    "schema_version": 1
+  },
   "hypermesh-vscode": {
     "edge_routes": [],
     "exposure": "Served outside the control-plane reverse proxy.",
