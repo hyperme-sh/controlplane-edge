@@ -21,6 +21,8 @@ its own hostname. Its spec is still merged into ``/openapi.json``.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
+from pathlib import Path
 
 from controlplane_edge.aggregation_settings import OpenAPIAggregationSettings
 
@@ -41,6 +43,27 @@ class EdgeMatch:
     base_url: str | None
 
 
+def _product_routes() -> tuple[EdgeRoute, ...]:
+    """Load checked product declarations without importing product implementations."""
+    manifests = json.loads(Path(__file__).with_name('product_routes.json').read_text())
+    routes = []
+    seen = set()
+    for product, manifest in manifests.items():
+        if manifest['schema_version'] != 1 or manifest['product'] != product:
+            raise ValueError('invalid product route manifest')
+        for entry in manifest['edge_routes']:
+            route = EdgeRoute(**entry)
+            if not route.prefix.startswith('/api/v1/') or route.prefix in seen:
+                raise ValueError('invalid or duplicate product route prefix')
+            if route.service_id != product.replace('-', '_') or route.url_attr != f'{route.service_id}_service_url':
+                raise ValueError('product route must use its owner service')
+            if route.url_attr not in OpenAPIAggregationSettings.model_fields:
+                raise ValueError('unknown product route URL setting')
+            seen.add(route.prefix)
+            routes.append(route)
+    return tuple(routes)
+
+
 # Longest prefixes first so ``/api/v1/ai/inference`` wins over a future ``/api/v1/ai``.
 EDGE_ROUTES: tuple[EdgeRoute, ...] = (
     EdgeRoute("/auth", "auth", "auth_service_url"),
@@ -48,7 +71,6 @@ EDGE_ROUTES: tuple[EdgeRoute, ...] = (
     EdgeRoute("/api/v1/groups", "user", "user_service_url"),
     EdgeRoute("/api/v1/organizations", "user", "user_service_url"),
     EdgeRoute("/api/v1/acl", "acl", "acl_service_url"),
-    EdgeRoute("/api/v1/payments/v0", "payments", "payments_service_url"),
     EdgeRoute("/api/v1/payments", "payment", "payment_service_url"),
     EdgeRoute("/api/v1/budgets", "payment", "payment_service_url"),
     EdgeRoute("/api/v1/marketplace", "marketplace", "marketplace_service_url"),
@@ -56,15 +78,9 @@ EDGE_ROUTES: tuple[EdgeRoute, ...] = (
     EdgeRoute("/api/v1/ai/complete", "ai", "ai_service_url"),
     EdgeRoute("/api/v1/ai/usage", "ai", "ai_service_url"),
     EdgeRoute("/api/v1/api-keys", "api_keys", "api_keys_service_url"),
-    EdgeRoute("/api/v1/samples", "template", "template_service_url"),
-    EdgeRoute("/api/v1/tw", "tennessee_windage", "tennessee_windage_service_url"),
-    EdgeRoute("/api/v1/turn", "turn", "turn_service_url"),
-    EdgeRoute("/api/v1/oracles", "oracles", "oracles_service_url"),
-    EdgeRoute("/api/v1/hypermesh", "hypermesh", "hypermesh_service_url"),
-    EdgeRoute("/api/v1/aiuditor", "aiuditor", "aiuditor_service_url"),
-    EdgeRoute("/api/v1/auditor", "hypermesh", "hypermesh_service_url"),
-    EdgeRoute("/api/v1/grants", "hypermesh", "hypermesh_service_url"),
-)
+) + _product_routes()
+if len({route.prefix for route in EDGE_ROUTES}) != len(EDGE_ROUTES):
+    raise ValueError('duplicate core/product route prefix')
 
 # Still served by controlplane-core on the gateway. Not proxied.
 # See docs/controlplane-edge-cutover.md.

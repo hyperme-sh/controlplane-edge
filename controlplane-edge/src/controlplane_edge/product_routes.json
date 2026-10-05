@@ -1,0 +1,107 @@
+{
+  "aiuditor": {
+    "edge_routes": [
+      {
+        "prefix": "/api/v1/aiuditor",
+        "service_id": "aiuditor",
+        "url_attr": "aiuditor_service_url"
+      }
+    ],
+    "product": "aiuditor",
+    "schema_version": 1
+  },
+  "hypermesh": {
+    "edge_routes": [
+      {
+        "prefix": "/api/v1/hypermesh",
+        "service_id": "hypermesh",
+        "url_attr": "hypermesh_service_url"
+      },
+      {
+        "prefix": "/api/v1/auditor",
+        "service_id": "hypermesh",
+        "url_attr": "hypermesh_service_url"
+      },
+      {
+        "prefix": "/api/v1/grants",
+        "service_id": "hypermesh",
+        "url_attr": "hypermesh_service_url"
+      }
+    ],
+    "product": "hypermesh",
+    "schema_version": 1
+  },
+  "hypermesh-gateway": {
+    "edge_routes": [],
+    "exposure": "Served outside the control-plane reverse proxy.",
+    "product": "hypermesh-gateway",
+    "schema_version": 1
+  },
+  "hypermesh-orchestrator": {
+    "edge_routes": [],
+    "exposure": "Served outside the control-plane reverse proxy.",
+    "product": "hypermesh-orchestrator",
+    "schema_version": 1
+  },
+  "hypermesh-vscode": {
+    "edge_routes": [],
+    "exposure": "Served outside the control-plane reverse proxy.",
+    "product": "hypermesh-vscode",
+    "schema_version": 1
+  },
+  "oracles": {
+    "edge_routes": [
+      {
+        "prefix": "/api/v1/oracles",
+        "service_id": "oracles",
+        "url_attr": "oracles_service_url"
+      }
+    ],
+    "product": "oracles",
+    "schema_version": 1
+  },
+  "payments": {
+    "edge_routes": [
+      {
+        "prefix": "/api/v1/payments/v0",
+        "service_id": "payments",
+        "url_attr": "payments_service_url"
+      }
+    ],
+    "product": "payments",
+    "schema_version": 1
+  },
+  "template": {
+    "edge_routes": [
+      {
+        "prefix": "/api/v1/samples",
+        "service_id": "template",
+        "url_attr": "template_service_url"
+      }
+    ],
+    "product": "template",
+    "schema_version": 1
+  },
+  "tennessee-windage": {
+    "edge_routes": [
+      {
+        "prefix": "/api/v1/tw",
+        "service_id": "tennessee_windage",
+        "url_attr": "tennessee_windage_service_url"
+      }
+    ],
+    "product": "tennessee-windage",
+    "schema_version": 1
+  },
+  "turn": {
+    "edge_routes": [
+      {
+        "prefix": "/api/v1/turn",
+        "service_id": "turn",
+        "url_attr": "turn_service_url"
+      }
+    ],
+    "product": "turn",
+    "schema_version": 1
+  }
+}

@@ -216,3 +216,28 @@ def test_compat_prefixes_are_not_edge_owned() -> None:
 def test_locked_checkout_prefix_is_monolith_compat() -> None:
     for prefix in LOCKED_MONOLITH_CHECKOUT_PREFIXES:
         assert prefix in MONOLITH_COMPAT_PREFIXES
+
+
+def test_product_route_manifests_keep_existing_prefixes():
+    import json
+    from pathlib import Path
+    from controlplane_edge import edge_routes
+    bundle = json.loads(Path(edge_routes.__file__).with_name('product_routes.json').read_text())
+    declarations = {entry['prefix']:(entry['service_id'], entry['url_attr'])
+                    for product in bundle.values() for entry in product['edge_routes']}
+    routes = {route.prefix:(route.service_id, route.url_attr) for route in edge_routes.EDGE_ROUTES}
+    assert declarations.items() <= routes.items()
+    for prefix in ('/api/v1/hypermesh', '/api/v1/auditor', '/api/v1/grants'):
+        assert declarations[prefix] == ('hypermesh', 'hypermesh_service_url')
+    assert bundle['hypermesh-gateway']['edge_routes'] == []
+
+
+def test_product_manifest_cannot_claim_another_service(monkeypatch):
+    import json
+    from pathlib import Path
+    from controlplane_edge import edge_routes
+    bundle = json.loads(Path(edge_routes.__file__).with_name('product_routes.json').read_text())
+    bundle['hypermesh']['edge_routes'][0]['service_id'] = 'user'
+    monkeypatch.setattr(edge_routes.Path, 'read_text', lambda self: json.dumps(bundle))
+    with pytest.raises(ValueError, match='owner service'):
+        edge_routes._product_routes()
