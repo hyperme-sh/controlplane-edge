@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from api.core.config import settings
+
 from controlplane_edge.edge_settings import versions_access_mode
 from controlplane_edge.public_hypermesh_agent import is_public_hypermesh_agent
 from controlplane_edge.public_hypermesh_browse import is_public_hypermesh_browse
@@ -31,7 +33,7 @@ def is_public_path(path: str, method: str = "GET") -> bool:
     # GitHub OIDC is not a Keycloak or tenant-session JWT. The auth
     # service verifies it. Allow this one method and path, not a prefix
     # and not GET.
-    if method.upper() == "POST" and path == "/auth/hypermesh-smoke/session":
+    if method.upper() == "POST" and path == "/auth" + settings.smoke_session_route:
         return True
     if method.upper() == "GET" and path == "/auth/enrollment/marketplace":
         return True
