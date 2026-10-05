@@ -35,10 +35,13 @@ async def resolve_bearer_claims(token: str) -> dict[str, Any] | None:
     try:
         import jwt as pyjwt
 
-        return pyjwt.decode(
+        claims = pyjwt.decode(
             token,
             options={"verify_signature": False, "verify_aud": False, "verify_exp": False},
         )
+        if claims.get("azp") == "hypermesh-host-setup" or claims.get("purpose") == "host_setup":
+            return None
+        return claims
     except Exception as exc:  # noqa: BLE001
         logger.debug("Bearer decode failed: %s", exc)
         return None
@@ -68,10 +71,13 @@ def resolve_bearer_claims_sync(token: str) -> dict[str, Any] | None:
     try:
         import jwt as pyjwt
 
-        return pyjwt.decode(
+        claims = pyjwt.decode(
             token,
             options={"verify_signature": False, "verify_aud": False, "verify_exp": False},
         )
+        if claims.get("azp") == "hypermesh-host-setup" or claims.get("purpose") == "host_setup":
+            return None
+        return claims
     except Exception as exc:  # noqa: BLE001
         logger.debug("Bearer decode failed: %s", exc)
         return None
