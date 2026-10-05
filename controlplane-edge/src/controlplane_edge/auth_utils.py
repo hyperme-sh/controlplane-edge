@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from api.core.config import settings as api_settings
+from controlplane_api.config import settings as api_settings
 
 logger = logging.getLogger(__name__)
 

@@ -18,7 +18,7 @@ import httpx
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from api.interfaces.api_controllers.version_endpoint import version_payload
+from controlplane_api.version import version_payload
 from controlplane_edge.aggregation_settings import OpenAPIAggregationSettings
 from controlplane_edge.edge_settings import versions_access_mode
 

@@ -29,7 +29,7 @@ DIGEST = "sha256:" + "cd" * 32
 
 _VERSION_SOURCE = (
     Path(__file__).resolve().parents[2]
-    / "core/lib/controlplane-core/src/api/interfaces/api_controllers/version_endpoint.py"
+    / "core/lib/controlplane-api/src/controlplane_api/version.py"
 )
 _FLEET_SOURCE = (
     Path(__file__).resolve().parents[1] / "src/controlplane_edge/service_versions.py"

@@ -7,6 +7,7 @@ name = "controlplane-edge"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
+    "controlplane-api",
     "controlplane-core",
     "httpx>=0.28.0",
     "pydantic-settings>=2.0.0",
@@ -44,6 +45,7 @@ pythonpath = [
 ]
 
 [tool.uv.sources]
+controlplane-api = { workspace = true }
 controlplane-core = { workspace = true }
 panopticon-models = { workspace = true }
 

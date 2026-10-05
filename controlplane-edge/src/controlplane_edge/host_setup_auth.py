@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 
-from api.core.config import settings
+from controlplane_api.config import settings
 from api.infrastructure.security.keycloak_jwt import get_keycloak_jwt_validator
 from api.infrastructure.security.tenant_session_jwt import try_decode_host_setup_session
 

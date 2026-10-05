@@ -8,7 +8,7 @@ import httpx
 from fastapi import FastAPI, Request
 from strawberry.fastapi import GraphQLRouter
 
-from api.core.config import settings as api_settings
+from controlplane_api.config import settings as api_settings
 from controlplane_edge.aggregation_settings import OpenAPIAggregationSettings
 from controlplane_edge.graphql.context import GraphQLContext
 from controlplane_edge.graphql.dataloaders import build_loaders
