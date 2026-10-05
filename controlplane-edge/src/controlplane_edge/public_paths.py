@@ -33,6 +33,8 @@ def is_public_path(path: str, method: str = "GET") -> bool:
     # and not GET.
     if method.upper() == "POST" and path == "/auth/hypermesh-smoke/session":
         return True
+    if method.upper() == "GET" and path == "/auth/enrollment/marketplace":
+        return True
     # Build identity for this process. GET only, exact path.
     if method.upper() == "GET" and path == "/version":
         return True
