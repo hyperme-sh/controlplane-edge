@@ -246,6 +246,10 @@ def test_users_require_auth_when_not_public(edge_app: FastAPI) -> None:
     assert is_public_path("/auth/hypermesh-smoke/session", "POST") is True
     assert is_public_path("/auth/hypermesh-smoke/session", "GET") is False
     assert is_public_path("/auth/hypermesh-smoke/session/x", "POST") is False
+    assert is_public_path("/auth/enrollment/marketplace", "GET") is True
+    assert is_public_path("/auth/enrollment/marketplace", "POST") is False
+    assert is_public_path("/auth/enrollment/marketplace/other", "GET") is False
+    assert is_public_path("/auth/enrollment/grant", "POST") is False
     assert is_public_path("/auth/me", "GET") is False
     assert is_public_path("/api/v1/payments/stripe/webhook", "POST") is True
     assert is_public_path("/api/v1/hypermesh/catalog", "GET") is True
