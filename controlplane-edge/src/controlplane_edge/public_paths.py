@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from api.core.config import settings
+from controlplane_api.config import settings
 
 from controlplane_edge.edge_settings import versions_access_mode
 from controlplane_edge.public_hypermesh_agent import is_public_hypermesh_agent
