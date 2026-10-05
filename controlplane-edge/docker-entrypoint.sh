@@ -1,5 +1,5 @@
 #!/bin/sh
 set -eu
 # Fresh Postgres has no tables; lifespan seed fails without migrations.
-uv run --project /app/controlplane-edge python -m controlplane_tenancy.startup
-exec uv run --project /app/controlplane-edge python -m controlplane_edge.main
+/app/.venv/bin/python -m controlplane_tenancy.startup
+exec /app/.venv/bin/python -m controlplane_edge.main

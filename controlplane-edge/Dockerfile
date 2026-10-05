@@ -20,7 +20,7 @@ COPY controlplane-edge ./controlplane-edge
 COPY controlplane-edge/docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 ARG CONTROLPLANE_SERVICEBUS=0
-RUN uv sync --frozen --package controlplane-edge \
+RUN uv sync --frozen --no-dev --package controlplane-edge \
  && if [ "$CONTROLPLANE_SERVICEBUS" = "1" ]; then uv pip install --python /app/.venv 'azure-servicebus>=7.12.0'; fi
 ENV PYTHONPATH=/app/controlplane-edge/src:/app/core/lib/controlplane-core/src:/app/core/lib/controlplane-db/src
 # GIT_SHA and BUILT_AT identify this image. Below the venv layer so a new
