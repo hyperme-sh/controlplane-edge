@@ -12,6 +12,7 @@ from starlette.responses import JSONResponse, Response
 from api.infrastructure.security.api_key_exchange_jwt import mint_api_key_session_jwt
 from controlplane_edge.api_keys_client import validate_api_key_remote
 from controlplane_edge.auth_utils import resolve_bearer_claims
+from controlplane_edge.host_setup_auth import resolve_setup_claims
 from controlplane_edge.edge_settings import GatewayCrossCuttingSettings
 from controlplane_edge.public_paths import is_public_path
 
@@ -70,7 +71,9 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
         user_sub: str | None = None
 
         if bearer:
-            claims = await resolve_bearer_claims(bearer)
+            claims = await resolve_setup_claims(bearer, path, request.method)
+            if claims is None:
+                claims = await resolve_bearer_claims(bearer)
             if claims is not None:
                 user_sub = str(claims.get("sub") or "") or None
 
