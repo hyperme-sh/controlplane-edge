@@ -241,3 +241,10 @@ def test_product_manifest_cannot_claim_another_service(monkeypatch):
     monkeypatch.setattr(edge_routes.Path, 'read_text', lambda self: json.dumps(bundle))
     with pytest.raises(ValueError, match='owner service'):
         edge_routes._product_routes()
+
+
+def test_portal_controls_uses_user_service() -> None:
+    match = match_edge_route("/api/v1/me/portal-controls", _urls(user_service_url="http://user.example"))
+    assert match is not None
+    assert match.service_id == "user"
+    assert match.base_url == "http://user.example"

@@ -67,6 +67,7 @@ def _product_routes() -> tuple[EdgeRoute, ...]:
 # Longest prefixes first so ``/api/v1/ai/inference`` wins over a future ``/api/v1/ai``.
 EDGE_ROUTES: tuple[EdgeRoute, ...] = (
     EdgeRoute("/auth", "auth", "auth_service_url"),
+    EdgeRoute("/api/v1/me/portal-controls", "user", "user_service_url"),
     EdgeRoute("/api/v1/users", "user", "user_service_url"),
     EdgeRoute("/api/v1/groups", "user", "user_service_url"),
     EdgeRoute("/api/v1/organizations", "user", "user_service_url"),

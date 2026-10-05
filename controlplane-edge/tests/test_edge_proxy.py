@@ -374,3 +374,19 @@ def test_site_machine_token_passes_through_to_grants(
     assert ok.status_code == 200
     assert route.called
     assert route.calls[0].request.headers["authorization"] == "Bearer hm_site_cottage-token"
+
+
+@respx.mock
+def test_portal_controls_proxy_preserves_tenant_auth(edge_app: FastAPI) -> None:
+    route = respx.get("http://user.edge.test/api/v1/me/portal-controls").mock(
+        return_value=httpx.Response(200, json={"groups": ["host", "renter"]})
+    )
+    headers = _auth_headers()
+    with TestClient(edge_app) as client:
+        assert client.get("/api/v1/me/portal-controls").status_code == 401
+        response = client.get("/api/v1/me/portal-controls", headers=headers)
+    assert response.status_code == 200
+    assert response.json()["groups"] == ["host", "renter"]
+    assert len(route.calls) == 1
+    assert route.calls[0].request.headers["authorization"] == headers["Authorization"]
+    assert route.calls[0].request.headers["x-tenant-id"] == headers["X-Tenant-ID"]
