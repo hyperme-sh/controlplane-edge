@@ -333,7 +333,8 @@ def test_unlisted_hypermesh_agent_path_stays_non_public(agent_app: FastAPI) -> N
 
 
 @pytest.mark.parametrize("suffix", ["check", "heartbeat", "tunnel", "certification/plan",
-                                    "certification/result", "certification/activation"])
+                                    "certification/result", "certification/activation",
+                                    "qualification/plan", "qualification/result"])
 @respx.mock
 def test_onboarding_device_routes_reach_service_verification(agent_app, suffix):
     path = "/api/v1/hypermesh/agent/onboarding/" + suffix
@@ -356,3 +357,10 @@ def test_resume_uses_device_auth_but_owner_approval_still_requires_jwt():
     assert not is_public_path(path, "GET")
     assert not is_public_path(path + "/extra", "POST")
     assert not is_public_path("/api/v1/hypermesh/host-onboarding/approve-resume", "POST")
+
+
+def test_qualification_operator_routes_require_gateway_auth():
+    root = "/api/v1/hypermesh/host-qualification/runs"
+    for path in (root, root + "/example", root + "/example/publish"):
+        assert not is_public_path(path, "POST")
+        assert not is_public_path(path, "GET")
