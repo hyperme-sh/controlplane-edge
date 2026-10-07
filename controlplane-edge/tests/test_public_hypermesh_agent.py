@@ -364,3 +364,17 @@ def test_qualification_operator_routes_require_gateway_auth():
     for path in (root, root + "/example", root + "/example/publish"):
         assert not is_public_path(path, "POST")
         assert not is_public_path(path, "GET")
+
+@pytest.mark.parametrize("operation", ["bind", "token"])
+@respx.mock
+def test_machine_identity_proof_routes_bypass_only_gateway_jwt(agent_app, operation):
+    path = f"/api/v1/hypermesh/agent/identity/{operation}"
+    assert is_public_path(path, "POST")
+    assert not is_public_path(path, "GET")
+    assert not is_public_path(path + "/extra", "POST")
+    route = respx.post("http://hm.agent.test" + path).mock(return_value=httpx.Response(401, json={"detail":"Invalid machine proof"}))
+    with TestClient(agent_app) as client:
+        response = client.post(path, headers={"X-Tenant-ID":str(TENANT_ID)}, json={"signature":"invalid"})
+    assert route.called
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid machine proof"

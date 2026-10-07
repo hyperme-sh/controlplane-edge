@@ -20,6 +20,11 @@ import uuid
 # Exact (method, path) pairs. Trailing slashes are stripped by the caller.
 PUBLIC_HYPERMESH_AGENT_EXACT: frozenset[tuple[str, str]] = frozenset(
     {
+        ("GET", "/api/v1/hypermesh/agent/identity/configuration"),
+        ("GET", "/api/v1/hypermesh/agent/identity/authorities"),
+        ("POST", "/api/v1/hypermesh/agent/identity/contract-token"),
+        ("POST", "/api/v1/hypermesh/agent/identity/bind"),
+        ("POST", "/api/v1/hypermesh/agent/identity/token"),
         ("POST", "/api/v1/hypermesh/agent/onboarding/qualification/next"),
         ("POST", "/api/v1/hypermesh/agent/onboarding/qualification/plan"),
         ("POST", "/api/v1/hypermesh/agent/onboarding/qualification/result"),
