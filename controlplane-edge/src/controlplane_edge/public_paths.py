@@ -24,6 +24,9 @@ def is_public_path(path: str, method: str = "GET") -> bool:
     path = path.rstrip("/") or "/"
     if is_public_hypermesh_browse(path, method):
         return True
+    # AIuditor verifies the bound machine proof; this is not a browser JWT.
+    if method.upper() == "POST" and path == "/api/v1/aiuditor/machine/renew":
+        return True
     if is_public_hypermesh_agent(path, method):
         return True
     if path.startswith("/graphql") and method == "GET":

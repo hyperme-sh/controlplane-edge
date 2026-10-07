@@ -23,6 +23,7 @@ def agent_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     monkeypatch.setenv("CPEDGE_HYPERMESH_SERVICE_URL", "http://hm.agent.test")
     monkeypatch.setenv("CPEDGE_HYPERMESH_GATEWAY_SERVICE_URL", "http://hmr.agent.test")
     monkeypatch.setenv("CPEDGE_RATE_LIMIT_PER_MINUTE", "5000")
+    monkeypatch.setenv("CPEDGE_AIUDITOR_SERVICE_URL", "http://aiuditor.agent.test")
     import api.core.config as api_config
 
     monkeypatch.setattr(api_config.settings, "keycloak_jwks_url", None)
@@ -376,5 +377,25 @@ def test_machine_identity_proof_routes_bypass_only_gateway_jwt(agent_app, operat
     with TestClient(agent_app) as client:
         response = client.post(path, headers={"X-Tenant-ID":str(TENANT_ID)}, json={"signature":"invalid"})
     assert route.called
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid machine proof"
+
+
+def test_only_exact_aiuditor_renewal_skips_browser_auth():
+    path = "/api/v1/aiuditor/machine/renew"
+    assert is_public_path(path, "POST")
+    assert not is_public_path(path, "GET")
+    assert not is_public_path(path + "/extra", "POST")
+    assert not is_public_path("/api/v1/aiuditor/machine/bind", "POST")
+    assert not is_public_path("/api/v1/aiuditor/machine/revoke", "POST")
+
+
+@respx.mock
+def test_direct_renewal_reaches_aiuditor_without_hypermesh(agent_app):
+    path = "/api/v1/aiuditor/machine/renew"
+    upstream = respx.post("http://aiuditor.agent.test" + path).mock(return_value=httpx.Response(401, json={"detail":"Invalid machine proof"}))
+    with TestClient(agent_app) as client:
+        response = client.post(path, headers={"X-Tenant-ID":str(TENANT_ID)}, json={"signature":"invalid"})
+    assert upstream.called
     assert response.status_code == 401
     assert response.json()["detail"] == "Invalid machine proof"
