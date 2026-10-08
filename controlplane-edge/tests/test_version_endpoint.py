@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import asyncio
+import uuid
 from pathlib import Path
 
 import pytest
@@ -337,6 +338,44 @@ def test_machine_identity_exchanges_stay_behind_the_rate_limiter() -> None:
     assert client.post(paths[0]).status_code == 429
     assert client.get("/version").status_code == 200
     assert limiter.calls == 7
+
+
+def test_identity_routes_use_one_bucket_per_client_address() -> None:
+    from starlette.middleware.base import BaseHTTPMiddleware
+
+    from api.infrastructure.tenant_user_rate_limiter import TenantUserRateLimiter
+    from controlplane_edge.middleware.rate_limit import GatewayRateLimitMiddleware
+
+    class ClaimedTenant(BaseHTTPMiddleware):
+        # Stands in for the auth layer copying an unauthenticated tenant header.
+        async def dispatch(self, request, call_next):
+            request.state.tenant_id = request.headers.get("X-Tenant-ID")
+            return await call_next(request)
+
+    app = FastAPI()
+    app.add_middleware(GatewayRateLimitMiddleware)
+    app.add_middleware(ClaimedTenant)
+    app.add_api_route("/api/v1/aiuditor/machine/renew", lambda: {"ok": True}, methods=["POST"])
+    app.state.gateway_rate_limiter = TenantUserRateLimiter(per_minute=2)
+    client = TestClient(app)
+    codes = [
+        client.post("/api/v1/aiuditor/machine/renew", headers={"X-Tenant-ID": str(uuid.uuid4())}).status_code
+        for _ in range(3)
+    ]
+    assert codes == [200, 200, 429]
+
+
+def test_rate_limiter_forgets_idle_keys(monkeypatch: pytest.MonkeyPatch) -> None:
+    from api.infrastructure import tenant_user_rate_limiter as module
+
+    now = [1000.0]
+    monkeypatch.setattr(module.time, "monotonic", lambda: now[0])
+    limiter = module.TenantUserRateLimiter(per_minute=5)
+    for _ in range(50):
+        assert limiter.allow(uuid.uuid4(), "client")
+    now[0] += 120
+    assert limiter.allow(uuid.uuid4(), "client")
+    assert len(limiter._hits) == 1
 
 
 def test_monolith_serves_version_ahead_of_the_catch_all() -> None:

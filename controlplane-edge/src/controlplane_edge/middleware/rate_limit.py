@@ -42,8 +42,14 @@ class GatewayRateLimitMiddleware(BaseHTTPMiddleware):
         if lim is None:
             return await call_next(request)
 
-        tenant_id = getattr(request.state, "tenant_id", None) or _ANON_TENANT
-        user_sub = getattr(request.state, "user_sub", None) or request.client.host if request.client else "unknown"
+        if is_machine_identity_path(path, request.method):
+            # The tenant header on these routes is unauthenticated; one bucket
+            # per client address, so rotating tenant IDs gains nothing.
+            tenant_id = _ANON_TENANT
+            user_sub = request.client.host if request.client else "unknown"
+        else:
+            tenant_id = getattr(request.state, "tenant_id", None) or _ANON_TENANT
+            user_sub = getattr(request.state, "user_sub", None) or request.client.host if request.client else "unknown"
 
         if not lim.allow(tenant_id, str(user_sub)):
             return JSONResponse(status_code=429, content={"detail": "Gateway rate limit exceeded"})
