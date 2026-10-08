@@ -296,6 +296,42 @@ def test_versions_stays_behind_the_rate_limiter_when_public(monkeypatch: pytest.
     assert limiter.calls == 1
 
 
+def test_machine_identity_exchanges_stay_behind_the_rate_limiter() -> None:
+    from controlplane_edge.middleware.rate_limit import GatewayRateLimitMiddleware
+
+    class Limiter:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def allow(self, tenant_id, user_sub) -> bool:
+            del tenant_id, user_sub
+            self.calls += 1
+            return self.calls <= 4
+
+    app = FastAPI()
+    app.add_middleware(GatewayRateLimitMiddleware)
+    paths = (
+        "/api/v1/aiuditor/machine/renew",
+        "/api/v1/hypermesh/agent/identity/bind",
+        "/api/v1/hypermesh/agent/identity/token",
+        "/api/v1/hypermesh/agent/identity/contract-token",
+    )
+    for path in paths:
+        app.add_api_route(path, lambda: {"ok": True}, methods=["POST"])
+
+    @app.get("/version")
+    def version() -> dict[str, bool]:
+        return {"ok": True}
+
+    limiter = Limiter()
+    app.state.gateway_rate_limiter = limiter
+    client = TestClient(app)
+    assert [client.post(path).status_code for path in paths] == [200] * 4
+    assert client.post(paths[0]).status_code == 429
+    assert client.get("/version").status_code == 200
+    assert limiter.calls == 5
+
+
 def test_monolith_serves_version_ahead_of_the_catch_all() -> None:
     from api import app
 
