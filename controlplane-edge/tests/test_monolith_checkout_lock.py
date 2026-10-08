@@ -1,4 +1,4 @@
-"""P0-D F: monolith /api/v1/checkouts is 410 on the test/prod edge."""
+"""Monolith /api/v1/checkouts and the removed card checkout route are 410 on the edge."""
 
 from __future__ import annotations
 
@@ -18,4 +18,6 @@ def test_locked_monolith_checkout_paths() -> None:
     assert locked_monolith_checkout_path("/api/v1/checkouts/tenant/subscription") is True
     assert locked_monolith_checkout_path("/api/v1/checkouts/host/payment/success") is True
     assert locked_monolith_checkout_path("/api/v1/billing") is False
-    assert locked_monolith_checkout_path("/api/v1/payments/stripe/checkout-sessions") is False
+    assert locked_monolith_checkout_path("/api/v1/payments/stripe/checkout-sessions") is True
+    assert locked_monolith_checkout_path("/api/v1/payments/usdc/lease-payments") is False
+    assert locked_monolith_checkout_path("/api/v1/payments/stripe/webhook") is False

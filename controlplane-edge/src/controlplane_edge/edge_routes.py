@@ -93,7 +93,6 @@ MONOLITH_COMPAT_PREFIXES: tuple[str, ...] = (
     "/api/v1/app_configuration",
     "/api/v1/billing",
     "/api/v1/configurations",
-    "/api/v1/checkouts",
     "/api/v1/products",
     "/api/v1/invoices",
     "/api/v1/prices",
@@ -114,10 +113,12 @@ MONOLITH_COMPAT_PREFIXES: tuple[str, ...] = (
     "/api/v1/ai/ask",
 )
 
-# P0-D F: lock leftover monolith checkout on the test/prod edge.
-# Canonical cash is payment-service /api/v1/payments/stripe/checkout-sessions.
+# Card checkout is removed. Leases are paid in USDC through
+# payment-service /api/v1/payments/usdc/lease-payments. Both the old
+# monolith checkout and the removed card checkout route answer 410.
 LOCKED_MONOLITH_CHECKOUT_PREFIXES: tuple[str, ...] = (
     "/api/v1/checkouts",
+    "/api/v1/payments/stripe/checkout-sessions",
 )
 
 

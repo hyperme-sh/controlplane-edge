@@ -93,8 +93,8 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
                 status_code=410,
                 content={
                     "detail": (
-                        "Monolith /api/v1/checkouts is gone. Use "
-                        "/api/v1/payments/stripe/checkout-sessions"
+                        "Card checkout is gone. Leases are paid in USDC "
+                        "through /api/v1/payments/usdc/lease-payments"
                     ),
                 },
             )

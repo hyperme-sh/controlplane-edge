@@ -195,7 +195,6 @@ def test_monolith_leftovers_are_not_proxied() -> None:
         "/api/v1/dashboard",
         "/api/v1/app_configuration",
         "/api/v1/billing",
-        "/api/v1/checkouts",
         "/api/v1/products",
         "/api/v1/invoices",
         "/api/v1/ai/set_model_preference/llama",
@@ -213,9 +212,10 @@ def test_compat_prefixes_are_not_edge_owned() -> None:
         assert match_edge_route(leftover) is None, leftover
 
 
-def test_locked_checkout_prefix_is_monolith_compat() -> None:
+def test_locked_checkout_prefixes_are_not_proxied() -> None:
+    settings = _urls(payment_service_url="http://pay.example")
     for prefix in LOCKED_MONOLITH_CHECKOUT_PREFIXES:
-        assert prefix in MONOLITH_COMPAT_PREFIXES
+        assert match_edge_route(prefix, settings) is None
 
 
 def test_product_route_manifests_keep_existing_prefixes():

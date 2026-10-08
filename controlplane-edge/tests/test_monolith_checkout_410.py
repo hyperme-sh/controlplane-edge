@@ -29,6 +29,8 @@ async def test_monolith_checkouts_return_410() -> None:
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         gone = await client.post("/api/v1/checkouts/tenant/subscription", json={})
         host = await client.post("/api/v1/checkouts/host/payment/success", json={})
+        card = await client.post("/api/v1/payments/stripe/checkout-sessions", json={})
     assert gone.status_code == 410
-    assert "checkout-sessions" in gone.json()["detail"]
+    assert "/api/v1/payments/usdc/lease-payments" in gone.json()["detail"]
     assert host.status_code == 410
+    assert card.status_code == 410
