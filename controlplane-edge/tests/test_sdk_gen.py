@@ -12,7 +12,11 @@ import httpx
 import pytest
 import respx
 
-from panopticon_sdk_gen.breaking import diff_openapi_structure, is_breaking_change
+from panopticon_sdk_gen.breaking import (
+    diff_openapi_structure,
+    is_breaking_change,
+    load_allowed_removals,
+)
 from panopticon_sdk_gen.export import (
     build_merged_openapi_offline,
     fetch_openapi_with_retry,
@@ -62,6 +66,31 @@ def test_breaking_detects_removed_path():
     breaking, detail = is_breaking_change(old, new)
     assert breaking is True
     assert "/b" in detail["paths_removed"]
+
+
+def test_allowed_removal_is_not_breaking(tmp_path: Path):
+    old = _minimal_openapi({"/a": {}, "/b": {}, "/c": {}})
+    old["components"]["schemas"]["Gone"] = {"type": "object"}
+    new = _minimal_openapi({"/a": {}})
+    allowed_file = tmp_path / "allowed.json"
+    allowed_file.write_text(json.dumps({"paths": ["/b"], "schemas": ["Gone"]}), encoding="utf-8")
+    breaking, detail = is_breaking_change(old, new, load_allowed_removals(allowed_file))
+    assert breaking is True
+    assert detail["paths_removed"] == ["/c"]
+    assert detail["paths_removed_allowed"] == ["/b"]
+    assert detail["schemas_removed_allowed"] == ["Gone"]
+    new["paths"]["/c"] = {}
+    breaking, _d = is_breaking_change(old, new, load_allowed_removals(allowed_file))
+    assert breaking is False
+    assert load_allowed_removals(tmp_path / "missing.json") == {"paths": set(), "schemas": set()}
+
+
+def test_committed_spec_has_no_allowed_removal_paths():
+    root = Path(__file__).resolve().parents[2]
+    allowed = load_allowed_removals(root / "sdk" / "openapi" / "v1" / "allowed-removals.json")
+    spec = json.loads((root / "sdk" / "openapi" / "v1" / "openapi.json").read_text(encoding="utf-8"))
+    assert not allowed["paths"] & set(spec["paths"])
+    assert not allowed["schemas"] & set(spec["components"]["schemas"])
 
 
 def test_breaking_ok_when_only_additions():
