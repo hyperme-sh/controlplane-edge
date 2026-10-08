@@ -8,7 +8,7 @@ AI is split on purpose: ai-service owns ``/inference``, ``/complete``, and
 ``/usage``; the monolith chat leftover (``/models``, ``/ask``,
 ``/set_model_preference``, sessions) stays on the gateway.
 
-Do not invent new public paths here — only forward surfaces that already exist
+Do not add new public paths here — only forward surfaces that already exist
 on auth / user / acl / payment / marketplace / ai / api-keys / template /
 tennessee-windage / hypermesh / aiuditor / turn / oracles / payments / fyber.auditor / fyber.privilege_grant.
 
