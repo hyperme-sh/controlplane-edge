@@ -1,6 +1,6 @@
 """Host agent paths that skip mandatory JWT / X-Api-Key at the gateway.
 
-The Go Host agent (locked contract) calls these with ``X-Tenant-ID`` and
+The Go Host agent (fixed contract) calls these with ``X-Tenant-ID`` and
 either no Authorization (enroll: one-time ``enroll_token`` in the JSON
 body) or ``Authorization: Bearer <device_secret>`` (``hm_dev_…``).
 hypermesh-service validates those credentials via ``_require_device_auth``
