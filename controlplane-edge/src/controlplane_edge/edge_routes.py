@@ -142,8 +142,13 @@ def match_edge_route(
     path: str,
     settings: OpenAPIAggregationSettings | object | None = None,
 ) -> EdgeMatch | None:
-    """Return the first (longest) edge route that owns ``path``, or None."""
+    """Return the first (longest) edge route that owns ``path``, or None.
 
+    Removed checkout paths are never routed, even under a service prefix.
+    """
+
+    if locked_monolith_checkout_path(path):
+        return None
     settings = settings or OpenAPIAggregationSettings()
     ranked = sorted(EDGE_ROUTES, key=lambda r: len(r.prefix), reverse=True)
     for route in ranked:
