@@ -16,6 +16,25 @@ def is_versions_path(path: str, method: str = "GET") -> bool:
     return method.upper() == "GET" and normalized == "/versions"
 
 
+_MACHINE_IDENTITY_ROUTES = frozenset(
+    (
+        ("POST", "/api/v1/aiuditor/machine/renew"),
+        ("POST", "/api/v1/hypermesh/agent/identity/bind"),
+        ("POST", "/api/v1/hypermesh/agent/identity/token"),
+        ("POST", "/api/v1/hypermesh/agent/identity/contract-token"),
+        ("GET", "/api/v1/hypermesh/agent/identity/configuration"),
+        ("GET", "/api/v1/hypermesh/agent/identity/authorities"),
+    )
+)
+
+
+def is_machine_identity_path(path: str, method: str = "POST") -> bool:
+    """Anonymous machine identity routes. Public, but still rate limited."""
+
+    normalized = path.rstrip("/") or "/"
+    return (method.upper(), normalized) in _MACHINE_IDENTITY_ROUTES
+
+
 def is_public_path(path: str, method: str = "GET") -> bool:
     """Docs, health, OpenAPI aggregation, static assets; GraphQL GET (playground) optional."""
 
@@ -23,6 +42,9 @@ def is_public_path(path: str, method: str = "GET") -> bool:
         return False
     path = path.rstrip("/") or "/"
     if is_public_hypermesh_browse(path, method):
+        return True
+    # AIuditor verifies the bound machine proof; this is not a browser JWT.
+    if method.upper() == "POST" and path == "/api/v1/aiuditor/machine/renew":
         return True
     if is_public_hypermesh_agent(path, method):
         return True
