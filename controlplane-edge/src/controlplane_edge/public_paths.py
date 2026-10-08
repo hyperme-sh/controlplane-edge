@@ -16,21 +16,23 @@ def is_versions_path(path: str, method: str = "GET") -> bool:
     return method.upper() == "GET" and normalized == "/versions"
 
 
-_MACHINE_IDENTITY_POSTS = frozenset(
+_MACHINE_IDENTITY_ROUTES = frozenset(
     (
-        "/api/v1/aiuditor/machine/renew",
-        "/api/v1/hypermesh/agent/identity/bind",
-        "/api/v1/hypermesh/agent/identity/token",
-        "/api/v1/hypermesh/agent/identity/contract-token",
+        ("POST", "/api/v1/aiuditor/machine/renew"),
+        ("POST", "/api/v1/hypermesh/agent/identity/bind"),
+        ("POST", "/api/v1/hypermesh/agent/identity/token"),
+        ("POST", "/api/v1/hypermesh/agent/identity/contract-token"),
+        ("GET", "/api/v1/hypermesh/agent/identity/configuration"),
+        ("GET", "/api/v1/hypermesh/agent/identity/authorities"),
     )
 )
 
 
 def is_machine_identity_path(path: str, method: str = "POST") -> bool:
-    """Anonymous machine-proof exchanges. Public, but still rate limited."""
+    """Anonymous machine identity routes. Public, but still rate limited."""
 
     normalized = path.rstrip("/") or "/"
-    return method.upper() == "POST" and normalized in _MACHINE_IDENTITY_POSTS
+    return (method.upper(), normalized) in _MACHINE_IDENTITY_ROUTES
 
 
 def is_public_path(path: str, method: str = "GET") -> bool:

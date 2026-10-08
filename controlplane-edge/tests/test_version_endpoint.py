@@ -306,7 +306,7 @@ def test_machine_identity_exchanges_stay_behind_the_rate_limiter() -> None:
         def allow(self, tenant_id, user_sub) -> bool:
             del tenant_id, user_sub
             self.calls += 1
-            return self.calls <= 4
+            return self.calls <= 6
 
     app = FastAPI()
     app.add_middleware(GatewayRateLimitMiddleware)
@@ -318,6 +318,12 @@ def test_machine_identity_exchanges_stay_behind_the_rate_limiter() -> None:
     )
     for path in paths:
         app.add_api_route(path, lambda: {"ok": True}, methods=["POST"])
+    probes = (
+        "/api/v1/hypermesh/agent/identity/configuration",
+        "/api/v1/hypermesh/agent/identity/authorities",
+    )
+    for path in probes:
+        app.add_api_route(path, lambda: {"ok": True}, methods=["GET"])
 
     @app.get("/version")
     def version() -> dict[str, bool]:
@@ -327,9 +333,10 @@ def test_machine_identity_exchanges_stay_behind_the_rate_limiter() -> None:
     app.state.gateway_rate_limiter = limiter
     client = TestClient(app)
     assert [client.post(path).status_code for path in paths] == [200] * 4
+    assert [client.get(path).status_code for path in probes] == [200] * 2
     assert client.post(paths[0]).status_code == 429
     assert client.get("/version").status_code == 200
-    assert limiter.calls == 5
+    assert limiter.calls == 7
 
 
 def test_monolith_serves_version_ahead_of_the_catch_all() -> None:
