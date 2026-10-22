@@ -5,15 +5,17 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
+from api.common.internal_token import request_has_internal_token
+from api.infrastructure.security.api_key_exchange_jwt import mint_api_key_session_jwt
+from controlplane_api.config import settings as api_settings
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from api.infrastructure.security.api_key_exchange_jwt import mint_api_key_session_jwt
 from controlplane_edge.api_keys_client import validate_api_key_remote
 from controlplane_edge.auth_utils import resolve_bearer_claims
-from controlplane_edge.host_setup_auth import resolve_setup_claims
 from controlplane_edge.edge_settings import GatewayCrossCuttingSettings
+from controlplane_edge.host_setup_auth import resolve_setup_claims
 from controlplane_edge.public_paths import is_public_path
 
 SITE_TOKEN_HEAD = "hm_site_"
@@ -43,7 +45,9 @@ def _tenant_from_claims(claims: dict[str, Any] | None) -> uuid.UUID | None:
 class GatewayAuthMiddleware(BaseHTTPMiddleware):
     """Populate ``request.state.jwt_claims``, ``tenant_id``, ``user_sub``; enforce auth on protected routes."""
 
-    def __init__(self, app, settings: GatewayCrossCuttingSettings | None = None) -> None:
+    def __init__(
+        self, app, settings: GatewayCrossCuttingSettings | None = None
+    ) -> None:
         super().__init__(app)
         self._settings = settings or GatewayCrossCuttingSettings()
 
@@ -57,7 +61,9 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
         if auth_header and auth_header.startswith("Bearer "):
             bearer = auth_header[7:].strip()
 
-        tid_raw = request.headers.get("x-tenant-id") or request.headers.get("X-Tenant-ID")
+        tid_raw = request.headers.get("x-tenant-id") or request.headers.get(
+            "X-Tenant-ID"
+        )
         tenant_id: uuid.UUID | None = None
         if tid_raw:
             try:
@@ -65,7 +71,9 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
             except ValueError:
                 tenant_id = None
 
-        api_key_header = request.headers.get("x-api-key") or request.headers.get("X-Api-Key")
+        api_key_header = request.headers.get("x-api-key") or request.headers.get(
+            "X-Api-Key"
+        )
 
         claims: dict[str, Any] | None = None
         user_sub: str | None = None
@@ -82,7 +90,9 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
                 if not is_public_path(path, request.method):
                     return JSONResponse(
                         status_code=400,
-                        content={"detail": "X-Tenant-ID is required when using X-Api-Key"},
+                        content={
+                            "detail": "X-Tenant-ID is required when using X-Api-Key"
+                        },
                     )
             else:
                 tracker = getattr(request.app.state, "api_key_failure_tracker", None)
@@ -139,6 +149,20 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
         request.state.tenant_id = tenant_id
         request.state.user_sub = user_sub
 
+        # Payment's current-owner read uses the existing internal credential,
+        # not a human session. Keep this exact method/path credential-gated at
+        # the edge; Hypermesh independently verifies it and current ownership.
+        # This remains a protected path for rate limiting and all other callers.
+        if (
+            request.method == "POST"
+            and path.rstrip("/") == "/api/v1/hypermesh/host-management/ownership"
+            and tenant_id is not None
+            and request_has_internal_token(
+                request, api_settings.hypermesh_internal_token
+            )
+        ):
+            return await call_next(request)
+
         if is_public_path(path, request.method):
             return await call_next(request)
 
@@ -153,7 +177,9 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
         if claims is None and not bearer:
             return JSONResponse(
                 status_code=401,
-                content={"detail": "Authorization Bearer token or valid X-Api-Key required"},
+                content={
+                    "detail": "Authorization Bearer token or valid X-Api-Key required"
+                },
             )
 
         return await call_next(request)
