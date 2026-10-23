@@ -35,6 +35,16 @@ def is_machine_identity_path(path: str, method: str = "POST") -> bool:
     return (method.upper(), normalized) in _MACHINE_IDENTITY_ROUTES
 
 
+def is_issuer_session_end_path(path: str, method: str = "POST") -> bool:
+    """Exact issuer-session fence. Payment verifies the original browser credential."""
+
+    normalized = path.rstrip("/") or "/"
+    return (
+        method.upper() == "POST"
+        and normalized == "/api/v1/payments/connect/access-session/end"
+    )
+
+
 def is_public_path(path: str, method: str = "GET") -> bool:
     """Docs, health, OpenAPI aggregation, static assets; GraphQL GET (playground) optional."""
 
@@ -67,6 +77,10 @@ def is_public_path(path: str, method: str = "GET") -> bool:
     # still sees this path; see GatewayRateLimitMiddleware.
     if is_versions_path(path, method):
         return versions_access_mode() != "authenticated"
+    # Sign-out may have only the original browser credential. Payment verifies
+    # it. Exact POST, not a prefix, and still rate limited.
+    if is_issuer_session_end_path(path, method):
+        return True
     # Extracted-service surfaces that must work without a session JWT
     # (OIDC start/callback/refresh; Stripe webhook).
     edge_public = (

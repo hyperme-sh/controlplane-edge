@@ -230,6 +230,25 @@ def test_hypermesh_smoke_session_rejects_get_and_subpath(edge_app: FastAPI) -> N
 
 
 @respx.mock
+def test_issuer_session_end_is_public_and_proxied(edge_app: FastAPI) -> None:
+    route = respx.post(
+        "http://pay.edge.test/api/v1/payments/connect/access-session/end"
+    ).mock(return_value=httpx.Response(200, json={"ended": True}))
+    with TestClient(edge_app) as client:
+        missing = client.get("/api/v1/payments/connect/access-session/end")
+        ended = client.post(
+            "/api/v1/payments/connect/access-session/end",
+            headers={"X-Auth-Session-Token": "original", "X-Tenant-ID": str(uuid.uuid4())},
+        )
+        extra = client.post("/api/v1/payments/connect/access-session/end/extra")
+    assert missing.status_code == 401
+    assert ended.status_code == 200 and ended.json() == {"ended": True}
+    assert extra.status_code == 401
+    assert route.call_count == 1
+    assert route.calls.last.request.headers["x-auth-session-token"] == "original"
+
+
+@respx.mock
 def test_stripe_webhook_is_public_and_proxied(edge_app: FastAPI) -> None:
     respx.post("http://pay.edge.test/api/v1/payments/stripe/webhook").mock(
         return_value=httpx.Response(200, json={"received": True})
@@ -252,6 +271,10 @@ def test_users_require_auth_when_not_public(edge_app: FastAPI) -> None:
     assert is_public_path("/auth/enrollment/grant", "POST") is False
     assert is_public_path("/auth/me", "GET") is False
     assert is_public_path("/api/v1/payments/stripe/webhook", "POST") is True
+    assert is_public_path("/api/v1/payments/connect/access-session/end", "POST") is True
+    assert is_public_path("/api/v1/payments/connect/access-session/end/", "POST") is True
+    assert is_public_path("/api/v1/payments/connect/access-session/end", "GET") is False
+    assert is_public_path("/api/v1/payments/connect/access-session/end/extra", "POST") is False
     assert is_public_path("/api/v1/hypermesh/catalog", "GET") is True
     assert is_public_path("/api/v1/hypermesh/classes", "GET") is True
     assert is_public_path("/api/v1/hypermesh/nodes", "GET") is True

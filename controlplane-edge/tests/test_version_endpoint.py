@@ -297,6 +297,42 @@ def test_versions_stays_behind_the_rate_limiter_when_public(monkeypatch: pytest.
     assert limiter.calls == 1
 
 
+def test_issuer_session_end_stays_behind_the_rate_limiter() -> None:
+    from controlplane_edge.middleware.rate_limit import GatewayRateLimitMiddleware
+
+    class Limiter:
+        def __init__(self) -> None:
+            self.seen: list[tuple[object, str]] = []
+
+        def allow(self, tenant_id, user_sub) -> bool:
+            self.seen.append((tenant_id, str(user_sub)))
+            return len(self.seen) == 1
+
+    app = FastAPI()
+    app.add_middleware(GatewayRateLimitMiddleware)
+
+    @app.post("/api/v1/payments/connect/access-session/end")
+    def end_session() -> dict[str, bool]:
+        return {"ended": True}
+
+    @app.post("/api/v1/payments/stripe/webhook")
+    def webhook() -> dict[str, bool]:
+        return {"ok": True}
+
+    limiter = Limiter()
+    app.state.gateway_rate_limiter = limiter
+    client = TestClient(app)
+    headers = {"X-Tenant-ID": "11111111-1111-1111-1111-111111111111"}
+    assert client.post("/api/v1/payments/connect/access-session/end", headers=headers).status_code == 200
+    other = {"X-Tenant-ID": "22222222-2222-2222-2222-222222222222"}
+    assert client.post("/api/v1/payments/connect/access-session/end", headers=other).status_code == 429
+    assert client.post("/api/v1/payments/stripe/webhook").status_code == 200
+    assert limiter.seen == [
+        (uuid.UUID("00000000-0000-0000-0000-000000000000"), "testclient"),
+        (uuid.UUID("00000000-0000-0000-0000-000000000000"), "testclient"),
+    ]
+
+
 def test_machine_identity_exchanges_stay_behind_the_rate_limiter() -> None:
     from controlplane_edge.middleware.rate_limit import GatewayRateLimitMiddleware
 
