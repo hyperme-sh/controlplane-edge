@@ -10,6 +10,7 @@ from starlette.responses import JSONResponse, Response
 
 from api.infrastructure.tenant_user_rate_limiter import TenantUserRateLimiter
 from controlplane_edge.public_paths import (
+    is_issuer_session_end_path,
     is_machine_identity_path,
     is_public_path,
     is_versions_path,
@@ -29,12 +30,14 @@ class GatewayRateLimitMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         # /versions fans out to every upstream. It stays on this limiter even
         # when EDGE_VERSIONS_ACCESS=public lets it skip the session JWT.
-        # Machine-proof exchanges accept unauthenticated input that reaches
-        # the database, so they stay on the anonymous (client address) bucket.
+        # Machine-proof exchanges and the issuer-session fence accept
+        # unauthenticated input that reaches a service, so they stay on the
+        # anonymous (client address) bucket.
         if (
             is_public_path(path, request.method)
             and not is_versions_path(path, request.method)
             and not is_machine_identity_path(path, request.method)
+            and not is_issuer_session_end_path(path, request.method)
         ):
             return await call_next(request)
 
@@ -42,7 +45,9 @@ class GatewayRateLimitMiddleware(BaseHTTPMiddleware):
         if lim is None:
             return await call_next(request)
 
-        if is_machine_identity_path(path, request.method):
+        if is_machine_identity_path(path, request.method) or is_issuer_session_end_path(
+            path, request.method
+        ):
             # The tenant header on these routes is unauthenticated; one bucket
             # per client address, so rotating tenant IDs gains nothing.
             tenant_id = _ANON_TENANT
