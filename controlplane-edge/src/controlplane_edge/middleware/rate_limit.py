@@ -14,6 +14,7 @@ from controlplane_edge.public_paths import (
     is_machine_identity_path,
     is_public_path,
     is_versions_path,
+    is_witness_policy_path,
 )
 
 
@@ -38,6 +39,7 @@ class GatewayRateLimitMiddleware(BaseHTTPMiddleware):
             and not is_versions_path(path, request.method)
             and not is_machine_identity_path(path, request.method)
             and not is_issuer_session_end_path(path, request.method)
+            and not is_witness_policy_path(path, request.method)
         ):
             return await call_next(request)
 
@@ -45,8 +47,10 @@ class GatewayRateLimitMiddleware(BaseHTTPMiddleware):
         if lim is None:
             return await call_next(request)
 
-        if is_machine_identity_path(path, request.method) or is_issuer_session_end_path(
-            path, request.method
+        if (
+            is_machine_identity_path(path, request.method)
+            or is_issuer_session_end_path(path, request.method)
+            or is_witness_policy_path(path, request.method)
         ):
             # The tenant header on these routes is unauthenticated; one bucket
             # per client address, so rotating tenant IDs gains nothing.

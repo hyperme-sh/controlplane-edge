@@ -45,11 +45,18 @@ def is_issuer_session_end_path(path: str, method: str = "POST") -> bool:
     )
 
 
+def is_witness_policy_path(path: str, method: str = "GET") -> bool:
+    """Public signed policy only; no prefix or write-method exemption."""
+    return method.upper() == "GET" and path == "/api/v1/acl/sociacl/witness-policy"
+
+
 def is_public_path(path: str, method: str = "GET") -> bool:
     """Docs, health, OpenAPI aggregation, static assets; GraphQL GET (playground) optional."""
 
     if path in ("/",):
         return False
+    if is_witness_policy_path(path, method):
+        return True
     path = path.rstrip("/") or "/"
     if is_public_hypermesh_browse(path, method):
         return True
