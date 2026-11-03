@@ -17,10 +17,6 @@ from controlplane_edge.graphql.register import register_graphql_routes
 from controlplane_edge.openapi_merge import diff_openapi_to_markdown
 from controlplane_edge.register_cross_cutting import register_gateway_cross_cutting
 
-_PROTO = Path(__file__).resolve().parents[2] / "proto" / "panopticon" / "v1"
-if str(_PROTO) not in sys.path:
-    sys.path.insert(0, str(_PROTO))
-
 import contractecho_pb2  # noqa: E402
 import contractecho_pb2_grpc  # noqa: E402
 

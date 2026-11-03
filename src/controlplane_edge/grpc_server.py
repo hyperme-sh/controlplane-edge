@@ -13,11 +13,6 @@ from grpc.aio import ServicerContext
 
 logger = logging.getLogger(__name__)
 
-_REPO_ROOT = Path(__file__).resolve().parents[3]
-_PROTO_DIR = _REPO_ROOT / "proto" / "panopticon" / "v1"
-if str(_PROTO_DIR) not in sys.path:
-    sys.path.insert(0, str(_PROTO_DIR))
-
 import contractecho_pb2_grpc  # noqa: E402
 
 from controlplane_edge.auth_utils import resolve_bearer_claims_sync  # noqa: E402

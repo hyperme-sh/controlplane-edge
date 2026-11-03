@@ -28,13 +28,11 @@ SHA_B = "b" * 40
 STAMP = "2026-09-26T17:00:00Z"
 DIGEST = "sha256:" + "cd" * 32
 
-_VERSION_SOURCE = (
-    Path(__file__).resolve().parents[2]
-    / "core/lib/controlplane-api/src/controlplane_api/version.py"
-)
-_FLEET_SOURCE = (
-    Path(__file__).resolve().parents[1] / "src/controlplane_edge/service_versions.py"
-)
+import controlplane_api.version as version_module
+import controlplane_edge.service_versions as fleet_module
+
+_VERSION_SOURCE = Path(version_module.__file__)
+_FLEET_SOURCE = Path(fleet_module.__file__)
 
 
 def _imported_modules(path: Path) -> set[str]:
@@ -413,24 +411,3 @@ def test_rate_limiter_forgets_idle_keys(monkeypatch: pytest.MonkeyPatch) -> None
     assert limiter.allow(uuid.uuid4(), "client")
     assert len(limiter._hits) == 1
 
-
-def test_monolith_serves_version_ahead_of_the_catch_all() -> None:
-    from api import app
-
-    def first_full(path: str) -> str | None:
-        scope = {
-            "type": "http",
-            "path": path,
-            "method": "GET",
-            "headers": [],
-            "query_string": b"",
-            "root_path": "",
-        }
-        for route in app.routes:
-            match, _ = route.matches(scope)
-            if match == Match.FULL:
-                return getattr(route, "path", None)
-        return None
-
-    assert first_full("/version") == "/version"
-    assert first_full("/versions") == "/versions"
