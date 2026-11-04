@@ -31,6 +31,6 @@ not establish live upstream, standalone container or deployment acceptance.
 SDK generation and deployment-environment fixture contracts belong to separate
 integration validation and are not part of this package's test result.
 
-The main-only hosted workflow uses pinned actions, read-only contents and exact
+The main-only shared-runner workflow uses pinned actions, read-only contents and exact
 repository credential headers. Actions remains disabled pending scoped
-`DEPENDENCY_READ_TOKEN` access and hosted-worker policy.
+`DEPENDENCY_READ_TOKEN` access and shared-runner qualification.
