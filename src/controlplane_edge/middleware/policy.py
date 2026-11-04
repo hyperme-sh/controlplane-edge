@@ -52,18 +52,22 @@ def site_token_route(path: str, method: str) -> bool:
 
 
 TENANT_CLAIM = "https://spanopticon.dev/tenant_id"
+LEGACY_TENANT_CLAIM = "https://panopticon.dev/tenant_id"
 
 
 def _tenant_from_claims(claims: dict[str, Any] | None) -> uuid.UUID | None:
     if not claims:
         return None
-    raw = claims.get(TENANT_CLAIM) or claims.get("tenant_id")
-    if raw is None or str(raw).strip() == "":
-        return None
-    try:
-        return uuid.UUID(str(raw))
-    except (ValueError, AttributeError, TypeError):
-        return None
+    # Accept the legacy claim only after bearer validation. Never let one
+    # alias hide a malformed or conflicting binding in another alias.
+    tenants = {
+        uuid.UUID(str(claims[key]))
+        for key in (TENANT_CLAIM, LEGACY_TENANT_CLAIM, "tenant_id")
+        if key in claims
+    }
+    if len(tenants) > 1:
+        raise ValueError("Conflicting token tenants")
+    return next(iter(tenants), None)
 
 
 class GatewayAuthMiddleware(BaseHTTPMiddleware):
@@ -155,7 +159,12 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
                     if claims is not None:
                         user_sub = str(claims.get("sub") or "") or None
 
-        claimed = _tenant_from_claims(claims)
+        try:
+            claimed = _tenant_from_claims(claims)
+        except (ValueError, AttributeError, TypeError):
+            return JSONResponse(
+                status_code=403, content={"detail": "Invalid or conflicting token tenant"}
+            )
         if claimed is not None:
             if tenant_id is not None and tenant_id != claimed:
                 return JSONResponse(

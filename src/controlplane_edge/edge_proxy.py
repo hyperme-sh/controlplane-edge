@@ -63,9 +63,13 @@ def _forward_request_headers(request: Request) -> dict[str, str]:
     out: dict[str, str] = {}
     for key, value in request.headers.items():
         lk = key.lower()
-        if lk in _HOP_BY_HOP or lk == "authorization":
+        if lk in _HOP_BY_HOP or lk in {"authorization", "x-tenant-id"}:
             continue
         out[key] = value
+
+    tenant = getattr(request.state, "tenant_id", None)
+    if tenant is not None:
+        out["X-Tenant-ID"] = str(tenant)
 
     bearer = getattr(request.state, "bearer_token", None)
     if bearer:
