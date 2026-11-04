@@ -34,3 +34,11 @@ integration validation and are not part of this package's test result.
 The main-only shared-runner workflow uses pinned actions, read-only contents and exact
 repository credential headers. Actions remains disabled pending scoped
 `DEPENDENCY_READ_TOKEN` access and shared-runner qualification.
+
+## Public host release downloads
+
+Anonymous GETs admit only published metadata and versioned Linux arm64/amd64 or
+Darwin arm64 agent/installer names. Unsupported targets, private files and
+mutation methods remain protected. Redirects preserve the no-store and
+no-referrer headers. This is the edge portion of transitional Panopticon #726;
+actual signed downloads and live deployment remain separate acceptance gates.
