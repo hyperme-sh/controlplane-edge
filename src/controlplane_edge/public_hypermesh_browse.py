@@ -40,8 +40,8 @@ def is_public_hypermesh_browse(path: str, method: str = "GET") -> bool:
     return re.fullmatch(
         r"/api/v1/hypermesh/public/host-releases/(?:test|prod)"
         r"(?:/[A-Za-z0-9][A-Za-z0-9.-]{0,63}/"
-        r"(?:release[.]json|checksums[.]txt(?:[.]sig|[.]asc)?|bootstrap[.]py|hypermesh-release[.]pub|"
-        r"hypermesh-(?:agent|deploy)_[0-9]+\.[0-9]+\.[0-9]+_linux_(?:arm64|amd64)))?",
+        r"(?:release[.]json|platforms[.]json|checksums[.]txt(?:[.]sig|[.]asc)?|bootstrap[.]py|hypermesh-release[.]pub|"
+        r"hypermesh-(?:agent|deploy)_[0-9]+\.[0-9]+\.[0-9]+_(?:linux_(?:arm64|amd64)|darwin_arm64)))?",
         norm,
     ) is not None
 
