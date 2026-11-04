@@ -23,7 +23,7 @@ SITE_TOKEN_HEAD = "hm_site_"
 
 
 def looks_like_site_machine_token(raw: str) -> bool:
-    """Opaque Panopticon site token. Not a JWT — hypermesh-service verifies."""
+    """Opaque (s)panopticon site token. Not a JWT — hypermesh-service verifies."""
 
     return raw.startswith(SITE_TOKEN_HEAD) and len(raw) > len(SITE_TOKEN_HEAD)
 
@@ -51,7 +51,7 @@ def site_token_route(path: str, method: str) -> bool:
     return any(re.fullmatch(pattern, path) for pattern in _SITE_ROUTES.get(method, ()))
 
 
-TENANT_CLAIM = "https://panopticon.dev/tenant_id"
+TENANT_CLAIM = "https://spanopticon.dev/tenant_id"
 
 
 def _tenant_from_claims(claims: dict[str, Any] | None) -> uuid.UUID | None:

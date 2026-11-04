@@ -12,7 +12,7 @@ from strawberry.exceptions import GraphQLError
 from strawberry.experimental.pydantic import type as pydantic_type
 from strawberry.scalars import JSON
 
-from panopticon_models import Listing, ListingType, PriceType, TokenUsage
+from spanopticon_models import Listing, ListingType, PriceType, TokenUsage
 
 from controlplane_edge.graphql import clients
 from controlplane_edge.graphql.context import GraphQLContext
