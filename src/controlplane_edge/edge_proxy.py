@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from http.cookiejar import CookieJar, DefaultCookiePolicy
 
 import httpx
 from fastapi import FastAPI
@@ -45,6 +46,15 @@ _STRIP_RESPONSE = frozenset(
         "keep-alive",
     }
 )
+
+
+class _RejectCookies(DefaultCookiePolicy):
+    def set_ok(self, cookie, request):
+        return False
+
+
+def _proxy_client(timeout: httpx.Timeout) -> httpx.AsyncClient:
+    return httpx.AsyncClient(timeout=timeout, cookies=CookieJar(policy=_RejectCookies()))
 
 
 def _forward_request_headers(request: Request) -> dict[str, str]:
@@ -123,20 +133,20 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
         client = getattr(request.app.state, "edge_proxy_client", None)
         own_client = False
         if client is None:
-            client = httpx.AsyncClient(timeout=timeout)
+            client = _proxy_client(timeout)
             own_client = True
 
         # Streamed, so token-by-token chat completions reach the caller as they
         # are produced instead of being held until the upstream is done.
-        upstream_request = client.build_request(
+        upstream_request = httpx.Request(
             request.method,
             target,
             headers=_forward_request_headers(request),
             content=body,
-            timeout=timeout,
+            extensions={"timeout": timeout.as_dict()},
         )
         try:
-            upstream = await client.send(upstream_request, stream=True)
+            upstream = await client.send(upstream_request, stream=True, follow_redirects=False)
         except httpx.HTTPError as exc:
             logger.warning(
                 "edge proxy upstream error service=%s: %s",
@@ -179,7 +189,7 @@ def register_edge_proxy(app: FastAPI) -> None:
     settings = OpenAPIAggregationSettings()
     cross = GatewayCrossCuttingSettings()
     timeout = httpx.Timeout(cross.proxy_timeout_s)
-    app.state.edge_proxy_client = httpx.AsyncClient(timeout=timeout)
+    app.state.edge_proxy_client = _proxy_client(timeout)
     app.add_middleware(EdgeProxyMiddleware, settings=settings, cross=cross)
     logger.info(
         "Gateway edge proxy registered (enabled=%s, routes=%s)",

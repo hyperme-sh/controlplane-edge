@@ -8,7 +8,11 @@ Runtime routing data is bundled as `controlplane_edge/product_routes.json`.
 Generated gRPC modules come from the pinned `controlplane-proto` package.
 
 The edge enforces authentication and tenant binding before forwarding protected
-requests. Public paths are explicitly enumerated. Service destinations and optional
+requests. Public paths are explicitly enumerated. Proxy requests use only the
+caller's cookies; the shared proxy client does not persist upstream cookies.
+Opaque site-token forwarding is limited to explicit methods and paths owned by
+upstreams that validate those credentials. It does not authenticate local routes
+such as the protected service-version endpoint. Service destinations and optional
 features use `CPEDGE_*` configuration; deployment-specific upstream registration
 and credentials must be validated separately.
 

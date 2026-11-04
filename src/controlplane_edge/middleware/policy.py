@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+import re
 from typing import Any
 
 from api.common.internal_token import request_has_internal_token
@@ -25,6 +26,29 @@ def looks_like_site_machine_token(raw: str) -> bool:
     """Opaque Panopticon site token. Not a JWT — hypermesh-service verifies."""
 
     return raw.startswith(SITE_TOKEN_HEAD) and len(raw) > len(SITE_TOKEN_HEAD)
+
+
+_SITE_ID = r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+_SITE_ROUTES = {
+    "POST": (
+        r"/api/v1/hypermesh/site/jobs",
+        r"/api/v1/auditor/v0/tickets",
+        rf"/api/v1/auditor/v0/tickets/{_SITE_ID}/ack",
+        r"/api/v1/grants/v0/grants",
+    ),
+    "GET": (
+        rf"/api/v1/hypermesh/site/jobs/{_SITE_ID}",
+        rf"/api/v1/hypermesh/site/devices/{_SITE_ID}",
+        rf"/api/v1/auditor/v0/tickets/{_SITE_ID}",
+        r"/api/v1/grants/v0/grants",
+        rf"/api/v1/grants/v0/grants/{_SITE_ID}",
+    ),
+}
+
+
+def site_token_route(path: str, method: str) -> bool:
+    """Only routes whose owning upstream validates opaque site credentials."""
+    return any(re.fullmatch(pattern, path) for pattern in _SITE_ROUTES.get(method, ()))
 
 
 TENANT_CLAIM = "https://panopticon.dev/tenant_id"
@@ -166,7 +190,9 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
         if is_public_path(path, request.method):
             return await call_next(request)
 
-        if claims is None and bearer and looks_like_site_machine_token(bearer):
+        if (claims is None and bearer and looks_like_site_machine_token(bearer)
+                and self._settings.edge_proxy_enabled
+                and site_token_route(path, request.method)):
             return await call_next(request)
 
         if claims is None and bearer:
