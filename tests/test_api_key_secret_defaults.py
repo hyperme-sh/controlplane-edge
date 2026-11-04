@@ -72,4 +72,4 @@ def test_configured_secret_mints_and_decodes(monkeypatch: pytest.MonkeyPatch) ->
     )
     claims = try_decode_api_key_session_jwt(token)
     assert claims is not None
-    assert claims["https://panopticon.dev/tenant_id"] == str(tenant)
+    assert claims["https://spanopticon.dev/tenant_id"] == str(tenant)

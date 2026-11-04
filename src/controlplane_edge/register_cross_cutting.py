@@ -36,7 +36,7 @@ def maybe_instrument_otel(app: FastAPI) -> None:
         return
 
     resource = Resource.create(
-        {"service.name": os.environ.get("OTEL_SERVICE_NAME", "panopticon-gateway")}
+        {"service.name": os.environ.get("OTEL_SERVICE_NAME", "spanopticon-gateway")}
     )
     provider = TracerProvider(resource=resource)
     exporter = OTLPSpanExporter()

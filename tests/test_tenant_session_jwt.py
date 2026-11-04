@@ -19,10 +19,10 @@ async def test_gateway_accepts_tenant_session_jwt():
     claims = await resolve_bearer_claims(token)
     assert claims is not None
     assert claims["tenant_id"] == str(tid)
-    assert claims["panopticon_auth"] == "tenant_session"
+    assert claims["spanopticon_auth"] == "tenant_session"
     sync = resolve_bearer_claims_sync(token)
     assert sync is not None
-    assert sync["https://panopticon.dev/tenant_id"] == str(tid)
+    assert sync["https://spanopticon.dev/tenant_id"] == str(tid)
 
 
 @pytest.mark.parametrize("account_type", [None, "human", "service", "user-controlled-other"])

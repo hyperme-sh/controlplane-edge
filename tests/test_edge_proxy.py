@@ -16,9 +16,9 @@ from controlplane_edge.public_paths import is_public_path
 from controlplane_edge.register_cross_cutting import register_gateway_cross_cutting
 
 
-def _fake_bearer(sub: str = "11111111-1111-1111-1111-111111111111") -> str:
+def _fake_bearer(sub: str = "11111111-1111-1111-1111-111111111111", tenant: str | None = None) -> str:
     header = base64.urlsafe_b64encode(json.dumps({"alg": "none"}).encode()).decode().rstrip("=")
-    payload = base64.urlsafe_b64encode(json.dumps({"sub": sub}).encode()).decode().rstrip("=")
+    payload = base64.urlsafe_b64encode(json.dumps({"sub": sub, **({"tenant_id": tenant} if tenant else {})}).encode()).decode().rstrip("=")
     return f"{header}.{payload}.sig"
 
 
@@ -57,9 +57,10 @@ def edge_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
 
 
 def _auth_headers() -> dict[str, str]:
+    tenant = str(uuid.uuid4())
     return {
-        "Authorization": f"Bearer {_fake_bearer()}",
-        "X-Tenant-ID": str(uuid.uuid4()),
+        "Authorization": f"Bearer {_fake_bearer(tenant=tenant)}",
+        "X-Tenant-ID": tenant,
     }
 
 
@@ -413,3 +414,63 @@ def test_portal_controls_proxy_preserves_tenant_auth(edge_app: FastAPI) -> None:
     assert len(route.calls) == 1
     assert route.calls[0].request.headers["authorization"] == headers["Authorization"]
     assert route.calls[0].request.headers["x-tenant-id"] == headers["X-Tenant-ID"]
+
+
+@pytest.mark.parametrize("claim_name", ["canonical", "legacy", "plain"])
+@pytest.mark.parametrize("header_mode", ["absent", "matching", "mismatch"])
+@respx.mock
+def test_verified_tenant_binding(edge_app, monkeypatch, claim_name, header_mode):
+    from controlplane_edge.middleware import policy
+    tenant = str(uuid.uuid4())
+    key = {"canonical": policy.TENANT_CLAIM,
+           "legacy": policy.LEGACY_TENANT_CLAIM, "plain": "tenant_id"}[claim_name]
+
+    async def verified(_token):
+        return {"sub": "user", key: tenant}
+
+    monkeypatch.setattr(policy, "resolve_bearer_claims", verified)
+    route = respx.get("http://user.edge.test/api/v1/users").respond(200, json={})
+    headers = {"Authorization": "Bearer verified"}
+    if header_mode != "absent":
+        headers["X-Tenant-ID"] = tenant if header_mode == "matching" else str(uuid.uuid4())
+    with TestClient(edge_app) as client:
+        response = client.get("/api/v1/users", headers=headers)
+    if header_mode == "mismatch":
+        assert response.status_code == 403
+        assert not route.called
+    else:
+        assert response.status_code == 200
+        assert route.calls.last.request.headers["x-tenant-id"] == tenant
+
+
+@pytest.mark.parametrize("other", ["matching", "conflicting", "malformed", "empty", "null"])
+@pytest.mark.parametrize("alias", ["legacy", "plain"])
+@respx.mock
+def test_tenant_aliases_fail_closed(edge_app, monkeypatch, other, alias):
+    from controlplane_edge.middleware import policy
+    tenant = str(uuid.uuid4())
+    value = {"matching": tenant, "conflicting": str(uuid.uuid4()),
+             "malformed": "bad", "empty": "", "null": None}[other]
+    key = policy.LEGACY_TENANT_CLAIM if alias == "legacy" else "tenant_id"
+
+    async def verified(_token):
+        return {"sub": "user", policy.TENANT_CLAIM: tenant, key: value}
+
+    monkeypatch.setattr(policy, "resolve_bearer_claims", verified)
+    route = respx.get("http://user.edge.test/api/v1/users").respond(200, json={})
+    with TestClient(edge_app) as client:
+        response = client.get("/api/v1/users", headers={"Authorization": "Bearer verified"})
+    assert response.status_code == (200 if other == "matching" else 403)
+    assert route.called == (other == "matching")
+
+
+@respx.mock
+def test_unbound_token_cannot_forward_caller_tenant(edge_app):
+    route = respx.get("http://user.edge.test/api/v1/users").respond(200, json={})
+    with TestClient(edge_app) as client:
+        response = client.get("/api/v1/users", headers={
+            "Authorization": f"Bearer {_fake_bearer()}",
+            "X-Tenant-ID": str(uuid.uuid4()),
+        })
+    assert response.status_code == 200
+    assert "x-tenant-id" not in route.calls.last.request.headers

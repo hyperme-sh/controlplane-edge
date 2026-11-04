@@ -57,7 +57,7 @@ def test_version_payload_reports_the_baked_sha_not_the_deploy_tag() -> None:
         {
             "SERVICE_NAME": "controlplane-edge",
             "GIT_SHA": SHA_A,
-            "PANOPTICON_IMAGE_TAG": SHA_B,
+            "SPANOPTICON_IMAGE_TAG": SHA_B,
             "BUILT_AT": STAMP,
             "GITHUB_TOKEN": "ghp_secret",
             "STRIPE_SECRET_KEY": "sk_live_secret",
@@ -81,7 +81,7 @@ def test_version_payload_ignores_a_mutable_tag_and_omits_an_unknown_digest() -> 
             "SERVICE_NAME": "auth-service",
             "GIT_SHA": SHA_A,
             "SOURCE_SHA": SHA_B,
-            "PANOPTICON_IMAGE_TAG": "test",
+            "SPANOPTICON_IMAGE_TAG": "test",
             "BUILT_AT": STAMP,
             "IMAGE_DIGEST": "not-a-digest",
         }
@@ -96,7 +96,7 @@ def test_version_payload_reports_a_digest_when_one_was_injected() -> None:
             "SERVICE_NAME": "hypermesh-service",
             "GIT_SHA": SHA_A,
             "BUILT_AT": STAMP,
-            "PANOPTICON_IMAGE_DIGEST": f"ghcr.io/fyberlabs/hypermesh-service@{DIGEST}",
+            "SPANOPTICON_IMAGE_DIGEST": f"ghcr.io/fyberlabs/hypermesh-service@{DIGEST}",
         }
     )
     assert body["image_digest"] == DIGEST
@@ -168,7 +168,7 @@ async def test_collect_versions_names_peers_and_marks_the_down_ones(monkeypatch:
     monkeypatch.setenv("SERVICE_NAME", "controlplane-edge")
     monkeypatch.setenv("GIT_SHA", SHA_A)
     monkeypatch.setenv("BUILT_AT", STAMP)
-    monkeypatch.delenv("PANOPTICON_IMAGE_TAG", raising=False)
+    monkeypatch.delenv("SPANOPTICON_IMAGE_TAG", raising=False)
 
     async def fetch(url: str) -> dict:
         if url == "http://auth/version":
