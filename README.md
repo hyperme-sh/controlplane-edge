@@ -18,8 +18,8 @@ and credentials must be validated separately.
 
 ## Development
 
-Use Python 3.13 and uv 0.11.26 with read access to the ten private repositories
-named in `.github/workflows/package.yml`.
+Use Python 3.13 and uv 0.11.26. All immutable runtime and development
+dependency repositories are public; no private credential is needed.
 
     uv sync --frozen
     bash scripts/check-package.sh
@@ -31,8 +31,9 @@ not establish live upstream, standalone container or deployment acceptance.
 SDK generation and deployment-environment fixture contracts belong to separate
 integration validation and are not part of this package's test result.
 
-The main-only shared-runner workflow uses pinned actions, read-only contents and exact
-repository credential headers. Private dependency access uses the repository-scoped `DEPENDENCY_READ_TOKEN`.
+The main workflow uses pinned actions and read-only contents. Dependency
+qualification explicitly disables ambient Git credential configuration. Private
+repositories use debrunners; public repositories use hosted Ubuntu.
 
 ## Public host release downloads
 
@@ -180,3 +181,11 @@ there in PR #21. This edge's older immutable dependency graph still needs a
 coordinated, fully qualified adoption of that fix. SDK generation, monolith version
 routing and VM environment examples remain with their SDK/application/infra owners.
 These source reconciliations do not establish deployment or anonymous installation.
+
+## Interactive identity adoption
+
+The API/core/identity pins match the installed user-service graph. Seven original
+Panopticon age-confirmation cases are now collected by this owner in all three
+package contexts. Native interactive clients require age evidence; machine and
+service exemptions remain covered. This is package qualification, not standalone
+edge composition or complete self-hosted deployment acceptance.
