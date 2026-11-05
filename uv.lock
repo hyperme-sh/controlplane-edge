@@ -982,7 +982,7 @@ dev = [
     { name = "pytest", specifier = ">=8.4.0" },
     { name = "pytest-asyncio", specifier = ">=1.2.0" },
     { name = "respx", specifier = ">=0.22.0" },
-    { name = "user-service", git = "https://github.com/hyperme-sh/user-service.git?subdirectory=core%2Fuser-service&rev=662c46255d0eaaf16b45ce7bdbe34cfba4c1cc05" },
+    { name = "user-service", git = "https://github.com/hyperme-sh/user-service.git?subdirectory=core%2Fuser-service&rev=d3eadc83a82e831b76bb7d4fc602f3d35da87126" },
 ]
 
 [[package]]
@@ -4431,7 +4431,7 @@ wheels = [
 [[package]]
 name = "user-service"
 version = "0.1.0"
-source = { git = "https://github.com/hyperme-sh/user-service.git?subdirectory=core%2Fuser-service&rev=662c46255d0eaaf16b45ce7bdbe34cfba4c1cc05#662c46255d0eaaf16b45ce7bdbe34cfba4c1cc05" }
+source = { git = "https://github.com/hyperme-sh/user-service.git?subdirectory=core%2Fuser-service&rev=d3eadc83a82e831b76bb7d4fc602f3d35da87126#d3eadc83a82e831b76bb7d4fc602f3d35da87126" }
 dependencies = [
     { name = "auth-service" },
     { name = "controlplane-api" },

@@ -144,14 +144,14 @@
     {
       "distribution": "user-service",
       "version": "0.1.0",
-      "dependency_revision": "662c46255d0eaaf16b45ce7bdbe34cfba4c1cc05",
-      "artifact_revision": "662c46255d0eaaf16b45ce7bdbe34cfba4c1cc05",
+      "dependency_revision": "d3eadc83a82e831b76bb7d4fc602f3d35da87126",
+      "artifact_revision": "d3eadc83a82e831b76bb7d4fc602f3d35da87126",
       "wheel": "user_service-0.1.0-py3-none-any.whl",
       "sha256": "dadc811af0aa366a9c3b950dd4298acaa545f6d433e44ca86cfbbf368832af4c",
-      "source_url": "https://github.com/hyperme-sh/user-service/tree/662c46255d0eaaf16b45ce7bdbe34cfba4c1cc05",
+      "source_url": "https://github.com/hyperme-sh/user-service/tree/d3eadc83a82e831b76bb7d4fc602f3d35da87126",
       "delivery": "local_build_from_exact_clean_git_revision",
       "build_command": "uv build --wheel --no-sources <exact clean pinned git archive>",
-      "source_archive_sha256": "8cfdaf545f9aa129ae260fdd078f7f34a1b6ddce7ec8c7d8351c389497fff7fe",
+      "source_archive_sha256": "0490a44c72e594d46cdc00ce83623e43ac5288a6894c4a6c7bb13be860078b03",
       "qualification": "Exact-source development fixture; no prior release required and no publication claimed",
       "source_tree": "3db041674f8b5d0c962724d63b7a77721aa99fd2"
     }

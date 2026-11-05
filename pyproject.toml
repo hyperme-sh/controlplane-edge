@@ -30,7 +30,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "user-service @ git+https://github.com/hyperme-sh/user-service.git@662c46255d0eaaf16b45ce7bdbe34cfba4c1cc05#subdirectory=core/user-service",
+    "user-service @ git+https://github.com/hyperme-sh/user-service.git@d3eadc83a82e831b76bb7d4fc602f3d35da87126#subdirectory=core/user-service",
     "pytest>=8.4.0",
     "pytest-asyncio>=1.2.0",
     "respx>=0.22.0",
