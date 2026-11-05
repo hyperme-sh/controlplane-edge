@@ -35,7 +35,20 @@ uv python install 3.13
 uv sync --frozen
 ```
 
-The shared application opens PostgreSQL during startup and reads Redis from `REDIS_URI`. Create the database named in `DATABASE_URL` before starting. Point each `CPEDGE_*_SERVICE_URL` at the base URL of a service you run locally. Unset services are omitted from the merged OpenAPI document; a proxied path whose URL is unset answers `503`.
+The shared application opens PostgreSQL during startup and reads Redis from `REDIS_URI`. Point each `CPEDGE_*_SERVICE_URL` at the base URL of a service you run locally. Unset services are omitted from the merged OpenAPI document; a proxied path whose URL is unset answers `503`.
+
+The process calls `seed_initial_data()` before it serves HTTP. That function reads the existing `roles` table and does not create it, so an empty database exits during startup with an undefined-table error. Create the database, then apply the schema with the pinned `controlplane-db` package that `uv sync` installs. `python -m controlplane_db.startup` reads `DATABASE_URL`. Its default mode upgrades the schema shipped in that package, which creates `roles` and `users`.
+
+```sh
+psql -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+CREATE ROLE controlplane LOGIN PASSWORD 'controlplane123';
+CREATE DATABASE controlplane OWNER controlplane;
+SQL
+export DATABASE_URL=postgresql+asyncpg://controlplane:controlplane123@localhost:5432/controlplane
+uv run python -m controlplane_db.startup
+```
+
+Skip that startup command when `DATABASE_URL` already points at a database whose schema is current. On an empty database, `CONTROLPLANE_MIGRATION_MODE=owners` and `CONTROLPLANE_DB_BOOTSTRAP=1` make the same command build the current platform, events, Hypermesh, AIuditor, and payment schemas. Set the bootstrap variable only when the database has no schema and no migration history.
 
 ```sh
 export DATABASE_URL=postgresql+asyncpg://controlplane:controlplane123@localhost:5432/controlplane
