@@ -70,27 +70,50 @@ async def test_no_default_or_malformed_operator_trust(native_validator, monkeypa
     assert native_validator == []
 
 
-async def test_installed_user_proxy_receives_only_original_native_authority(native_validator, monkeypatch):
+@pytest.mark.parametrize('method,path,token,body', [
+    ('POST','/api/v1/me/account-closure','human',{'confirmation':'CLOSE MY ACCOUNT'}),
+    ('POST','/api/v1/operator/account-closures','ai',{'confirmation':'CLOSE MY ACCOUNT','subject':'target'}),
+    ('GET','/api/v1/operator/account-closures?subject=target','ai',None),
+    ('POST','/api/v1/operator/account-closures/hold','ai',{'subject':'target','hold':True,'reference':'owned-fixture'}),
+])
+async def test_installed_user_proxy_receives_only_original_native_authority(native_validator, monkeypatch, method, path, token, body):
     from user_service import closure_proxy
+    from controlplane_edge.register_cross_cutting import register_gateway_cross_cutting
     original = httpx.AsyncClient
     observed = []
     def upstream(request):
         observed.append(request)
         return httpx.Response(202, json={'state':'closing'})
+    user_app = FastAPI()
+    user_app.include_router(closure_proxy.router, prefix='/api/v1')
+    monkeypatch.setenv('CPEDGE_USER_SERVICE_URL','http://user.fixture')
+    monkeypatch.setenv('CPEDGE_EDGE_PROXY','true')
     app = FastAPI()
-    app.include_router(closure_proxy.router, prefix='/api/v1')
-    app.add_middleware(GatewayAuthMiddleware)
+    register_gateway_cross_cutting(app)
+    await app.state.edge_proxy_client.aclose()
+    user_requests = []
+    async def user_transport(request):
+        user_requests.append(request)
+        return await httpx.ASGITransport(app=user_app).handle_async_request(request)
+    edge_client = original(transport=httpx.MockTransport(user_transport))
+    app.state.edge_proxy_client = edge_client
     monkeypatch.setenv('ACCOUNT_CLOSURE_ACTIONS_ENABLED','true')
     monkeypatch.setenv('ACCOUNT_CLOSURE_ENFORCEMENT_ENABLED','true')
     monkeypatch.setenv('ACCOUNT_CLOSURE_AUTHORITY_URL','https://private.fixture')
     monkeypatch.setattr(closure_proxy.httpx,'AsyncClient',lambda **kwargs:original(transport=httpx.MockTransport(upstream),**kwargs))
-    async with original(transport=httpx.ASGITransport(app=app),base_url='http://edge') as client:
-        result = await client.post('/api/v1/me/account-closure',
-            headers={'Authorization':'Bearer human','X-Tenant-ID':'spoofed','X-Actor-ID':'other'},
-            json={'confirmation':'CLOSE MY ACCOUNT'})
+    async with edge_client, original(transport=httpx.ASGITransport(app=app),base_url='http://edge') as client:
+        result = await client.request(method,path,
+            headers={'Authorization':'Bearer '+token,'X-Tenant-ID':'spoofed','X-Actor-ID':'other'},json=body)
     assert result.status_code == 202
+    user_request, = user_requests
+    assert user_request.url.host == 'user.fixture'
+    assert user_request.headers['authorization'] == 'Bearer '+token
+    assert 'x-tenant-id' not in user_request.headers
     request, = observed
-    assert request.headers['authorization'] == 'Bearer human'
+    assert request.headers['authorization'] == 'Bearer '+token
+    assert request.url.path == path.split('?')[0]
+    if method == 'GET':
+        assert request.url.params['subject'] == 'target'
     assert not any(name in request.headers for name in ('x-tenant-id','x-actor-id','x-account-lifecycle-token'))
 
 
