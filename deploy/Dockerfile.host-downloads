@@ -1,0 +1,10 @@
+# Transitional download-route deployment, not a standalone edge extraction.
+# Preserve the deployed composition, dependencies, migrations and entrypoint.
+FROM ghcr.io/fyberlabs/controlplane-edge@sha256:3a78451b5c02e6cb892cfaee2df24942f1af2bb4116fc0f6f121c15e8f8b28cb
+RUN echo '94b52515b74db0c9b85efc39bf447ee0aeb5f7de3d49f9d26eb0954eb7c120a6  /app/controlplane-edge/src/controlplane_edge/public_hypermesh_browse.py' | sha256sum -c -
+COPY src/controlplane_edge/public_hypermesh_browse.py /app/controlplane-edge/src/controlplane_edge/public_hypermesh_browse.py
+RUN /app/.venv/bin/python -c "from controlplane_edge.public_paths import is_public_path; p='/api/v1/hypermesh/public/host-releases/test/115-owner/hypermesh-deploy_0.0.115_darwin_arm64'; assert is_public_path(p, 'GET'); assert not is_public_path(p, 'POST'); assert not is_public_path('/api/v1/hypermesh/devices', 'GET'); assert not is_public_path(p + '.key', 'GET'); import api"
+ARG OWNER_REVISION
+LABEL sh.hyperme.owner-repository="hyperme-sh/controlplane-edge" \
+      sh.hyperme.owner-revision="${OWNER_REVISION}" \
+      sh.hyperme.compatibility-scope="public-host-downloads"
