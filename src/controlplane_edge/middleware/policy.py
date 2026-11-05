@@ -84,6 +84,11 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         path = request.url.path
+        if "Authorization" in request.headers and "X-Api-Key" in request.headers:
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Send either Authorization or X-Api-Key, not both"},
+            )
         auth_header = request.headers.get("Authorization")
         bearer: str | None = None
         if auth_header and auth_header.startswith("Bearer "):

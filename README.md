@@ -57,3 +57,14 @@ organization policy may shorten it). Expired evidence fails closed: validate a
 new main revision. The publisher verifies the run, source, workflow and artifact
 digest independently of release metadata. Repository immutable releases must be
 enabled. See the [shared release contract](https://github.com/hyperme-sh/.github/blob/7749591fccd30d46ba9b0adabe82114001c9d0de/actions/release-channel/README.md).
+
+## One upstream credential authority
+
+Protected requests must choose either `Authorization` or `X-Api-Key`. Supplying
+both is rejected before either credential is validated, including blank or
+malformed values. CORS preflight retains its existing handling. Once an API key
+is validated and exchanged, the proxy sends only the signed bearer and the
+validated tenant header; it removes the original API key. This adopts the edge
+portion of Panopticon #702 without changing tenant claim compatibility or
+upstream credential verification. Gateway-side attribution and private closure
+routes remain separate owner adoption work.
