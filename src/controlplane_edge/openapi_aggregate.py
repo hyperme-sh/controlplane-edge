@@ -49,7 +49,7 @@ async def build_merged_openapi_for_version(
 
     merged = merge_openapi(
         specs,
-        title=f"(s)panopticon Aggregated API ({version_label})",
+        title=f"spanopticon Aggregated API ({version_label})",
         version=f"{version_label}.0.0",
     )
     meta = merged.setdefault("x-controlplane-edge-meta", {})

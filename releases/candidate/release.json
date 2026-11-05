@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "line": "0.2",
+  "purpose": "stable-release",
+  "components": {
+    "controlplane-edge": {
+      "version": "0.2.0",
+      "contract": "contract.json",
+      "contract_sha256": "609a0093711e60de527225b07dcb313e7ab855f42ff723b67e360c3ef9f79eed",
+      "artifact": {
+        "kind": "package",
+        "uri": "urn:sha256:46371588073a28838b04b170dcb32d69a4caab3da90aa2abcc81b3653da3bac8",
+        "sha256": "46371588073a28838b04b170dcb32d69a4caab3da90aa2abcc81b3653da3bac8"
+      }
+    }
+  }
+}

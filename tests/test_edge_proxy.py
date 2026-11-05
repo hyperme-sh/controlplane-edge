@@ -416,14 +416,14 @@ def test_portal_controls_proxy_preserves_tenant_auth(edge_app: FastAPI) -> None:
     assert route.calls[0].request.headers["x-tenant-id"] == headers["X-Tenant-ID"]
 
 
-@pytest.mark.parametrize("claim_name", ["canonical", "legacy", "plain"])
+@pytest.mark.parametrize("claim_name", ["canonical", "plain"])
 @pytest.mark.parametrize("header_mode", ["absent", "matching", "mismatch"])
 @respx.mock
 def test_verified_tenant_binding(edge_app, monkeypatch, claim_name, header_mode):
     from controlplane_edge.middleware import policy
     tenant = str(uuid.uuid4())
     key = {"canonical": policy.TENANT_CLAIM,
-           "legacy": policy.LEGACY_TENANT_CLAIM, "plain": "tenant_id"}[claim_name]
+           "plain": "tenant_id"}[claim_name]
 
     async def verified(_token):
         return {"sub": "user", key: tenant}
@@ -451,7 +451,7 @@ def test_tenant_aliases_fail_closed(edge_app, monkeypatch, other, alias):
     tenant = str(uuid.uuid4())
     value = {"matching": tenant, "conflicting": str(uuid.uuid4()),
              "malformed": "bad", "empty": "", "null": None}[other]
-    key = policy.LEGACY_TENANT_CLAIM if alias == "legacy" else "tenant_id"
+    key = "https://panopticon.dev/tenant_id" if alias == "legacy" else "tenant_id"
 
     async def verified(_token):
         return {"sub": "user", policy.TENANT_CLAIM: tenant, key: value}
@@ -460,8 +460,9 @@ def test_tenant_aliases_fail_closed(edge_app, monkeypatch, other, alias):
     route = respx.get("http://user.edge.test/api/v1/users").respond(200, json={})
     with TestClient(edge_app) as client:
         response = client.get("/api/v1/users", headers={"Authorization": "Bearer verified"})
-    assert response.status_code == (200 if other == "matching" else 403)
-    assert route.called == (other == "matching")
+    accepted = alias != "legacy" and other == "matching"
+    assert response.status_code == (200 if accepted else 403)
+    assert route.called == accepted
 
 
 @respx.mock
