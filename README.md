@@ -18,7 +18,7 @@ and credentials must be validated separately.
 
 ## Development
 
-Use Python 3.13 and uv 0.11.26 with read access to the nine private repositories
+Use Python 3.13 and uv 0.11.26 with read access to the ten private repositories
 named in `.github/workflows/package.yml`.
 
     uv sync --frozen
@@ -68,3 +68,16 @@ validated tenant header; it removes the original API key. This adopts the edge
 portion of Panopticon #702 without changing tenant claim compatibility or
 upstream credential verification. Gateway-side attribution and private closure
 routes remain separate owner adoption work.
+
+## Account closure consumers
+
+The edge adopts the same immutable identity/tenancy/core/database graph as the
+installed user-service. Native closure identity is admitted only for the exact
+self/operator action methods and paths; original bearer authority is forwarded
+without caller-supplied tenant or actor claims. Internal lifecycle endpoints are
+not public gateway routes, including OPTIONS. With retirement enforcement on,
+failed validation cannot fall back to unverified development claims.
+
+The package suite exercises the installed user-service forwarding router as a
+consumer. Upstream authority replies are owned test fixtures; this does not
+establish deployed provider, private TLS delivery or closure activation.
