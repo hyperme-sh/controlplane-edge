@@ -24,6 +24,7 @@ jobs:
           python-version: '3.13'
       - name: Validate controlplane edge package
         env:
+          TEST_EVIDENCE_DIR: ${{ runner.temp }}/edge-test-results
           DEPENDENCY_READ_TOKEN: ${{ secrets.DEPENDENCY_READ_TOKEN }}
         shell: bash
         run: |
@@ -31,7 +32,7 @@ jobs:
           test -n "$DEPENDENCY_READ_TOKEN" || { echo 'Private dependency read access is required'; exit 1; }
           header=$(printf 'x-access-token:%s' "$DEPENDENCY_READ_TOKEN" | base64 -w0)
           echo "::add-mask::$header"
-          export GIT_CONFIG_COUNT=9
+          export GIT_CONFIG_COUNT=10
           export GIT_CONFIG_KEY_0=http.https://github.com/hyperme-sh/controlplane-api.git.extraheader
           export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $header"
           export GIT_CONFIG_KEY_1=http.https://github.com/hyperme-sh/controlplane-tenancy.git.extraheader
@@ -50,6 +51,8 @@ jobs:
           export GIT_CONFIG_VALUE_7="AUTHORIZATION: basic $header"
           export GIT_CONFIG_KEY_8=http.https://github.com/hyperme-sh/controlplane-proto.git.extraheader
           export GIT_CONFIG_VALUE_8="AUTHORIZATION: basic $header"
+          export GIT_CONFIG_KEY_9=http.https://github.com/hyperme-sh/auth-service.git.extraheader
+          export GIT_CONFIG_VALUE_9="AUTHORIZATION: basic $header"
           unset DEPENDENCY_READ_TOKEN
           bash scripts/check-package.sh
       - name: Retain validated package bytes
@@ -61,3 +64,10 @@ jobs:
           if-no-files-found: error
           retention-days: 90
           compression-level: 0
+      - name: Retain executed test identities
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: test-results
+          path: ${{ runner.temp }}/edge-test-results/*.xml
+          if-no-files-found: error
+          retention-days: 90
