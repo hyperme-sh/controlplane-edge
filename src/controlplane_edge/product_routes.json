@@ -109,5 +109,16 @@
     ],
     "product": "turn",
     "schema_version": 1
+  },
+  "verification": {
+    "product": "verification",
+    "schema_version": 1,
+    "edge_routes": [
+      {
+        "prefix": "/api/v1/verification",
+        "service_id": "verification",
+        "url_attr": "verification_service_url"
+      }
+    ]
   }
 }

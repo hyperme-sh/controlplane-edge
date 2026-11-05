@@ -68,3 +68,12 @@ validated tenant header; it removes the original API key. This adopts the edge
 portion of Panopticon #702 without changing tenant claim compatibility or
 upstream credential verification. Gateway-side attribution and private closure
 routes remain separate owner adoption work.
+
+## Verification service
+
+`CPEDGE_VERIFICATION_SERVICE_URL` optionally registers `/api/v1/verification`
+and includes the service's OpenAPI/version discovery. Existing authentication and
+tenant middleware still apply. The original browser credential is forwarded in
+`X-Auth-Session-Token`; verification independently checks both credentials. Internal
+erasure is not routed. Configure verification's exact trusted proxy CIDRs to
+recover client IP from the edge-appended chain.
