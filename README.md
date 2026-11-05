@@ -147,9 +147,19 @@ The direct and transitive owner pins now match user-service integration #37.
 The development consumer installs that exact reviewed user-service revision,
 including its optional default-off verification erasure owner. Its fixture is
 built from a clean Git archive and checked against the frozen complete graph.
-All 302 cases pass in source, external wheel and rebuilt-sdist contexts with no
-skips. The four installed-service cases send self/operator request, status and
+The initial 302-case run passed in every context; after preserving the newly
+merged onboarding route, all 303 cases pass in source, external wheel and
+rebuilt-sdist contexts with no skips. The four installed-service cases send self/operator request, status and
 hold traffic through the production edge proxy; original bearer authority,
 query/body forwarding and tenant spoof refusal remain enforced. Private paths
-and failed-retirement fallback remain denied. Package and provider versions are
+and failed-retirement fallback remain denied. The edge package version and provider behavior are
 preserved; this adoption publishes no release and activates no private runtime.
+
+## Verification service
+
+`CPEDGE_VERIFICATION_SERVICE_URL` optionally registers `/api/v1/verification`
+and includes the service's OpenAPI/version discovery. Existing authentication and
+tenant middleware still apply. The original browser credential is forwarded in
+`X-Auth-Session-Token`; verification independently checks both credentials. Internal
+erasure is not routed. Configure verification's exact trusted proxy CIDRs to
+recover client IP from the edge-appended chain.

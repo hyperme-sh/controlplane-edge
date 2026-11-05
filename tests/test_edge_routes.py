@@ -248,3 +248,14 @@ def test_portal_controls_uses_user_service() -> None:
     assert match is not None
     assert match.service_id == "user"
     assert match.base_url == "http://user.example"
+
+
+def test_verification_route_is_optional_and_internal_erasure_not_exposed():
+    from controlplane_edge.aggregation_settings import OpenAPIAggregationSettings
+    settings = OpenAPIAggregationSettings(CPEDGE_VERIFICATION_SERVICE_URL="https://verification.test")
+    match = match_edge_route("/api/v1/verification/onboarding", settings)
+    assert match.service_id == "verification"
+    assert match.base_url == "https://verification.test"
+    assert match_edge_route("/internal/verification/erase", settings) is None
+    assert match_edge_route("/api/v1/verification-extra", settings) is None
+    assert ("verification", "https://verification.test") in settings.iter_remote_services()
