@@ -24,7 +24,7 @@ SITE_TOKEN_HEAD = "hm_site_"
 
 
 def looks_like_site_machine_token(raw: str) -> bool:
-    """Opaque (s)panopticon site token. Not a JWT — hypermesh-service verifies."""
+    """Opaque spanopticon site token. Not a JWT — hypermesh-service verifies."""
 
     return raw.startswith(SITE_TOKEN_HEAD) and len(raw) > len(SITE_TOKEN_HEAD)
 
@@ -53,17 +53,18 @@ def site_token_route(path: str, method: str) -> bool:
 
 
 TENANT_CLAIM = "https://spanopticon.dev/tenant_id"
-LEGACY_TENANT_CLAIM = "https://panopticon.dev/tenant_id"
+_RETIRED_TENANT_CLAIM = "https://panopticon.dev/tenant_id"
 
 
 def _tenant_from_claims(claims: dict[str, Any] | None) -> uuid.UUID | None:
     if not claims:
         return None
-    # Accept the legacy claim only after bearer validation. Never let one
-    # alias hide a malformed or conflicting binding in another alias.
+    if _RETIRED_TENANT_CLAIM in claims:
+        raise ValueError("Retired tenant claim; reauthenticate with the current issuer")
+    # All current tenant aliases must agree.
     tenants = {
         uuid.UUID(str(claims[key]))
-        for key in (TENANT_CLAIM, LEGACY_TENANT_CLAIM, "tenant_id")
+        for key in (TENANT_CLAIM, "tenant_id")
         if key in claims
     }
     if len(tenants) > 1:

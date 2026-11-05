@@ -44,18 +44,16 @@ actual signed downloads and live deployment remain separate acceptance gates.
 
 ## Release channels
 
-Successful main-push validation retains the validated Python wheel and source distribution and publishes
-an immutable `test-<commit>` GitHub prerelease. Push a `vMAJOR.MINOR.PATCH`
-tag at that tested commit to promote the exact files to a stable release,
-without rebuilding. Repository visibility applies to all package assets.
-Package metadata versions are preserved; these are GitHub distribution snapshots,
-not automatic PyPI publication or service deployment.
+Main validation retains its exact qualified files in Actions artifacts. It does
+not create GitHub releases or tags. Historical `test-<commit>` prereleases remain
+qualification evidence and do not establish an accepted stable release.
 
-Promotion requires the original Actions artifact (90-day requested retention;
-organization policy may shorten it). Expired evidence fails closed: validate a
-new main revision. The publisher verifies the run, source, workflow and artifact
-digest independently of release metadata. Repository immutable releases must be
-enabled. See the [shared release contract](https://github.com/hyperme-sh/.github/blob/7749591fccd30d46ba9b0adabe82114001c9d0de/actions/release-channel/README.md).
+Stable publication requires an explicit `vMAJOR.MINOR.PATCH` tag, the exact
+successful main validation artifact, compatible declared contracts and an actual
+immutable stable baseline. The publisher independently verifies that evidence;
+successful caller jobs alone cannot establish acceptance. Missing evidence and
+first-stable bootstrap remain closed. Package qualification, coordinated consumer
+acceptance and runtime deployment remain separate.
 
 ## One upstream credential authority
 
@@ -86,6 +84,62 @@ smoke case transferred from Panopticon d6d9541b72db2eb3f86cb8aedc071794eba116e3.
 CI retains JUnit evidence and requires identical nonempty source, wheel and
 sdist inventories with no skipped cases. Fixture registration identifiers are
 stable so parametrized case identities can be compared exactly.
+
+### Package preparation
+
+`bash scripts/check-package.sh --fixtures` runs the existing source, fresh-wheel
+and rebuilt-source-archive consumers without private Git credentials. Fixtures
+are built from the exact clean Git revisions already pinned by this package;
+the manifest records their digests and source provenance. The verifier checks
+root metadata, the complete active lock graph and transitive wheel metadata.
+Explicit private extras and unrecognized conditional pins fail closed.
+
+The read-only pull-request workflow retains tested wheels, source archives and
+an artifact-derived runtime inventory as Actions artifacts. It does not publish
+releases. These are preparation evidence, not an accepted synchronized dependency
+baseline: package version alignment, dependency adoption and comparison against
+a qualified prior baseline remain separate work. Existing owner test boundaries
+and live/provider qualification requirements continue to apply.
+
+## Test qualification and stable acceptance
+
+GitHub `test-<commit>` prereleases are development snapshots. Their embedded
+package version does not reserve a stable version. Artifact and consumer evidence
+belongs under `releases/qualification`. Owning-package and artifact validation
+remain separate from stable release admission. Future test receipts must carry
+an explicit non-stable classification.
+
+`releases/accepted` and `SPANOPTICON_RELEASE_BASELINE_SHA` are reserved for an
+actual immutable stable GitHub release. The pinned shared guard verifies the live
+release channel, stable tag source and asset digests; a test snapshot cannot
+become accepted through a provenance label. No stable baseline is recorded until
+that release exists. Stable publication remains closed without a valid baseline;
+first stable bootstrap and coordinated release qualification remain separate.
+No stable version, approval prerequisite or deployment is introduced here.
+
+### Actions qualification and stable publication
+
+Main merges and workflow completion do not publish GitHub test releases. Exact
+qualification files remain in Actions artifacts with finite retention. The pinned
+publisher independently verifies a real immutable stable baseline and refuses
+qualification snapshots, even if a caller job reports success. Existing valid
+stable records are retained; no release, version change, deployment or human
+approval prerequisite is introduced by this correction.
+
+Version 0.2 rejects the retired tenant-claim URI, even alongside a current claim.
+Reconfigure external issuers and require fresh tokens before upgrading; no legacy
+tenant alias is accepted. Current tenant aliases must still agree.
+
+
+### Initial stable declaration
+
+When there is no accepted stable release, the pinned admission workflow checks
+this repository's complete live release inventory and the exact owning package
+versions against `releases/candidate`. A stable release or incomplete inventory
+rejects this path. Candidate metadata identifies built artifacts; it does not
+establish an accepted baseline or publish anything. The exact-pinned publisher
+independently validates tested bytes and serializes any later explicit first
+stable publication. Test snapshots remain qualification evidence only.
 
 ## Verification service
 

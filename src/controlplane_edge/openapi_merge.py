@@ -39,7 +39,7 @@ def _namespace_remote_spec(svc_id: str, spec: dict[str, Any]) -> dict[str, Any]:
 def merge_openapi(
     specs: list[tuple[str, dict[str, Any]]],
     *,
-    title: str = "(s)panopticon Aggregated API",
+    title: str = "spanopticon Aggregated API",
     version: str = "1.0.0",
     description: str | None = None,
 ) -> dict[str, Any]:
