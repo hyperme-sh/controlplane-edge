@@ -1,6 +1,6 @@
 name: Release admission
+# Development PRs use version-policy.yml and package tests, without release history.
 on:
-  pull_request:
   push:
     tags: ['**']
   workflow_dispatch:

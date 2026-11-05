@@ -7,14 +7,14 @@ name = "controlplane-edge"
 version = "0.2.0"
 requires-python = ">=3.13"
 dependencies = [
-    "controlplane-api @ git+https://github.com/hyperme-sh/controlplane-api.git@ba971e08bcbf6ec45ec8e6f0ae26220378aa7cdb",
-    "controlplane-tenancy @ git+https://github.com/hyperme-sh/controlplane-tenancy.git@26c6207cfa446e819992baaa0df53f3b694f6ced",
-    "controlplane-identity @ git+https://github.com/hyperme-sh/controlplane-identity.git@797bb4303075e3e7fb54dd42a1451bfe3fd089fa",
-    "controlplane-core @ git+https://github.com/hyperme-sh/controlplane-core.git@dd5833c8ebc65bed48fe14968b7f7b5f43418fcb",
-    "controlplane-db @ git+https://github.com/hyperme-sh/controlplane-db.git@482943cbcd78ffd1a3d2ad4e1088ed7ed0cdeaea",
-    "controlplane-events @ git+https://github.com/hyperme-sh/controlplane-events.git@ae5aa86dc53b1a9e25ae4527fefeea6da6fb66ea",
-    "spanopticon-models @ git+https://github.com/hyperme-sh/controlplane-models.git@a9d39ec27b44f15442eaa7d78485bd84ec744dc2",
-    "controlplane-proto @ git+https://github.com/hyperme-sh/controlplane-proto.git@51e61210f272eabdc2a3a8d471a50b26257d866a",
+    "controlplane-api @ git+https://github.com/hyperme-sh/controlplane-api.git@82fc8c2ca21531f1a3f7a695257b3465c4a347da",
+    "controlplane-tenancy @ git+https://github.com/hyperme-sh/controlplane-tenancy.git@f252909af772b2c820555af36de456d46f17cfcb",
+    "controlplane-identity @ git+https://github.com/hyperme-sh/controlplane-identity.git@127d15fce7c3af8d8f8e239fb306ce88de76f02a",
+    "controlplane-core @ git+https://github.com/hyperme-sh/controlplane-core.git@c46bf282a8f1a605cfb8acb9beafb474c0b1b0c8",
+    "controlplane-db @ git+https://github.com/hyperme-sh/controlplane-db.git@95ef61433374274f4a4fc287e15982be6357e1cc",
+    "controlplane-events @ git+https://github.com/hyperme-sh/controlplane-events.git@2a49f9af5f6c4dc9d6c4ddebc83c41d6331e2c87",
+    "spanopticon-models @ git+https://github.com/hyperme-sh/controlplane-models.git@9a9bbb20c2e0cd41febf3233ce7a48fe17a84b04",
+    "controlplane-proto @ git+https://github.com/hyperme-sh/controlplane-proto.git@db0c3b6b2359ec5a3a3792e0a2ec00d4c9c38db9",
     "httpx>=0.28.0",
     "pydantic-settings>=2.0.0",
     "strawberry-graphql[fastapi]>=0.252.0",
@@ -28,7 +28,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "user-service @ git+https://github.com/hyperme-sh/user-service.git@7739e59be37a72e9edb1f466cac4dd950e4a215b#subdirectory=core/user-service",
+    "user-service @ git+https://github.com/hyperme-sh/user-service.git@3c98ef115d63ab90c8db4ef047658b07dfb464c4#subdirectory=core/user-service",
     "pytest>=8.4.0",
     "pytest-asyncio>=1.2.0",
     "respx>=0.22.0",
