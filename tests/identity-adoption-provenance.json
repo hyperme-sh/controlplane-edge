@@ -1,5 +1,5 @@
 {
-  "source_repository": "hyperme-sh/spanopticon",
+  "source_repository": "FyberLabs/panopticon",
   "revision": "2cd00fd9a7ebb950999571a81be7cb0a24d9264e",
   "path": "controlplane-edge/tests/test_keycloak_audience.py",
   "sha256": "d1679bfe1146b1410b982ef8cf2f86b0cbe0d203e17d0b23a77488b3befe2e95",
