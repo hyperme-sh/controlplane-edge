@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
 from controlplane_api.config import settings as api_settings
+from controlplane_identity.account_lifecycle import enforcement_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -17,10 +19,10 @@ async def resolve_bearer_claims(token: str) -> dict[str, Any] | None:
     from api.infrastructure.security.api_key_exchange_jwt import try_decode_api_key_session_jwt
     from api.infrastructure.security.tenant_session_jwt import try_decode_tenant_session_jwt
 
-    ex = try_decode_api_key_session_jwt(token)
+    ex = await asyncio.to_thread(try_decode_api_key_session_jwt, token)
     if ex is not None:
         return ex
-    switched = try_decode_tenant_session_jwt(token)
+    switched = await asyncio.to_thread(try_decode_tenant_session_jwt, token)
     if switched is not None:
         return switched
     if api_settings.keycloak_jwks_url and api_settings.keycloak_issuer:
@@ -31,6 +33,8 @@ async def resolve_bearer_claims(token: str) -> dict[str, Any] | None:
         except Exception as exc:  # noqa: BLE001
             logger.debug("Keycloak JWT validation failed: %s", exc)
             return None
+    if enforcement_enabled():
+        return None
     # No Keycloak: decode without verify (local dev / tests)
     try:
         import jwt as pyjwt
@@ -68,6 +72,8 @@ def resolve_bearer_claims_sync(token: str) -> dict[str, Any] | None:
         except Exception as exc:  # noqa: BLE001
             logger.debug("Keycloak JWT validation failed: %s", exc)
             return None
+    if enforcement_enabled():
+        return None
     try:
         import jwt as pyjwt
 

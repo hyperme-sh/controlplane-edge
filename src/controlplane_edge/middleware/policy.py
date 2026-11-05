@@ -15,6 +15,7 @@ from starlette.responses import JSONResponse, Response
 
 from controlplane_edge.api_keys_client import validate_api_key_remote
 from controlplane_edge.auth_utils import resolve_bearer_claims
+from controlplane_edge.closure_auth import closure_claims, closure_route
 from controlplane_edge.edge_settings import GatewayCrossCuttingSettings
 from controlplane_edge.host_setup_auth import resolve_setup_claims
 from controlplane_edge.public_paths import is_public_path
@@ -81,14 +82,31 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
         self._settings = settings or GatewayCrossCuttingSettings()
 
     async def dispatch(self, request: Request, call_next) -> Response:
+        if request.url.path.startswith("/api/v1/internal/") or "/internal/account-lifecycle" in request.url.path:
+            return JSONResponse(status_code=404, content={"detail": "Not found"})
         if request.method == "OPTIONS":
             return await call_next(request)
 
         path = request.url.path
+        if "Authorization" in request.headers and "X-Api-Key" in request.headers:
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Send either Authorization or X-Api-Key, not both"},
+            )
         auth_header = request.headers.get("Authorization")
         bearer: str | None = None
         if auth_header and auth_header.startswith("Bearer "):
             bearer = auth_header[7:].strip()
+
+        if closure_route(path, request.method):
+            claims = await closure_claims(bearer, path) if bearer else None
+            if claims is None:
+                return JSONResponse(status_code=401, content={"detail": "Native account authority required"})
+            request.state.jwt_claims = claims
+            request.state.bearer_token = bearer
+            request.state.user_sub = claims["sub"]
+            request.state.tenant_id = None
+            return await call_next(request)
 
         tid_raw = request.headers.get("x-tenant-id") or request.headers.get(
             "X-Tenant-ID"

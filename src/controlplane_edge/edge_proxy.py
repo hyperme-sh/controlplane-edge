@@ -61,9 +61,11 @@ def _forward_request_headers(request: Request) -> dict[str, str]:
     """Copy inbound headers; prefer the gateway-minted bearer when present."""
 
     out: dict[str, str] = {}
+    bearer = getattr(request.state, "bearer_token", None)
     for key, value in request.headers.items():
         lk = key.lower()
-        if lk in _HOP_BY_HOP or lk in {"authorization", "x-tenant-id"}:
+        if (lk in _HOP_BY_HOP or lk in {"authorization", "x-tenant-id"}
+                or (lk == "x-api-key" and bearer)):
             continue
         out[key] = value
 
@@ -71,7 +73,7 @@ def _forward_request_headers(request: Request) -> dict[str, str]:
     if tenant is not None:
         out["X-Tenant-ID"] = str(tenant)
 
-    bearer = getattr(request.state, "bearer_token", None)
+    # The exchange token replaces the raw API key as the upstream authority.
     if bearer:
         out["Authorization"] = f"Bearer {bearer}"
     elif request.headers.get("authorization"):
