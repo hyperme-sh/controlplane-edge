@@ -24,6 +24,7 @@ jobs:
           python-version: '3.13'
       - name: Validate controlplane edge package
         env:
+          TEST_EVIDENCE_DIR: ${{ runner.temp }}/edge-test-results
           DEPENDENCY_READ_TOKEN: ${{ secrets.DEPENDENCY_READ_TOKEN }}
         shell: bash
         run: |
@@ -63,3 +64,10 @@ jobs:
           if-no-files-found: error
           retention-days: 90
           compression-level: 0
+      - name: Retain executed test identities
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: test-results
+          path: ${{ runner.temp }}/edge-test-results/*.xml
+          if-no-files-found: error
+          retention-days: 90

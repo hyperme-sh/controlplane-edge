@@ -22,6 +22,7 @@ jobs:
           output=$(mktemp -d "$RUNNER_TEMP/prepared-package.XXXXXX")
           export RELEASE_ARTIFACT_DIR="$output/dist"
           export PREPARATION_EVIDENCE_DIR="$output/evidence"
+          export TEST_EVIDENCE_DIR="$output/consumers"
           echo "PREPARED_OUTPUT=$output" >> "$GITHUB_ENV"
           bash scripts/check-package.sh --fixtures
       - name: Retain tested preparation bytes

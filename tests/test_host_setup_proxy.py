@@ -18,7 +18,8 @@ from controlplane_edge.register_cross_cutting import register_gateway_cross_cutt
 from controlplane_edge.public_paths import is_public_path
 
 TID = str(uuid.uuid4())
-RID = str(uuid.uuid4())
+# Stable registration fixture keeps parametrized case identities reproducible.
+RID = "00000000-0000-4000-8000-000000000002"
 AUTH_ROUTES = [("GET", "/auth/host-setup/me"), ("POST", "/auth/host-setup/enrollment/grant"), ("POST", "/auth/host-setup/session")]
 SETUP_ROUTES = [("POST", "/api/v1/hypermesh/host-registrations"),
     ("GET", f"/api/v1/hypermesh/host-registrations/{RID}"),

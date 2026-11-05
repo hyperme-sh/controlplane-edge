@@ -32,8 +32,7 @@ SDK generation and deployment-environment fixture contracts belong to separate
 integration validation and are not part of this package's test result.
 
 The main-only shared-runner workflow uses pinned actions, read-only contents and exact
-repository credential headers. Actions remains disabled pending scoped
-`DEPENDENCY_READ_TOKEN` access and shared-runner qualification.
+repository credential headers. Private dependency access uses the repository-scoped `DEPENDENCY_READ_TOKEN`.
 
 ## Public host release downloads
 
@@ -81,6 +80,12 @@ failed validation cannot fall back to unverified development claims.
 The package suite exercises the installed user-service forwarding router as a
 consumer. Upstream authority replies are owned test fixtures; this does not
 establish deployed provider, private TLS delivery or closure activation.
+
+The active 305-case suite includes the combined REST, GraphQL and local gRPC
+smoke case transferred from Panopticon d6d9541b72db2eb3f86cb8aedc071794eba116e3.
+CI retains JUnit evidence and requires identical nonempty source, wheel and
+sdist inventories with no skipped cases. Fixture registration identifiers are
+stable so parametrized case identities can be compared exactly.
 
 ### Package preparation
 
