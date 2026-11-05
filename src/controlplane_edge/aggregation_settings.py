@@ -15,6 +15,8 @@ class OpenAPIAggregationSettings(BaseSettings):
         extra="ignore",
     )
 
+    verification_service_url: str | None = Field(default=None, validation_alias="CPEDGE_VERIFICATION_SERVICE_URL")
+
     auth_service_url: str | None = Field(
         default=None,
         validation_alias=AliasChoices("CPEDGE_AUTH_SERVICE_URL", "AUTH_SERVICE_URL"),
@@ -111,6 +113,7 @@ class OpenAPIAggregationSettings(BaseSettings):
     def iter_remote_services(self) -> list[tuple[str, str | None]]:
         """(service_id, base_url) for each microservice."""
         return [
+            ("verification", self.verification_service_url),
             ("auth", self.auth_service_url),
             ("user", self.user_service_url),
             ("payment", self.payment_service_url),

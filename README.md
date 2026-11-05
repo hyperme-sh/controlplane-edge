@@ -140,3 +140,12 @@ rejects this path. Candidate metadata identifies built artifacts; it does not
 establish an accepted baseline or publish anything. The exact-pinned publisher
 independently validates tested bytes and serializes any later explicit first
 stable publication. Test snapshots remain qualification evidence only.
+
+## Verification service
+
+`CPEDGE_VERIFICATION_SERVICE_URL` optionally registers `/api/v1/verification`
+and includes the service's OpenAPI/version discovery. Existing authentication and
+tenant middleware still apply. The original browser credential is forwarded in
+`X-Auth-Session-Token`; verification independently checks both credentials. Internal
+erasure is not routed. Configure verification's exact trusted proxy CIDRs to
+recover client IP from the edge-appended chain.

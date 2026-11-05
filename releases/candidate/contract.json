@@ -3,7 +3,7 @@
   "packaged_file_sha256": {
     "controlplane_edge/__init__.py": "91780439e064d5af59be624c70f002bf90864ba99092a44b2cf0acbee7cca10c",
     "controlplane_edge/aggregation.py": "34153fdf58a414031caa5e1887a50cf6b998a2947180a1b7b96883fffd5f1be0",
-    "controlplane_edge/aggregation_settings.py": "e5af526fe638640c54c096c8b0abbdeab870e7ed0725af5db2cc0fc411848048",
+    "controlplane_edge/aggregation_settings.py": "5291d546b3c614e9f0c92aadb8c962f5c15170093976fce5b91f4726e0bf8cd8",
     "controlplane_edge/api_keys_client.py": "f12e9d7d0baeb5fe777581f7e269ecfc6346447c24cb36262af7a72b0b077719",
     "controlplane_edge/auth_utils.py": "4c3dd4b0682e57f45e4e8656dab36b11a9be8ef02a2e739712d8bab48a6aeebe",
     "controlplane_edge/closure_auth.py": "d15584f2455354f5cf5a0c0d84318335c8cf3c9c16c37d33f01259f238166e6f",
@@ -26,7 +26,7 @@
     "controlplane_edge/middleware/rate_limit.py": "bbceb36f9fddea9378be7901abca1fe7c78a202a4c467c1ce3c6e2a2e25a3c3c",
     "controlplane_edge/openapi_aggregate.py": "e166855743859eca9831af9a9b6cd5cd002845c918ccce0adeb07eddbd632c85",
     "controlplane_edge/openapi_merge.py": "0f90af454688d9cee67187c71ab9bb6bd55c0d5f4e776a66a426434202c50436",
-    "controlplane_edge/product_routes.json": "1f16a1ff871fd2d82eb78be6637a7d2bea063d045c6413bccbad0a7e748abd14",
+    "controlplane_edge/product_routes.json": "32aab6763a01d5706c2426ff86b9ff04641d9c41dd27eb5eb0e38408fe80a057",
     "controlplane_edge/public_hypermesh_agent.py": "528eeb92f1f9cec4f907c6a45820681814f39b99aec72e2ed2efed18a5ca4677",
     "controlplane_edge/public_hypermesh_browse.py": "5ed417e3abd51d7d042713147c90cbaea8358c752f608a329f6943c266aaa3bc",
     "controlplane_edge/public_paths.py": "1adc74f56bd27ca610ca128ed67d398178c18fdd69160c461729ff0f04718ad9",
