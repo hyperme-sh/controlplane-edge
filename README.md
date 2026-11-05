@@ -163,3 +163,20 @@ tenant middleware still apply. The original browser credential is forwarded in
 `X-Auth-Session-Token`; verification independently checks both credentials. Internal
 erasure is not routed. Configure verification's exact trusted proxy CIDRs to
 recover client IP from the edge-appended chain.
+
+## License and transfer reconciliation
+
+The owner package is Apache-2.0; source archives and wheels retain the exact
+[license](LICENSE). PRs run the full installed-owner suite using verified,
+immutable dependency wheel fixtures, without dependency credentials. Main checks
+continue to validate the actual pinned Git graph. Private CI uses debrunners.
+
+Panopticon's old account-closure-request URLs are superseded by the current native
+closure routes. `tests/test_closure_auth.py` covers original-authority forwarding,
+installed user-service consumption, tenant-header removal and rejection of old
+or unsupported routes; the legacy URL test must not reintroduce those endpoints.
+The age-confirmation tests belong to controlplane-identity and were transferred
+there in PR #21. This edge's older immutable dependency graph still needs a
+coordinated, fully qualified adoption of that fix. SDK generation, monolith version
+routing and VM environment examples remain with their SDK/application/infra owners.
+These source reconciliations do not establish deployment or anonymous installation.
