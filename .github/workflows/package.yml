@@ -12,7 +12,27 @@ jobs:
       group: shared-local
       labels: [self-hosted, linux, x64]
     timeout-minutes: 15
+    environment: controlplane-libs-read
     steps:
+      - name: Mint repository-scoped dependency token
+        id: dependency-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
+        with:
+          app-id: ${{ vars.CONTROLPLANE_LIBS_APP_ID }}
+          private-key: ${{ secrets.CONTROLPLANE_LIBS_APP_PRIVATE_KEY }}
+          owner: hyperme-sh
+          permission-contents: read
+          repositories: |
+            auth-service
+            controlplane-api
+            controlplane-core
+            controlplane-db
+            controlplane-events
+            controlplane-identity
+            controlplane-models
+            controlplane-proto
+            controlplane-tenancy
+            user-service
       - name: Prepare release output
         run: echo "RELEASE_ARTIFACT_DIR=$(mktemp -d "$RUNNER_TEMP/release-dist.XXXXXX")" >> "$GITHUB_ENV"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -24,7 +44,8 @@ jobs:
           python-version: '3.13'
       - name: Validate controlplane edge package
         env:
-          DEPENDENCY_READ_TOKEN: ${{ secrets.DEPENDENCY_READ_TOKEN }}
+          TEST_EVIDENCE_DIR: ${{ runner.temp }}/edge-test-results
+          DEPENDENCY_READ_TOKEN: ${{ steps.dependency-token.outputs.token }}
         shell: bash
         run: |
           set -euo pipefail
@@ -63,3 +84,10 @@ jobs:
           if-no-files-found: error
           retention-days: 90
           compression-level: 0
+      - name: Retain executed test identities
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: test-results
+          path: ${{ runner.temp }}/edge-test-results/*.xml
+          if-no-files-found: error
+          retention-days: 90

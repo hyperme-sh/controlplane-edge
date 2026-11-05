@@ -15,3 +15,7 @@ def _api_key_exchange_secret(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         api_config.settings, "api_keys_internal_token", "test-api-keys-internal-token"
     )
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    config.addinivalue_line("markers", "integration: local cross-protocol integration checks")
