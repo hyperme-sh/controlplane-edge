@@ -129,3 +129,14 @@ approval prerequisite is introduced by this correction.
 Version 0.2 rejects the retired tenant-claim URI, even alongside a current claim.
 Reconfigure external issuers and require fresh tokens before upgrading; no legacy
 tenant alias is accepted. Current tenant aliases must still agree.
+
+
+### Initial stable declaration
+
+When there is no accepted stable release, the pinned admission workflow checks
+this repository's complete live release inventory and the exact owning package
+versions against `releases/candidate`. A stable release or incomplete inventory
+rejects this path. Candidate metadata identifies built artifacts; it does not
+establish an accepted baseline or publish anything. The exact-pinned publisher
+independently validates tested bytes and serializes any later explicit first
+stable publication. Test snapshots remain qualification evidence only.
