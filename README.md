@@ -140,3 +140,16 @@ rejects this path. Candidate metadata identifies built artifacts; it does not
 establish an accepted baseline or publish anything. The exact-pinned publisher
 independently validates tested bytes and serializes any later explicit first
 stable publication. Test snapshots remain qualification evidence only.
+
+## Installed closure owner integration
+
+The direct and transitive owner pins now match user-service integration #37.
+The development consumer installs that exact reviewed user-service revision,
+including its optional default-off verification erasure owner. Its fixture is
+built from a clean Git archive and checked against the frozen complete graph.
+All 302 cases pass in source, external wheel and rebuilt-sdist contexts with no
+skips. The four installed-service cases send self/operator request, status and
+hold traffic through the production edge proxy; original bearer authority,
+query/body forwarding and tenant spoof refusal remain enforced. Private paths
+and failed-retirement fallback remain denied. Package and provider versions are
+preserved; this adoption publishes no release and activates no private runtime.
