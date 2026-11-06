@@ -295,7 +295,7 @@ def test_versions_stays_behind_the_rate_limiter_when_public(monkeypatch: pytest.
     assert limiter.calls == 1
 
 
-def test_issuer_session_end_stays_behind_the_rate_limiter() -> None:
+def test_issuer_session_end_stays_behind_the_rate_limiter(operator_payment_routes) -> None:
     from controlplane_edge.middleware.rate_limit import GatewayRateLimitMiddleware
 
     class Limiter:

@@ -57,6 +57,9 @@ def is_public_path(path: str, method: str = "GET") -> bool:
         return False
     if is_witness_policy_path(path, method):
         return True
+    from controlplane_edge.operator_routes import configured_route
+    if configured_route("public", path, method):
+        return True
     path = path.rstrip("/") or "/"
     if is_public_hypermesh_browse(path, method):
         return True
@@ -89,12 +92,11 @@ def is_public_path(path: str, method: str = "GET") -> bool:
     if is_issuer_session_end_path(path, method):
         return True
     # Extracted-service surfaces that must work without a session JWT
-    # (OIDC start/callback/refresh; Stripe webhook).
+    # (OIDC start/callback/refresh).
     edge_public = (
         "/auth/login",
         "/auth/callback",
         "/auth/refresh",
-        "/api/v1/payments/stripe/webhook",
     )
     if any(path == p or path.startswith(p + "/") for p in edge_public):
         return True

@@ -120,12 +120,12 @@ MONOLITH_COMPAT_PREFIXES: tuple[str, ...] = (
 # monolith checkout and the removed card checkout route answer 410.
 LOCKED_MONOLITH_CHECKOUT_PREFIXES: tuple[str, ...] = (
     "/api/v1/checkouts",
-    "/api/v1/payments/stripe/checkout-sessions",
 )
 
 
 def locked_monolith_checkout_path(path: str) -> bool:
-    return any(path_matches_prefix(path, prefix) for prefix in LOCKED_MONOLITH_CHECKOUT_PREFIXES)
+    from controlplane_edge.operator_routes import configured_route
+    return configured_route("retired", path) or any(path_matches_prefix(path, prefix) for prefix in LOCKED_MONOLITH_CHECKOUT_PREFIXES)
 
 
 def path_matches_prefix(path: str, prefix: str) -> bool:

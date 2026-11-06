@@ -2,6 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 unset PYTHONPATH UV_NO_SYNC
+python3 scripts/check_open_boundary.py src pyproject.toml
 sync_options=()
 run_options=()
 export_options=()
@@ -71,7 +72,11 @@ with tarfile.open(next((root / 'dist').glob('*.tar.gz'))) as archive:
 PY
 uv build --wheel "$scratch"/sdist/* --out-dir "$scratch/rebuilt"
 uv run --frozen "${run_options[@]}" python scripts/verify_wheel.py "$scratch/rebuilt"
-uv pip install --no-config --python "$scratch/venv/bin/python" --no-deps --reinstall "$scratch"/rebuilt/*.whl
+if (( ${#fixture_wheels[@]} )); then
+  uv pip install --no-config --python "$scratch/venv/bin/python" --no-deps --reinstall "$scratch"/rebuilt/*.whl
+else
+  uv pip install --python "$scratch/venv/bin/python" --constraint "$scratch/requirements.txt" --reinstall-package controlplane-edge "$scratch"/rebuilt/*.whl
+fi
 (cd "$scratch" && "$scratch/venv/bin/python" -I -m pytest -c /dev/null -o asyncio_mode=auto -o asyncio_default_fixture_loop_scope=function tests --junitxml="$scratch/sdist.xml")
 
 # Retain the exact validated bytes for the release channel; never rebuild them.

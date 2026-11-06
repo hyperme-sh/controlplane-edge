@@ -250,7 +250,7 @@ def test_issuer_session_end_is_public_and_proxied(edge_app: FastAPI) -> None:
 
 
 @respx.mock
-def test_stripe_webhook_is_public_and_proxied(edge_app: FastAPI) -> None:
+def test_stripe_webhook_is_public_and_proxied(edge_app: FastAPI, operator_payment_routes) -> None:
     respx.post("http://pay.edge.test/api/v1/payments/stripe/webhook").mock(
         return_value=httpx.Response(200, json={"received": True})
     )
@@ -260,7 +260,7 @@ def test_stripe_webhook_is_public_and_proxied(edge_app: FastAPI) -> None:
     assert r.json() == {"received": True}
 
 
-def test_users_require_auth_when_not_public(edge_app: FastAPI) -> None:
+def test_users_require_auth_when_not_public(edge_app: FastAPI, operator_payment_routes) -> None:
     assert is_public_path("/api/v1/users", "GET") is False
     assert is_public_path("/auth/login", "POST") is True
     assert is_public_path("/auth/hypermesh-smoke/session", "POST") is True
