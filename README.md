@@ -1,191 +1,122 @@
 # Controlplane edge
 
-FastAPI edge proxy, OpenAPI aggregation, GraphQL and optional ContractEcho gRPC.
-Package `controlplane-edge` 0.1.0. The legacy `python -m controlplane_edge.main`
-launcher still delegates to the shared `api.app`; an independent application
-composition and container require separate qualification before deployment.
-Runtime routing data is bundled as `controlplane_edge/product_routes.json`.
-Generated gRPC modules come from the pinned `controlplane-proto` package.
+`controlplane-edge` 0.2.0 is the HTTP edge for the Hypermesh control plane. It authenticates callers, binds each request to a tenant, and reverse-proxies existing service prefixes. It also publishes one aggregated OpenAPI document, a GraphQL API, and an optional ContractEcho gRPC service. Generated gRPC modules come from the pinned `controlplane-proto` package. Product prefix declarations live in `src/controlplane_edge/product_routes.json`.
 
-The edge enforces authentication and tenant binding before forwarding protected
-requests. Public paths are explicitly enumerated. Proxy requests use only the
-caller's cookies; the shared proxy client does not persist upstream cookies.
-Opaque site-token forwarding is limited to explicit methods and paths owned by
-upstreams that validate those credentials. It does not authenticate local routes
-such as the protected service-version endpoint. Service destinations and optional
-features use `CPEDGE_*` configuration; deployment-specific upstream registration
-and credentials must be validated separately.
+## Why
 
-## Development
+Hypermesh clients need one front door for the control plane: account and tenancy APIs, marketplace and payment calls, host-agent traffic, and public catalog reads. Each of those services keeps its own process and its own OpenAPI document. This package is the gateway that checks credentials once, forwards the call to the service that owns the path, and presents the combined HTTP surface to browsers, host agents, and integrators.
 
-Use Python 3.13 and uv 0.11.26. All immutable runtime and development
-dependency repositories are public; no private credential is needed.
+## How it works
 
-    uv sync --frozen
-    bash scripts/check-package.sh
+`python -m controlplane_edge.main` listens on `HOST` and `PORT` (default `0.0.0.0:8000`) and serves the shared FastAPI application from `controlplane-core` (`api.app`). That application registers this package’s gateway middleware, OpenAPI aggregation, and GraphQL routes, and it starts ContractEcho when gRPC is enabled.
 
-Tests run from source, a fresh normally installed wheel outside this checkout,
-and a rebuilt source distribution. Wheel runtime/resource bytes must match source.
-HTTP upstreams are mocked; gRPC checks use local test servers. These checks do
-not establish live upstream, standalone container or deployment acceptance.
-SDK generation and deployment-environment fixture contracts belong to separate
-integration validation and are not part of this package's test result.
+Request handling:
 
-The main workflow uses pinned actions and read-only contents. Dependency
-qualification explicitly disables ambient Git credential configuration. Private
-repositories use debrunners; public repositories use hosted Ubuntu.
+1. Public paths are an explicit allowlist (health, docs, OpenAPI, login and refresh, the Stripe webhook, selected Hypermesh browse and host-agent routes, and `GET /graphql`). Everything else requires a credential.
+2. Send either `Authorization: Bearer` or `X-Api-Key`. A request that carries both is rejected before either value is checked.
+3. An API key is validated at `CPEDGE_API_KEYS_SERVICE_URL`, exchanged for a short-lived signed bearer, and removed. Upstream calls receive that bearer and the tenant id taken from the validated credential. `X-Tenant-ID` must match the tenant in the token. The current tenant claim is `https://spanopticon.dev/tenant_id`. When `tenant_id` is also present, the two values must be the same UUID.
+4. Account-closure calls are limited to `POST /api/v1/me/account-closure`, `GET` and `POST /api/v1/operator/account-closures`, and `POST /api/v1/operator/account-closures/hold`. Those routes forward the original bearer and do not accept a caller-supplied tenant or actor claim. Paths under `/api/v1/internal/` are not gateway routes.
+5. A matched prefix is streamed to the configured upstream. The proxy forwards the caller’s cookies and does not store cookies from upstream responses. Hop-by-hop headers are dropped. Opaque `hm_site_` tokens are forwarded only for the site-job, auditor-ticket, and grant methods that the upstream validates.
+6. Card-checkout paths answer `410`. Lease payment is `POST /api/v1/payments/usdc/lease-payments` on payment-service.
+7. Configured upstreams contribute their `/openapi.json` to `GET /v1/openapi.json` and `GET /v2/openapi.json` (Swagger UI at `/v1/docs` and `/v2/docs`). `GET /changelog/openapi` and `GET /changelog/openapi.md` diff those documents.
+8. `POST /graphql` serves tenant users, marketplace listings, ACL policy rows, and AI token usage, plus the `runInference` mutation. Those fields call the user, marketplace, ACL, and AI services. `GET /graphql` is the playground.
+9. With `CPEDGE_GRPC_ENABLED=true`, ContractEcho answers `EchoUser`, `EchoListing`, and `EchoTokenUsage` on `CPEDGE_GRPC_HOST`:`CPEDGE_GRPC_PORT` (default `127.0.0.1:50051`). Callers pass `authorization` and `x-tenant-id` metadata.
 
-## Public host release downloads
+`CPEDGE_VERIFICATION_SERVICE_URL` adds the `/api/v1/verification` prefix to the proxy and to OpenAPI discovery. Internal erasure URLs are not routed. `EDGE_VERSIONS_ACCESS` controls `GET /versions`: `authenticated` (the default), `public`, or `off` (`404`, and upstream version probes are skipped). Set `off` on a production edge.
 
-Anonymous GETs admit only published metadata and versioned Linux arm64/amd64 or
-Darwin arm64 agent/installer names. Unsupported targets, private files and
-mutation methods remain protected. Redirects preserve the no-store and
-no-referrer headers. This is the edge portion of transitional Panopticon #726;
-actual signed downloads and live deployment remain separate acceptance gates.
+## Practical use
 
-## Release channels
+Install Python 3.13 and [uv](https://docs.astral.sh/uv/) 0.11.26. Runtime and development dependencies are public git pins under `github.com/hyperme-sh`; `uv sync --frozen` does not need a private credential.
 
-Main validation retains its exact qualified files in Actions artifacts. It does
-not create GitHub releases or tags. Historical `test-<commit>` prereleases remain
-qualification evidence and do not establish an accepted stable release.
+```sh
+git clone https://github.com/hyperme-sh/controlplane-edge.git
+cd controlplane-edge
+uv python install 3.13
+uv sync --frozen
+```
 
-Stable publication requires an explicit `vMAJOR.MINOR.PATCH` tag, the exact
-successful main validation artifact, compatible declared contracts and an actual
-immutable stable baseline. The publisher independently verifies that evidence;
-successful caller jobs alone cannot establish acceptance. Missing evidence and
-first-stable bootstrap remain closed. Package qualification, coordinated consumer
-acceptance and runtime deployment remain separate.
+The shared application opens PostgreSQL during startup and reads Redis from `REDIS_URI`. Point each `CPEDGE_*_SERVICE_URL` at the base URL of a service you run locally. Unset services are omitted from the merged OpenAPI document; a proxied path whose URL is unset answers `503`.
 
-## One upstream credential authority
+The process calls `seed_initial_data()` before it serves HTTP. That function reads the existing `roles` table and does not create it, so an empty database exits during startup with an undefined-table error. Create the database, then apply the schema with the pinned `controlplane-db` package that `uv sync` installs. `python -m controlplane_db.startup` reads `DATABASE_URL`. Its default mode upgrades the schema shipped in that package, which creates `roles` and `users`.
 
-Protected requests must choose either `Authorization` or `X-Api-Key`. Supplying
-both is rejected before either credential is validated, including blank or
-malformed values. CORS preflight retains its existing handling. Once an API key
-is validated and exchanged, the proxy sends only the signed bearer and the
-validated tenant header; it removes the original API key. This adopts the edge
-portion of Panopticon #702 without changing tenant claim compatibility or
-upstream credential verification. Gateway-side attribution and private closure
-routes remain separate owner adoption work.
+```sh
+psql -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+CREATE ROLE controlplane LOGIN PASSWORD 'controlplane123';
+CREATE DATABASE controlplane OWNER controlplane;
+SQL
+export DATABASE_URL=postgresql+asyncpg://controlplane:controlplane123@localhost:5432/controlplane
+uv run python -m controlplane_db.startup
+```
 
-## Account closure consumers
+Skip that startup command when `DATABASE_URL` already points at a database whose schema is current. On an empty database, `CONTROLPLANE_MIGRATION_MODE=owners` and `CONTROLPLANE_DB_BOOTSTRAP=1` make the same command build the current platform, events, Hypermesh, AIuditor, and payment schemas. Set the bootstrap variable only when the database has no schema and no migration history.
 
-The edge adopts the same immutable identity/tenancy/core/database graph as the
-installed user-service. Native closure identity is admitted only for the exact
-self/operator action methods and paths; original bearer authority is forwarded
-without caller-supplied tenant or actor claims. Internal lifecycle endpoints are
-not public gateway routes, including OPTIONS. With retirement enforcement on,
-failed validation cannot fall back to unverified development claims.
+```sh
+export DATABASE_URL=postgresql+asyncpg://controlplane:controlplane123@localhost:5432/controlplane
+export REDIS_URI=redis://localhost:6372
+export KEYCLOAK_JWKS_URL=https://id.example/realms/controlplane/protocol/openid-connect/certs
+export KEYCLOAK_ISSUER=https://id.example/realms/controlplane
+export API_KEY_EXCHANGE_JWT_SECRET='replace-with-a-private-value'
+export API_KEYS_INTERNAL_TOKEN='replace-with-a-private-value'
+export CPEDGE_AUTH_SERVICE_URL=http://127.0.0.1:8001
+export CPEDGE_USER_SERVICE_URL=http://127.0.0.1:8002
+export CPEDGE_API_KEYS_SERVICE_URL=http://127.0.0.1:8003
+export CPEDGE_PAYMENT_SERVICE_URL=http://127.0.0.1:8004
+export CPEDGE_ACL_SERVICE_URL=http://127.0.0.1:8005
+export CPEDGE_MARKETPLACE_SERVICE_URL=http://127.0.0.1:8006
+export CPEDGE_AI_SERVICE_URL=http://127.0.0.1:8007
+export CPEDGE_HYPERMESH_SERVICE_URL=http://127.0.0.1:8010
+export CPEDGE_CORS_ORIGINS=http://localhost:3000
+export EDGE_VERSIONS_ACCESS=off
+export HOST=127.0.0.1
+export PORT=8000
+uv run python -m controlplane_edge.main
+```
 
-The package suite exercises the installed user-service forwarding router as a
-consumer. Upstream authority replies are owned test fixtures; this does not
-establish deployed provider, private TLS delivery or closure activation.
+Empty `API_KEY_EXCHANGE_JWT_SECRET` and `API_KEYS_INTERNAL_TOKEN` values, and the published development defaults, are rejected. API-key exchange stays disabled until both are private values and `CPEDGE_API_KEYS_SERVICE_URL` is set.
 
-The active 305-case suite includes the combined REST, GraphQL and local gRPC
-smoke case transferred from Panopticon d6d9541b72db2eb3f86cb8aedc071794eba116e3.
-CI retains JUnit evidence and requires identical nonempty source, wheel and
-sdist inventories with no skipped cases. Fixture registration identifiers are
-stable so parametrized case identities can be compared exactly.
+```sh
+curl -sS "http://127.0.0.1:8000/api/v1/health"
+curl -sS "http://127.0.0.1:8000/v1/openapi.json" | head
+curl -sS "http://127.0.0.1:8000/api/v1/hypermesh/catalog"
+```
 
-### Package preparation
+The same `CPEDGE_` names accept an unprefixed alias for several services (`AUTH_SERVICE_URL`, `USER_SERVICE_URL`, `HYPERMESH_SERVICE_URL`, and the other aliases on `OpenAPIAggregationSettings`). Gateway defaults include `CPEDGE_RATE_LIMIT_PER_MINUTE=600`, `CPEDGE_PROXY_TIMEOUT_S=30`, and `CPEDGE_EDGE_PROXY=true`.
 
-`bash scripts/check-package.sh --fixtures` runs the existing source, fresh-wheel
-and rebuilt-source-archive consumers without private Git credentials. Fixtures
-are built from the exact clean Git revisions already pinned by this package;
-the manifest records their digests and source provenance. The verifier checks
-root metadata, the complete active lock graph and transitive wheel metadata.
-Explicit private extras and unrecognized conditional pins fail closed.
+## How Hypermesh uses it
 
-The read-only pull-request workflow retains tested wheels, source archives and
-an artifact-derived runtime inventory as Actions artifacts. It does not publish
-releases. These are preparation evidence, not an accepted synchronized dependency
-baseline: package version alignment, dependency adoption and comparison against
-a qualified prior baseline remain separate work. Existing owner test boundaries
-and live/provider qualification requirements continue to apply.
+This process is the control-plane HTTP front for lease, host, and renter traffic. Renters send paid prompts to `hypermesh-gateway` on its own hostname. The aggregated OpenAPI document includes that service. The reverse proxy has no route to it, so a paid ticket keeps working while the control plane is down. The orchestrator is served on its own hostname as well.
 
-## Test qualification and stable acceptance
+| Caller | Traffic | Where it goes |
+| --- | --- | --- |
+| Public site and renters browsing | Anonymous `GET` of `/api/v1/hypermesh/catalog`, `/classes`, `/nodes`, `/ready`, `/pricing/transparency`, `/public/host-installation`, and `/public/host-releases/{test\|prod}` plus the published metadata and installer names | `hypermesh-service` (`CPEDGE_HYPERMESH_SERVICE_URL`) |
+| Hosts | Exact enroll, heartbeat, onboarding, certification, identity bind and token, tunnel, scorecard, job, and update calls. The body carries a one-time enroll token, or the request carries the device bearer. | `hypermesh-service`. `POST /api/v1/aiuditor/machine/renew` goes to AIuditor. |
+| Renters paying for a lease | `POST /api/v1/payments/usdc/lease-payments` with a bearer or API key and a tenant binding | payment-service |
+| Portal and operators | Users, groups, organizations, account closure, marketplace, ACL, and `/api/v1/ai/inference`, `/complete`, and `/usage` | The service that owns that prefix |
+| Site machines | Bearer values that start with `hm_site_` on the explicit site-job, auditor-ticket, and grant routes | `hypermesh-service` |
 
-GitHub `test-<commit>` prereleases are development snapshots. Their embedded
-package version does not reserve a stable version. Artifact and consumer evidence
-belongs under `releases/qualification`. Owning-package and artifact validation
-remain separate from stable release admission. Future test receipts must carry
-an explicit non-stable classification.
+Anonymous host-release downloads admit the channel index and, under a published version directory, `release.json`, `platforms.json`, `checksums.txt` (and `.sig` / `.asc`), `bootstrap.py`, `hypermesh-release.pub`, and `hypermesh-agent` / `hypermesh-deploy` builds for `linux_arm64`, `linux_amd64`, and `darwin_arm64`. Other names and other methods stay on the authenticated path. Upstream `Cache-Control` and `Referrer-Policy` headers are passed through. `deploy/Dockerfile.host-downloads` is the image bridge that serves this public download surface.
 
-`releases/accepted` and `SPANOPTICON_RELEASE_BASELINE_SHA` are reserved for an
-actual immutable stable GitHub release. The pinned shared guard verifies the live
-release channel, stable tag source and asset digests; a test snapshot cannot
-become accepted through a provenance label. No stable baseline is recorded until
-that release exists. Stable publication remains closed without a valid baseline;
-first stable bootstrap and coordinated release qualification remain separate.
-No stable version, approval prerequisite or deployment is introduced here.
+Authenticated renter and operator calls use the same credential and tenant rules as the rest of the gateway. Lease creation and chat use those rules. Card checkout answers `410`. Public catalog, class, and node responses are the hypermesh-service lists of hardware classes with `public_sku=true`.
 
-### Actions qualification and stable publication
+## Develop and test
 
-Main merges and workflow completion do not publish GitHub test releases. Exact
-qualification files remain in Actions artifacts with finite retention. The pinned
-publisher independently verifies a real immutable stable baseline and refuses
-qualification snapshots, even if a caller job reports success. Existing valid
-stable records are retained; no release, version change, deployment or human
-approval prerequisite is introduced by this correction.
+From a checkout, with Python 3.13:
 
-Version 0.2 rejects the retired tenant-claim URI, even alongside a current claim.
-Reconfigure external issuers and require fresh tokens before upgrading; no legacy
-tenant alias is accepted. Current tenant aliases must still agree.
+```sh
+uv sync --frozen
+bash scripts/check-package.sh
+```
 
+`scripts/check-package.sh` runs the suite from source, from a freshly installed wheel outside this checkout, and from a wheel rebuilt from the source distribution. Wheel bytes are checked against the source tree. HTTP upstreams are mocked. gRPC checks use a local server. These checks cover this package; they do not stand in for a live upstream or a deployment.
 
-### Initial stable declaration
+`bash scripts/check-package.sh --fixtures` repeats that run using the dependency wheels pinned by `tests_artifacts/dependencies/manifest.json`, still without private git credentials.
 
-When there is no accepted stable release, the pinned admission workflow checks
-this repository's complete live release inventory and the exact owning package
-versions against `releases/candidate`. A stable release or incomplete inventory
-rejects this path. Candidate metadata identifies built artifacts; it does not
-establish an accepted baseline or publish anything. The exact-pinned publisher
-independently validates tested bytes and serializes any later explicit first
-stable publication. Test snapshots remain qualification evidence only.
+Pull requests run `.github/workflows/preparation.yml`. Pushes to `main` run `.github/workflows/package.yml`. Public repositories use GitHub-hosted Ubuntu 24.04. Private repositories use the self-hosted `debrunner` runners. Release mechanics are in [docs/releasing.md](docs/releasing.md). Compatibility rules for the shared line are in [docs/release-policy.md](docs/release-policy.md).
 
-## Installed closure owner integration
+## Release and versioning
 
-The direct and transitive owner pins now match user-service integration #37.
-The development consumer installs that exact reviewed user-service revision,
-including its optional default-off verification erasure owner. Its fixture is
-built from a clean Git archive and checked against the frozen complete graph.
-The initial 302-case run passed in every context; after preserving the newly
-merged onboarding route, all 303 cases pass in source, external wheel and
-rebuilt-sdist contexts with no skips. The four installed-service cases send self/operator request, status and
-hold traffic through the production edge proxy; original bearer authority,
-query/body forwarding and tenant spoof refusal remain enforced. Private paths
-and failed-retirement fallback remain denied. The edge package version and provider behavior are
-preserved; this adoption publishes no release and activates no private runtime.
+Package `controlplane-edge` is **0.2.0** on release line **0.2** (`release-policy.json`, `pyproject.toml`). Version 0.2 rejects any token that still carries `https://panopticon.dev/tenant_id`, including tokens that also carry the current claim. Reconfigure issuers and require fresh tokens before upgrading. Main validation keeps tested artifacts and does not create tags or GitHub releases. Stable publication uses a `vMAJOR.MINOR.PATCH` tag and is described in [docs/releasing.md](docs/releasing.md).
 
-## Verification service
+## License
 
-`CPEDGE_VERIFICATION_SERVICE_URL` optionally registers `/api/v1/verification`
-and includes the service's OpenAPI/version discovery. Existing authentication and
-tenant middleware still apply. The original browser credential is forwarded in
-`X-Auth-Session-Token`; verification independently checks both credentials. Internal
-erasure is not routed. Configure verification's exact trusted proxy CIDRs to
-recover client IP from the edge-appended chain.
-
-## License and transfer reconciliation
-
-The owner package is Apache-2.0; source archives and wheels retain the exact
-[license](LICENSE). PRs run the full installed-owner suite using verified,
-immutable dependency wheel fixtures, without dependency credentials. Main checks
-continue to validate the actual pinned Git graph. Private CI uses debrunners.
-
-Panopticon's old account-closure-request URLs are superseded by the current native
-closure routes. `tests/test_closure_auth.py` covers original-authority forwarding,
-installed user-service consumption, tenant-header removal and rejection of old
-or unsupported routes; the legacy URL test must not reintroduce those endpoints.
-The age-confirmation tests belong to controlplane-identity and were transferred
-there in PR #21. This edge's older immutable dependency graph still needs a
-coordinated, fully qualified adoption of that fix. SDK generation, monolith version
-routing and VM environment examples remain with their SDK/application/infra owners.
-These source reconciliations do not establish deployment or anonymous installation.
-
-## Interactive identity adoption
-
-The API/core/identity pins match the installed user-service graph. Seven original
-Panopticon age-confirmation cases are now collected by this owner in all three
-package contexts. Native interactive clients require age evidence; machine and
-service exemptions remain covered. This is package qualification, not standalone
-edge composition or complete self-hosted deployment acceptance.
+Apache License 2.0. See [LICENSE](LICENSE).
