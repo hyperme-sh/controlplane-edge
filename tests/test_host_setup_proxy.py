@@ -11,9 +11,9 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from api.core.config import settings
-from api.infrastructure.security.keycloak_jwt import KeycloakJWTValidator
-from api.infrastructure.security.tenant_session_jwt import mint_host_setup_session
+from controlplane_api.config import settings
+from controlplane_identity.security.keycloak_jwt import KeycloakJWTValidator
+from controlplane_identity.security.tenant_session_jwt import mint_host_setup_session
 from controlplane_edge.register_cross_cutting import register_gateway_cross_cutting
 from controlplane_edge.public_paths import is_public_path
 
@@ -38,7 +38,7 @@ def setup_edge(monkeypatch):
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     validator = KeycloakJWTValidator(settings.keycloak_jwks_url, settings.keycloak_issuer, "unused")
     validator._jwks_client = SimpleNamespace(get_signing_key_from_jwt=lambda _: SimpleNamespace(key=key.public_key()))
-    from api.infrastructure.security import keycloak_jwt
+    from controlplane_identity.security import keycloak_jwt
     from controlplane_edge import host_setup_auth
     monkeypatch.setattr(keycloak_jwt, "get_keycloak_jwt_validator", lambda: validator)
     monkeypatch.setattr(host_setup_auth, "get_keycloak_jwt_validator", lambda: validator)

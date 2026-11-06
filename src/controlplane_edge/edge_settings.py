@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 
-from pydantic import Field, field_validator
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _VERSIONS_ACCESS = frozenset({"public", "authenticated", "off"})
@@ -59,6 +59,8 @@ class GatewayCrossCuttingSettings(BaseSettings):
         description="Publish lightweight envelope after 2xx on /api/v1, /graphql",
         validation_alias="CPEDGE_API_ACCESS_EVENTS",
     )
+    events_url: str | None = Field(default=None, validation_alias="CPEDGE_EVENTS_URL")
+    events_token: SecretStr = Field(default="", validation_alias="CPEDGE_EVENTS_TOKEN")
     api_keys_service_url: str | None = Field(
         default=None,
         description="Base URL for api-keys-service (internal validate); unset disables X-Api-Key auth",

@@ -16,8 +16,8 @@ async def resolve_bearer_claims(token: str) -> dict[str, Any] | None:
     """Return JWT claims or None if invalid."""
     if not token:
         return None
-    from api.infrastructure.security.api_key_exchange_jwt import try_decode_api_key_session_jwt
-    from api.infrastructure.security.tenant_session_jwt import try_decode_tenant_session_jwt
+    from controlplane_identity.security.api_key_exchange_jwt import try_decode_api_key_session_jwt
+    from controlplane_identity.security.tenant_session_jwt import try_decode_tenant_session_jwt
 
     ex = await asyncio.to_thread(try_decode_api_key_session_jwt, token)
     if ex is not None:
@@ -27,7 +27,7 @@ async def resolve_bearer_claims(token: str) -> dict[str, Any] | None:
         return switched
     if api_settings.keycloak_jwks_url and api_settings.keycloak_issuer:
         try:
-            from api.infrastructure.security.keycloak_jwt import get_keycloak_jwt_validator
+            from controlplane_identity.security.keycloak_jwt import get_keycloak_jwt_validator
 
             return await get_keycloak_jwt_validator().validate(token)
         except Exception as exc:  # noqa: BLE001
@@ -55,8 +55,8 @@ def resolve_bearer_claims_sync(token: str) -> dict[str, Any] | None:
     """Sync JWT resolution for gRPC servicers (no running asyncio loop)."""
     if not token:
         return None
-    from api.infrastructure.security.api_key_exchange_jwt import try_decode_api_key_session_jwt
-    from api.infrastructure.security.tenant_session_jwt import try_decode_tenant_session_jwt
+    from controlplane_identity.security.api_key_exchange_jwt import try_decode_api_key_session_jwt
+    from controlplane_identity.security.tenant_session_jwt import try_decode_tenant_session_jwt
 
     ex = try_decode_api_key_session_jwt(token)
     if ex is not None:
@@ -66,7 +66,7 @@ def resolve_bearer_claims_sync(token: str) -> dict[str, Any] | None:
         return switched
     if api_settings.keycloak_jwks_url and api_settings.keycloak_issuer:
         try:
-            from api.infrastructure.security.keycloak_jwt import get_keycloak_jwt_validator
+            from controlplane_identity.security.keycloak_jwt import get_keycloak_jwt_validator
 
             return get_keycloak_jwt_validator().validate_sync(token)
         except Exception as exc:  # noqa: BLE001

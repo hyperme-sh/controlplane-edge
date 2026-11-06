@@ -8,7 +8,7 @@ import os
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from api.infrastructure.tenant_user_rate_limiter import TenantUserRateLimiter
+from controlplane_edge.rate_limiter import TenantUserRateLimiter
 from controlplane_edge.edge_proxy import register_edge_proxy
 from controlplane_edge.edge_settings import GatewayCrossCuttingSettings, parse_cors_origins
 from controlplane_edge.public_hypermesh_browse import router as public_hypermesh_browse_router

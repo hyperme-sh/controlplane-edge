@@ -6,7 +6,7 @@ routers. Matching is prefix + path-boundary (``/api/v1/users`` matches
 
 AI is split on purpose: ai-service owns ``/inference``, ``/complete``, and
 ``/usage``; the monolith chat leftover (``/models``, ``/ask``,
-``/set_model_preference``, sessions) stays on the gateway.
+``/set_model_preference``, sessions) is no longer mounted.
 
 Do not add new public paths here — only forward surfaces that already exist
 on auth / user / acl / payment / marketplace / ai / api-keys / template /
@@ -85,8 +85,8 @@ EDGE_ROUTES: tuple[EdgeRoute, ...] = (
 if len({route.prefix for route in EDGE_ROUTES}) != len(EDGE_ROUTES):
     raise ValueError('duplicate core/product route prefix')
 
-# Still served by controlplane-core on the gateway. Not proxied.
-# See docs/controlplane-edge-cutover.md.
+# Retired legacy prefixes. No local handlers and no proxy fallback.
+# Health is the only neutral local route in this historical inventory.
 MONOLITH_COMPAT_PREFIXES: tuple[str, ...] = (
     "/api/v1/tenants",
     "/api/v1/roles",

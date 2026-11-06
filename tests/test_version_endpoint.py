@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from starlette.routing import Match
 
-from api.interfaces.api_controllers.version_endpoint import router, version_payload
+from controlplane_api.version import router, version_payload
 from controlplane_edge.public_paths import is_public_path, is_versions_path
 from controlplane_edge.service_versions import (
     VERSION_UPSTREAMS,
@@ -377,7 +377,7 @@ def test_machine_identity_exchanges_stay_behind_the_rate_limiter() -> None:
 def test_identity_routes_use_one_bucket_per_client_address() -> None:
     from starlette.middleware.base import BaseHTTPMiddleware
 
-    from api.infrastructure.tenant_user_rate_limiter import TenantUserRateLimiter
+    from controlplane_edge.rate_limiter import TenantUserRateLimiter
     from controlplane_edge.middleware.rate_limit import GatewayRateLimitMiddleware
 
     class ClaimedTenant(BaseHTTPMiddleware):
@@ -400,7 +400,7 @@ def test_identity_routes_use_one_bucket_per_client_address() -> None:
 
 
 def test_rate_limiter_forgets_idle_keys(monkeypatch: pytest.MonkeyPatch) -> None:
-    from api.infrastructure import tenant_user_rate_limiter as module
+    from controlplane_edge import rate_limiter as module
 
     now = [1000.0]
     monkeypatch.setattr(module.time, "monotonic", lambda: now[0])

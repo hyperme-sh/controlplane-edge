@@ -6,6 +6,6 @@ share one implementation of this check.
 
 from __future__ import annotations
 
-from api.infrastructure.externals.api_keys_client import validate_api_key_remote
+from controlplane_identity.api_keys_client import validate_api_key_remote
 
 __all__ = ["validate_api_key_remote"]

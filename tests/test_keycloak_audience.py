@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 from jwt import InvalidTokenError
 
-from api.core.config import Settings, settings
-from api.infrastructure.security import keycloak_jwt as kc
+from controlplane_api.config import Settings, settings
+from controlplane_identity.security import keycloak_jwt as kc
 
 
 def test_allowed_audiences_include_account_and_clients():

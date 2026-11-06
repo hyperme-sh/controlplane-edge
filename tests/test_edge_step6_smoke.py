@@ -36,7 +36,7 @@ def _fake_bearer(sub: str = "11111111-1111-1111-1111-111111111111") -> str:
 async def test_rest_graphql_and_grpc_through_gateway_stack(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import api.core.config as api_config
+    import controlplane_api.config as api_config
 
     monkeypatch.setattr(api_config.settings, "keycloak_jwks_url", None)
     monkeypatch.setattr(api_config.settings, "keycloak_issuer", None)

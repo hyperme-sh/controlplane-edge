@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from api.core import config as api_config
+from controlplane_api import config as api_config
 
 
 @pytest.fixture(autouse=True)

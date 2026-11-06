@@ -8,7 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from api.infrastructure.tenant_user_rate_limiter import TenantUserRateLimiter
+from controlplane_edge.rate_limiter import TenantUserRateLimiter
 from controlplane_edge.public_paths import (
     is_issuer_session_end_path,
     is_machine_identity_path,

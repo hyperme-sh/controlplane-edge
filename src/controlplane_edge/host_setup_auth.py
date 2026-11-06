@@ -4,8 +4,8 @@ from __future__ import annotations
 import re
 
 from controlplane_api.config import settings
-from api.infrastructure.security.keycloak_jwt import get_keycloak_jwt_validator
-from api.infrastructure.security.tenant_session_jwt import try_decode_host_setup_session
+from controlplane_identity.security.keycloak_jwt import get_keycloak_jwt_validator
+from controlplane_identity.security.tenant_session_jwt import try_decode_host_setup_session
 
 _DEVICE_ROUTES = {
     ("GET", "/auth/host-setup/me"),

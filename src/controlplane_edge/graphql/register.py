@@ -32,7 +32,7 @@ async def _verified_bearer_claims(token: str) -> dict | None:
     if not token:
         return None
     try:
-        from api.infrastructure.security.tenant_session_jwt import (
+        from controlplane_identity.security.tenant_session_jwt import (
             try_decode_tenant_session_jwt,
         )
     except Exception:
@@ -42,7 +42,7 @@ async def _verified_bearer_claims(token: str) -> dict | None:
         if session:
             return session
     try:
-        from api.infrastructure.security.api_key_exchange_jwt import (
+        from controlplane_identity.security.api_key_exchange_jwt import (
             try_decode_api_key_session_jwt,
         )
     except Exception:
@@ -53,7 +53,7 @@ async def _verified_bearer_claims(token: str) -> dict | None:
             return exchanged
     if api_settings.keycloak_jwks_url and api_settings.keycloak_issuer:
         try:
-            from api.infrastructure.security.keycloak_jwt import get_keycloak_jwt_validator
+            from controlplane_identity.security.keycloak_jwt import get_keycloak_jwt_validator
 
             return await get_keycloak_jwt_validator().validate(token)
         except Exception as exc:  # noqa: BLE001
@@ -89,7 +89,7 @@ async def get_graphql_context(request: Request) -> GraphQLContext:
         tenant_id=tenant_id,
         user_sub=user_sub,
         settings=agg,
-        http=_shared_http(),
+        http=getattr(getattr(request.scope.get("app"), "state", None), "graphql_http", None) or _shared_http(),
     )
     ctx.loaders = build_loaders(ctx)
     return ctx

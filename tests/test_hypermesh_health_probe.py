@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from api.interfaces.api_controllers.health_endpoint import router
+from controlplane_api.health import router
 
 
 def _client() -> TestClient:

@@ -6,13 +6,13 @@ import uuid
 
 import pytest
 
-from api.core import config as api_config
-from api.infrastructure.externals.api_keys_client import validate_api_key_remote
-from api.infrastructure.security.api_key_exchange_jwt import (
+from controlplane_api import config as api_config
+from controlplane_identity.api_keys_client import validate_api_key_remote
+from controlplane_identity.security.api_key_exchange_jwt import (
     mint_api_key_session_jwt,
     try_decode_api_key_session_jwt,
 )
-from api.infrastructure.security.tenant_session_jwt import (
+from controlplane_identity.security.tenant_session_jwt import (
     mint_tenant_session_jwt,
     try_decode_tenant_session_jwt,
 )

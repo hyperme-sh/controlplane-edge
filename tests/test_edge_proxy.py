@@ -29,7 +29,7 @@ def edge_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     monkeypatch.setenv("CPEDGE_AI_SERVICE_URL", "http://ai.edge.test")
     monkeypatch.setenv("CPEDGE_PAYMENT_SERVICE_URL", "http://pay.edge.test")
     monkeypatch.setenv("CPEDGE_RATE_LIMIT_PER_MINUTE", "5000")
-    import api.core.config as api_config
+    import controlplane_api.config as api_config
 
     monkeypatch.setattr(api_config.settings, "keycloak_jwks_url", None)
     monkeypatch.setattr(api_config.settings, "keycloak_issuer", None)
@@ -159,7 +159,7 @@ def test_auth_login_is_public_and_proxied(edge_app: FastAPI) -> None:
 
 def test_unconfigured_upstream_returns_503(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("CPEDGE_RATE_LIMIT_PER_MINUTE", "5000")
-    import api.core.config as api_config
+    import controlplane_api.config as api_config
 
     monkeypatch.setattr(api_config.settings, "keycloak_jwks_url", None)
     monkeypatch.setattr(api_config.settings, "keycloak_issuer", None)
@@ -294,7 +294,7 @@ def test_users_require_auth_when_not_public(edge_app: FastAPI, operator_payment_
 def test_site_machine_token_passes_through_to_auditor(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("CPEDGE_HYPERMESH_SERVICE_URL", "http://hm.edge.test")
     monkeypatch.setenv("CPEDGE_RATE_LIMIT_PER_MINUTE", "5000")
-    import api.core.config as api_config
+    import controlplane_api.config as api_config
 
     monkeypatch.setattr(api_config.settings, "keycloak_jwks_url", None)
     monkeypatch.setattr(api_config.settings, "keycloak_issuer", None)
@@ -322,7 +322,7 @@ def test_site_machine_token_passes_through_to_hypermesh_site_jobs(
 ) -> None:
     monkeypatch.setenv("CPEDGE_HYPERMESH_SERVICE_URL", "http://hm.edge.test")
     monkeypatch.setenv("CPEDGE_RATE_LIMIT_PER_MINUTE", "5000")
-    import api.core.config as api_config
+    import controlplane_api.config as api_config
 
     monkeypatch.setattr(api_config.settings, "keycloak_jwks_url", None)
     monkeypatch.setattr(api_config.settings, "keycloak_issuer", None)
@@ -350,7 +350,7 @@ def test_site_machine_token_passes_through_to_hypermesh_site_devices(
 ) -> None:
     monkeypatch.setenv("CPEDGE_HYPERMESH_SERVICE_URL", "http://hm.edge.test")
     monkeypatch.setenv("CPEDGE_RATE_LIMIT_PER_MINUTE", "5000")
-    import api.core.config as api_config
+    import controlplane_api.config as api_config
 
     monkeypatch.setattr(api_config.settings, "keycloak_jwks_url", None)
     monkeypatch.setattr(api_config.settings, "keycloak_issuer", None)
@@ -378,7 +378,7 @@ def test_site_machine_token_passes_through_to_grants(
 ) -> None:
     monkeypatch.setenv("CPEDGE_HYPERMESH_SERVICE_URL", "http://hm.edge.test")
     monkeypatch.setenv("CPEDGE_RATE_LIMIT_PER_MINUTE", "5000")
-    import api.core.config as api_config
+    import controlplane_api.config as api_config
 
     monkeypatch.setattr(api_config.settings, "keycloak_jwks_url", None)
     monkeypatch.setattr(api_config.settings, "keycloak_issuer", None)
