@@ -40,3 +40,24 @@ def test_prefixed_owner_used_without_host_database_lookup(monkeypatch):
             assert response.status_code == 200
             assert route.calls[0].request.headers['x-tenant-id'] == str(tenant)
             assert client.get('/api/v1/roles', headers={'Authorization':'Bearer '+token}).status_code == 404
+
+
+def test_standalone_http_metrics_record_requests(monkeypatch):
+    from controlplane_api.metrics import HTTP_REQUESTS, HTTP_DURATION, HTTP_IN_FLIGHT, BUILD_INFO
+    monkeypatch.setenv('GIT_SHA', 'a' * 40)
+    count = HTTP_REQUESTS.labels(method='GET', route='/version', status='200')
+    duration = HTTP_DURATION.labels(method='GET', route='/version')
+    before, latency_before = count._value.get(), duration._sum.get()
+    with TestClient(create_app()) as client:
+        assert client.get('/version').status_code == 200
+    assert count._value.get() == before + 1
+    assert duration._sum.get() > latency_before
+    assert HTTP_IN_FLIGHT._value.get() == 0
+    assert BUILD_INFO.labels(git_sha='a' * 40, service='controlplane-edge')._value.get() == 1
+
+
+def test_edge_rejects_local_database_metric_probe(monkeypatch):
+    import pytest
+    monkeypatch.setenv('METRICS_OUTBOX_PROBE', '1')
+    with pytest.raises(ValueError, match='events owner'):
+        create_app()

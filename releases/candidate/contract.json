@@ -18,7 +18,7 @@
     "controlplane_edge/graphql/schema.py": "a8e9540b3f94ed9185501d65407ebcbe1e378345d491cd24e149fc2dff4a3200",
     "controlplane_edge/grpc_server.py": "adc7a9e6b4192fe6585f9c4e711143efd20be668e2b5973873c137f4af394284",
     "controlplane_edge/host_setup_auth.py": "e819fe4f4b50bfb87d35e66975de3d0c010a97a4b8021721ef7983a2eb5318d4",
-    "controlplane_edge/main.py": "03379a901ac8f1aaddac9880589d365435da8366c3f9d4e6e3e3668099c5fc1a",
+    "controlplane_edge/main.py": "edbf09cd52aadc7ae04f80f261db882ad9f4161d66c24cca15d469d24e8685d6",
     "controlplane_edge/middleware/__init__.py": "a2266cbdfdb203205312691832fea110d651d8fcc7d91a408469198cca2968a3",
     "controlplane_edge/middleware/api_events.py": "378f9edc25a804b9aa679f00125d5f8593a2895bed5fa4a2645b123926cb65fc",
     "controlplane_edge/middleware/api_key_bruteforce.py": "abb0c152f6ea1413898809dbab1ab24eebd82397d6b6e4921e567e649a4d4d57",

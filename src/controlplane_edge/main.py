@@ -6,6 +6,7 @@ import httpx
 import uvicorn
 from fastapi import FastAPI
 from controlplane_api.health import router as health_router
+from controlplane_api.metrics import install_http_metrics
 from controlplane_api.version import router as version_router
 from controlplane_edge.aggregation import register_aggregation_routes
 from controlplane_edge.graphql.register import register_graphql_routes
@@ -27,19 +28,23 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
+    if os.environ.get("METRICS_OUTBOX_PROBE") == "1":
+        raise ValueError("Edge has no local outbox; configure database probes on the events owner")
     app = FastAPI(title="Controlplane edge", version="0.2.0", lifespan=lifespan)
     app.include_router(health_router, prefix="/api/v1")
     app.include_router(version_router)
     register_aggregation_routes(app)
     register_graphql_routes(app)
     register_gateway_cross_cutting(app)
+    install_http_metrics(app, service="controlplane-edge")
     return app
 
 
 def main() -> None:
     from controlplane_api.metrics import start_metrics_server
+    app = create_app()
     start_metrics_server()
-    uvicorn.run(create_app(), host=os.environ.get("HOST", "0.0.0.0"),
+    uvicorn.run(app, host=os.environ.get("HOST", "0.0.0.0"),
                 port=int(os.environ.get("PORT", "8000")))
 
 
