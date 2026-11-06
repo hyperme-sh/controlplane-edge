@@ -4,7 +4,7 @@ import uuid
 
 import pytest
 
-from api.infrastructure.security.tenant_session_jwt import mint_tenant_session_jwt
+from controlplane_identity.security.tenant_session_jwt import mint_tenant_session_jwt
 from controlplane_edge.auth_utils import resolve_bearer_claims, resolve_bearer_claims_sync
 
 

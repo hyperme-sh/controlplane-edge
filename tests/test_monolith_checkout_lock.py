@@ -12,7 +12,7 @@ def test_locked_prefixes_include_monolith_checkouts() -> None:
     assert "/api/v1/checkouts" in LOCKED_MONOLITH_CHECKOUT_PREFIXES
 
 
-def test_locked_monolith_checkout_paths() -> None:
+def test_locked_monolith_checkout_paths(operator_payment_routes) -> None:
     assert locked_monolith_checkout_path("/api/v1/checkouts") is True
     assert locked_monolith_checkout_path("/api/v1/checkouts/") is True
     assert locked_monolith_checkout_path("/api/v1/checkouts/tenant/subscription") is True

@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import os
 
-from api.infrastructure.security.keycloak_jwt import get_keycloak_jwt_validator
+from controlplane_identity.security.keycloak_jwt import get_keycloak_jwt_validator
 from jwt import InvalidTokenError, PyJWKClientError
 
 _ROUTES = {

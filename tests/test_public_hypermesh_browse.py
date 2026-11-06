@@ -28,7 +28,7 @@ def browse_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     monkeypatch.setenv("CPEDGE_HYPERMESH_SERVICE_URL", "http://hm.browse.test")
     monkeypatch.setenv("CPEDGE_HYPERMESH_GATEWAY_SERVICE_URL", "http://hmr.browse.test")
     monkeypatch.setenv("CPEDGE_RATE_LIMIT_PER_MINUTE", "5000")
-    import api.core.config as api_config
+    import controlplane_api.config as api_config
 
     monkeypatch.setattr(api_config.settings, "keycloak_jwks_url", None)
     monkeypatch.setattr(api_config.settings, "keycloak_issuer", None)

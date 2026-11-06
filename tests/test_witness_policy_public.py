@@ -7,7 +7,7 @@ import httpx
 import pytest
 import respx
 
-from api.infrastructure.tenant_user_rate_limiter import TenantUserRateLimiter
+from controlplane_edge.rate_limiter import TenantUserRateLimiter
 from controlplane_edge.public_paths import is_public_path
 from controlplane_edge.register_cross_cutting import register_gateway_cross_cutting
 

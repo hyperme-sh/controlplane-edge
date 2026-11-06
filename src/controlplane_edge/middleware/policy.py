@@ -6,8 +6,8 @@ import uuid
 import re
 from typing import Any
 
-from api.common.internal_token import request_has_internal_token
-from api.infrastructure.security.api_key_exchange_jwt import mint_api_key_session_jwt
+from controlplane_identity.internal_token import request_has_internal_token
+from controlplane_identity.security.api_key_exchange_jwt import mint_api_key_session_jwt
 from controlplane_api.config import settings as api_settings
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request

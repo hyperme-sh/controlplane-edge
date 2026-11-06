@@ -69,11 +69,11 @@ def test_cors_preflight(cross_app: FastAPI) -> None:
 
 
 def test_rate_limit_429(cross_app: FastAPI, monkeypatch: pytest.MonkeyPatch) -> None:
-    import api.core.config as api_config
+    import controlplane_api.config as api_config
 
     monkeypatch.setattr(api_config.settings, "keycloak_jwks_url", None)
     monkeypatch.setattr(api_config.settings, "keycloak_issuer", None)
-    from api.infrastructure.tenant_user_rate_limiter import TenantUserRateLimiter
+    from controlplane_edge.rate_limiter import TenantUserRateLimiter
 
     cross_app.state.gateway_rate_limiter = TenantUserRateLimiter(per_minute=2)
     tid = str(uuid.uuid4())
@@ -107,7 +107,7 @@ def test_changelog_markdown_renderer() -> None:
 
 @pytest.mark.asyncio
 async def test_grpc_echo_requires_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
-    import api.core.config as api_config
+    import controlplane_api.config as api_config
 
     monkeypatch.setattr(api_config.settings, "keycloak_jwks_url", None)
     monkeypatch.setattr(api_config.settings, "keycloak_issuer", None)
@@ -126,7 +126,7 @@ async def test_grpc_echo_requires_metadata(monkeypatch: pytest.MonkeyPatch) -> N
 
 @pytest.mark.asyncio
 async def test_grpc_echo_with_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
-    import api.core.config as api_config
+    import controlplane_api.config as api_config
 
     monkeypatch.setattr(api_config.settings, "keycloak_jwks_url", None)
     monkeypatch.setattr(api_config.settings, "keycloak_issuer", None)

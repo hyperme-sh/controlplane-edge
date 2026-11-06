@@ -24,7 +24,7 @@ def agent_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     monkeypatch.setenv("CPEDGE_HYPERMESH_GATEWAY_SERVICE_URL", "http://hmr.agent.test")
     monkeypatch.setenv("CPEDGE_RATE_LIMIT_PER_MINUTE", "5000")
     monkeypatch.setenv("CPEDGE_AIUDITOR_SERVICE_URL", "http://aiuditor.agent.test")
-    import api.core.config as api_config
+    import controlplane_api.config as api_config
 
     monkeypatch.setattr(api_config.settings, "keycloak_jwks_url", None)
     monkeypatch.setattr(api_config.settings, "keycloak_issuer", None)

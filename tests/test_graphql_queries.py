@@ -10,7 +10,7 @@ import respx
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from api.infrastructure.security.tenant_session_jwt import mint_tenant_session_jwt
+from controlplane_identity.security.tenant_session_jwt import mint_tenant_session_jwt
 from controlplane_edge.graphql.clients import page_items
 from controlplane_edge.graphql.register import register_graphql_routes
 

@@ -7,7 +7,7 @@ import pytest
 import respx
 from fastapi.testclient import TestClient
 
-from api.infrastructure.security.api_key_exchange_jwt import try_decode_api_key_session_jwt
+from controlplane_identity.security.api_key_exchange_jwt import try_decode_api_key_session_jwt
 from test_api_key_edge import cross_app  # noqa: F401
 
 
@@ -31,7 +31,7 @@ def test_edge_rejects_dual_credentials_before_validation(cross_app, monkeypatch,
 
 @respx.mock
 def test_edge_exchanges_api_key_and_forwards_only_the_signed_identity(monkeypatch):
-    from api.core.config import settings
+    from controlplane_api.config import settings
     from fastapi import FastAPI
     from controlplane_edge.register_cross_cutting import register_gateway_cross_cutting
 

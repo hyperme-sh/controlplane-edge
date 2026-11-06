@@ -76,7 +76,6 @@ class RunInferenceInput:
     max_tokens: int | None = None
     billing_mode: str = "none"
     budget_id: uuid.UUID | None = None
-    stripe_customer_id: str | None = None
     purchase_id: uuid.UUID | None = None
     license_key: str | None = None
 
@@ -253,8 +252,6 @@ class Mutation:
             body["max_tokens"] = input.max_tokens
         if input.budget_id is not None:
             body["budget_id"] = str(input.budget_id)
-        if input.stripe_customer_id is not None:
-            body["stripe_customer_id"] = input.stripe_customer_id
         if input.purchase_id is not None:
             body["purchase_id"] = str(input.purchase_id)
         if input.license_key is not None:

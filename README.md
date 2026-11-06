@@ -8,7 +8,7 @@ Hypermesh clients need one front door for the control plane: account and tenancy
 
 ## How it works
 
-`python -m controlplane_edge.main` listens on `HOST` and `PORT` (default `0.0.0.0:8000`) and serves the shared FastAPI application from `controlplane-core` (`api.app`). That application registers this package’s gateway middleware, OpenAPI aggregation, and GraphQL routes, and it starts ContractEcho when gRPC is enabled.
+`python -m controlplane_edge.main` listens on `HOST` and `PORT` (default `0.0.0.0:8000`) using edge's own FastAPI application. Startup opens no database, seeds no roles, and runs no migrations. Identity helpers come from the neutral identity package. Business operations use the configured owner HTTP APIs. The legacy application's unowned routes (including local roles, tenants and dashboard handlers) are no longer mounted; authenticated requests to an unowned path return 404. Tenant identity is bound to verified credentials, not looked up in a local database from the hostname.
 
 Request handling:
 
@@ -35,24 +35,9 @@ uv python install 3.13
 uv sync --frozen
 ```
 
-The shared application opens PostgreSQL during startup and reads Redis from `REDIS_URI`. Point each `CPEDGE_*_SERVICE_URL` at the base URL of a service you run locally. Unset services are omitted from the merged OpenAPI document; a proxied path whose URL is unset answers `503`.
-
-The process calls `seed_initial_data()` before it serves HTTP. That function reads the existing `roles` table and does not create it, so an empty database exits during startup with an undefined-table error. Create the database, then apply the schema with the pinned `controlplane-db` package that `uv sync` installs. `python -m controlplane_db.startup` reads `DATABASE_URL`. Its default mode upgrades the schema shipped in that package, which creates `roles` and `users`.
+Point each `CPEDGE_*_SERVICE_URL` at its service owner. Unset services are omitted from the merged OpenAPI document; a proxied path whose URL is unset answers `503`. Edge needs no PostgreSQL or Redis setup. Owner services manage their own schema and startup.
 
 ```sh
-psql -d postgres -v ON_ERROR_STOP=1 <<'SQL'
-CREATE ROLE controlplane LOGIN PASSWORD 'controlplane123';
-CREATE DATABASE controlplane OWNER controlplane;
-SQL
-export DATABASE_URL=postgresql+asyncpg://controlplane:controlplane123@localhost:5432/controlplane
-uv run python -m controlplane_db.startup
-```
-
-Skip that startup command when `DATABASE_URL` already points at a database whose schema is current. On an empty database, `CONTROLPLANE_MIGRATION_MODE=owners` and `CONTROLPLANE_DB_BOOTSTRAP=1` make the same command build the current platform, events, Hypermesh, AIuditor, and payment schemas. Set the bootstrap variable only when the database has no schema and no migration history.
-
-```sh
-export DATABASE_URL=postgresql+asyncpg://controlplane:controlplane123@localhost:5432/controlplane
-export REDIS_URI=redis://localhost:6372
 export KEYCLOAK_JWKS_URL=https://id.example/realms/controlplane/protocol/openid-connect/certs
 export KEYCLOAK_ISSUER=https://id.example/realms/controlplane
 export API_KEY_EXCHANGE_JWT_SECRET='replace-with-a-private-value'
@@ -120,3 +105,7 @@ Package `controlplane-edge` is **0.2.0** on release line **0.2** (`release-polic
 ## License
 
 Apache License 2.0. See [LICENSE](LICENSE).
+
+### Optional access events
+
+`CPEDGE_API_ACCESS_EVENTS=true` requires `CPEDGE_EVENTS_URL` (events owner's base URL) and `CPEDGE_EVENTS_TOKEN` (a producer credential bound to `controlplane-edge`). Startup rejects missing configuration. Install the owner's `gateway_api_access_v1` contract before enabling delivery. Edge sends tenant-bound successful API/GraphQL access events to `/events`, with a matching idempotency key and event identity. Unscoped requests produce no tenant event. The payload contains only method, path and a generated trace identity, never queries, bodies or credentials. Delivery is best effort with a bounded queue and timeout; failures and queue overflow are logged. This is telemetry, not a durable audit log. It does not write a local outbox.

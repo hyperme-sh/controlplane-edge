@@ -8,7 +8,7 @@ import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 
-from api.infrastructure.security.tenant_session_jwt import mint_tenant_session_jwt
+from controlplane_identity.security.tenant_session_jwt import mint_tenant_session_jwt
 from controlplane_edge.register_cross_cutting import register_gateway_cross_cutting
 
 
@@ -37,7 +37,7 @@ def _raw_bearer() -> str:
 
 @pytest.fixture
 def probe_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
-    import api.core.config as api_config
+    import controlplane_api.config as api_config
 
     monkeypatch.setattr(api_config.settings, "keycloak_jwks_url", None)
     monkeypatch.setattr(api_config.settings, "keycloak_issuer", None)

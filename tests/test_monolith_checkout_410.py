@@ -13,7 +13,7 @@ from controlplane_edge.edge_proxy import EdgeProxyMiddleware
 
 
 @pytest.mark.asyncio
-async def test_monolith_checkouts_return_410() -> None:
+async def test_monolith_checkouts_return_410(operator_payment_routes) -> None:
     app = FastAPI()
 
     @app.post("/api/v1/checkouts/tenant/subscription")

@@ -93,7 +93,7 @@ async def test_graphql_context_ignores_unsigned_jwt() -> None:
 async def test_graphql_context_honors_bound_session_jwt() -> None:
     from starlette.requests import Request
 
-    from api.infrastructure.security.tenant_session_jwt import mint_tenant_session_jwt
+    from controlplane_identity.security.tenant_session_jwt import mint_tenant_session_jwt
     from controlplane_edge.graphql.register import get_graphql_context
 
     tid = uuid.uuid4()
