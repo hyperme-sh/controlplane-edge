@@ -28,15 +28,15 @@ weaken private dependency access controls or supply deployment credentials.
 | Historical source | Destination and checks |
 | --- | --- |
 | Panopticon #671/#672 | `closure_auth.py` accepts native self credentials only on exact closure routes; operator trust requires an explicit validated client allowlist and dedicated native validator. Empty/malformed trust, API-key-derived subjects, unverified development fallback and private internal paths are denied. |
-| Panopticon #702 | Policy rejects dual credentials before validation, including empty/malformed combinations. API-key requests become one signed exchanged identity; raw API-key and spoofed attribution headers do not reach the owner. |
+| Panopticon #702 | Policy rejects dual credentials before validation, including empty/malformed combinations. API-key requests become one signed exchanged identity and the raw key is removed. Closure forwarding strips caller attribution before reaching private authority. |
 
 Native adoption commit `7f3b04c3c343285c75ec6935941a610700dbc2f3` added the owner
 routing and real installed user-service consumer. Reviewed main
 `28ee712111756c3886f6ebfd42f2607229b4dd44` preserves neutral owner composition and
 independent security fixes. Canonical edge/identity namespaces and immutable owner
 pins remain in the package metadata and lock. Four installed-consumer cases prove
-that self/operator/hold forwarding retains the original native bearer without
-caller-controlled tenant/actor/lifecycle headers. Current targeted closure and
+that private self/operator/hold forwarding retains the original native bearer
+without caller-controlled tenant/actor/lifecycle headers. Current targeted closure and
 credential suites pass 33 cases, within the full 334-case matrix above.
 
 [Infra #439](https://github.com/FyberLabs/infra/pull/439) deployed the reviewed route
