@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "issue": "https://github.com/hyperme-sh/user-service/issues/41",
+  "environment": "shared TEST on pano-test",
+  "user_service_image": "acrfybercg47.azurecr.io/user-service@sha256:1817b4ec2864a3fb2b0f9c2426cd5960e34396671b844d76b1b9dd3ec1b657dc",
+  "user_source": "be28f16644722c34aadd080681972198877bffb8",
+  "deployed_edge_image": "acrfybercg47.azurecr.io/controlplane-edge@sha256:1f86e31253ad3c628ad97e1ada0e45ee3f0621bae470cc30abe366ecdd2faa88",
+  "authentication": "Existing frontend client; genuine authorization code with PKCE S256 and required age-confirmation form; actual /auth/switch-tenant endpoint. No locally signed tokens or authentication configuration changes.",
+  "mutations": "Actual public edge /api/v1/users routes, fresh synthetic fixture tenants only",
+  "console": "Actual deployed user owner HTTP port, direct VM network address; public edge console routing remains unqualified",
+  "log_sha256": "539337abb6d004e0a332bcb4e9ece514b1392ec5d08e5f00cd5fb0f0583f87e2",
+  "observations": [
+    {
+      "acceptance": "user-service-41",
+      "check": "isolated_fixture_tenants_seeded",
+      "passed": true
+    },
+    {
+      "acceptance": "user-service-41",
+      "check": "synthetic_fixture_completes_existing_age_confirmation",
+      "passed": true
+    },
+    {
+      "acceptance": "user-service-41",
+      "check": "real_oidc_authorization_code_pkce_login",
+      "passed": true
+    },
+    {
+      "acceptance": "user-service-41",
+      "check": "deployed_tenant_switch_minted_subject_bound_sessions",
+      "passed": true
+    },
+    {
+      "acceptance": "user-service-41",
+      "check": "stale_admin_member_create_delete_edit_denied",
+      "passed": true
+    },
+    {
+      "acceptance": "user-service-41",
+      "check": "stale_admin_inactive_create_delete_edit_denied",
+      "passed": true
+    },
+    {
+      "acceptance": "user-service-41",
+      "check": "stale_admin_deleted_create_delete_edit_denied",
+      "passed": true
+    },
+    {
+      "acceptance": "user-service-41",
+      "check": "current_durable_admin_create_edit_delete_succeed",
+      "passed": true
+    },
+    {
+      "acceptance": "user-service-41",
+      "check": "bound_self_names_preserve_internal_assurance",
+      "passed": true
+    },
+    {
+      "acceptance": "user-service-41",
+      "check": "horizontal_cross_tenant_and_assurance_replacement_denied",
+      "passed": true
+    },
+    {
+      "acceptance": "user-service-41",
+      "check": "console_and_support_authorization_preserved",
+      "passed": true
+    },
+    {
+      "acceptance": "user-service-41",
+      "check": "actual_owner_restart_healthy",
+      "passed": true
+    },
+    {
+      "acceptance": "user-service-41",
+      "check": "committed_ban_survives_actual_restart_with_tenant_and_kind_isolation",
+      "passed": true
+    },
+    {
+      "acceptance": "user-service-41",
+      "check": "actual_owner_restart_healthy",
+      "passed": true
+    },
+    {
+      "acceptance": "user-service-41",
+      "check": "committed_lift_and_role_audit_survive_actual_restart_with_scoped_pagination",
+      "passed": true
+    },
+    {
+      "acceptance": "user-service-41",
+      "check": "owner_console_and_public_mutation_checks_complete",
+      "passed": true,
+      "console_checked_at_owner_http": true,
+      "public_console_routing_still_pending": true,
+      "fixture_metadata_exported": false,
+      "synthetic_audit_fixture_retained": true
+    }
+  ],
+  "fixture_identity_cleanup": "Fresh identity deleted and verified absent; identity metadata and receipts stay on VM",
+  "audit_fixture": "Synthetic tenant profiles/bans/audit retained under protected VM-local references; no pre-existing user modified",
+  "pending": [
+    "Merge and deploy corrected edge operator route through existing lane",
+    "Repeat console checks through public edge",
+    "Explicit stale-cache challenge and timestamp-tie ordering runtime exercise"
+  ],
+  "issue_closed": false,
+  "public_closure_flags_changed": false,
+  "tag_or_release_created": false
+}
