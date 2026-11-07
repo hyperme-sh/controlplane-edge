@@ -28,6 +28,7 @@ def edge_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     monkeypatch.setenv("CPEDGE_AUTH_SERVICE_URL", "http://auth.edge.test")
     monkeypatch.setenv("CPEDGE_AI_SERVICE_URL", "http://ai.edge.test")
     monkeypatch.setenv("CPEDGE_PAYMENT_SERVICE_URL", "http://pay.edge.test")
+    monkeypatch.setenv("CPEDGE_VERIFICATION_SERVICE_URL", "http://verification.edge.test")
     monkeypatch.setenv("CPEDGE_RATE_LIMIT_PER_MINUTE", "5000")
     import controlplane_api.config as api_config
 
@@ -510,3 +511,20 @@ def test_console_proxy_requires_authentication_before_owner_call(edge_app):
         response = client.get("/api/v1/operator/audit")
     assert response.status_code == 401
     assert not upstream.called
+
+@respx.mock
+def test_sumsub_deletion_delivery_preserves_bytes_and_rejects_ambiguous_headers(edge_app):
+    path = "/api/v1/verification/webhooks/sumsub/sandbox/applicant-deleted"
+    route = respx.post("http://verification.edge.test" + path).mock(return_value=httpx.Response(204))
+    raw = b'{ "type" : "applicantDeleted" }\n'
+    headers = [("X-Payload-Digest-Alg", "HMAC_SHA256_HEX"), ("X-Payload-Digest", "1" * 64)]
+    with TestClient(edge_app) as client:
+        assert client.post(path, content=raw, headers=headers).status_code == 204
+        sent = route.calls.last.request
+        assert sent.content == raw and sent.headers["x-payload-digest"] == "1" * 64
+        assert client.post(path, content=raw, headers=headers + [headers[0]]).status_code == 401
+        assert client.post(path, content=b"x" * 65537, headers=headers).status_code == 413
+        assert route.call_count == 1
+    assert not is_public_path(path + "/", "POST")
+    assert not is_public_path(path, "GET")
+    assert not is_public_path(path + "/other", "POST")

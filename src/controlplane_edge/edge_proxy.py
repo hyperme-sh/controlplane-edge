@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from http.cookiejar import CookieJar, DefaultCookiePolicy
 
@@ -19,6 +20,8 @@ from controlplane_edge.edge_routes import (
     match_edge_route,
 )
 from controlplane_edge.edge_settings import GatewayCrossCuttingSettings
+
+from controlplane_edge.public_paths import is_sumsub_cleanup_path
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +137,28 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
         if request.url.query:
             target = f"{target}?{request.url.query}"
 
-        body = await request.body()
+        if is_sumsub_cleanup_path(request.url.path, request.method):
+            headers = {}
+            for name in ("x-payload-digest-alg", "x-payload-digest"):
+                values = request.headers.getlist(name)
+                if len(values) != 1:
+                    return Response(status_code=401)
+                headers[name] = values[0]
+            if request.headers.getlist("content-encoding") not in ([], ["identity"]):
+                return Response(status_code=415)
+            payload = bytearray()
+            try:
+                async with asyncio.timeout(5):
+                    async for chunk in request.stream():
+                        if len(payload) + len(chunk) > 65536:
+                            return Response(status_code=413)
+                        payload.extend(chunk)
+            except TimeoutError:
+                return Response(status_code=408)
+            body = bytes(payload)
+        else:
+            body = await request.body()
+            headers = _forward_request_headers(request)
         timeout = httpx.Timeout(self._cross.proxy_timeout_s)
         client = getattr(request.app.state, "edge_proxy_client", None)
         own_client = False
@@ -147,7 +171,7 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
         upstream_request = httpx.Request(
             request.method,
             target,
-            headers=_forward_request_headers(request),
+            headers=headers,
             content=body,
             extensions={"timeout": timeout.as_dict()},
         )
