@@ -1,0 +1,53 @@
+{
+  "checked_at": "2026-11-07T17:26:55.700919+00:00",
+  "origin": "https://api.test.hyperme.sh",
+  "credentials": "none",
+  "index": {
+    "channel": "test",
+    "version": "0.0.134",
+    "commit": "bbf5b13ed3019c7801d01cc14bf42b0ced458bb5",
+    "build": 134,
+    "release_id": "134-bbf5b13ed301"
+  },
+  "version": {
+    "service": "controlplane-edge",
+    "git_sha": "53f67c56188708a740ec36099d48e3258081ea85",
+    "built_at": "unknown"
+  },
+  "downloads": [
+    {
+      "path": "/api/v1/hypermesh/public/host-releases/test/134-bbf5b13ed301/platforms.json",
+      "status": 200,
+      "bytes": 5312,
+      "sha256": "79b01a14af4e55177612e2e330fb9ed8cffdb3c09ebb8e9b47b9d88fa077e219",
+      "matches_served_checksums": true
+    },
+    {
+      "path": "/api/v1/hypermesh/public/host-releases/test/134-bbf5b13ed301/hypermesh-agent_0.0.134_darwin_arm64",
+      "status": 200,
+      "bytes": 6868178,
+      "sha256": "9d812060170fa4c11288e84324ab9615342c9fddfe5e95839fa3dff677e3243d",
+      "matches_served_checksums": true
+    },
+    {
+      "path": "/api/v1/hypermesh/public/host-releases/test/134-bbf5b13ed301/hypermesh-deploy_0.0.134_darwin_arm64",
+      "status": 200,
+      "bytes": 5925074,
+      "sha256": "9ccb64d06adf6ec90003b898e2ef32d6e44e898711bb71d3715071b537f53283",
+      "matches_served_checksums": true
+    },
+    {
+      "path": "/api/v1/hypermesh/public/host-releases/test/134-bbf5b13ed301/private.env",
+      "status": 401
+    },
+    {
+      "path": "/api/v1/hypermesh/public/host-releases/test/134-bbf5b13ed301/hypermesh-deploy_0.0.134_darwin_amd64",
+      "status": 401
+    },
+    {
+      "path": "/api/v1/hypermesh/public/host-releases/test/134-bbf5b13ed301/hypermesh-deploy_0.0.134_windows_arm64",
+      "status": 401
+    }
+  ],
+  "scope": "Anonymous public routing and served-byte consistency only; no binary execution, independent signature verification or physical qualification; no tag/release or deployment mutation"
+}
