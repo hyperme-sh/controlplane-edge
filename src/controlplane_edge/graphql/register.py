@@ -62,7 +62,8 @@ async def _verified_bearer_claims(token: str) -> dict | None:
 
 
 async def get_graphql_context(request: Request) -> GraphQLContext:
-    auth = request.headers.get("Authorization")
+    bound = getattr(request.state, "bearer_token", None)
+    auth = f"Bearer {bound}" if bound else request.headers.get("Authorization")
     tenant_id = getattr(request.state, "tenant_id", None)
     user_sub = getattr(request.state, "user_sub", None)
     claims = getattr(request.state, "jwt_claims", None)
