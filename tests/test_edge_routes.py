@@ -25,6 +25,8 @@ from controlplane_edge.edge_routes import (
         ("/api/v1/ai/models", "/api/v1/ai/inference", False),
         ("/auth/login", "/auth", True),
         ("/authorize", "/auth", False),
+        ("/api/v1/operator-export", "/api/v1/operator", False),
+        ("/api/v1/operator/audit", "/api/v1/operator", True),
     ],
 )
 def test_path_matches_prefix_boundary(path: str, prefix: str, expected: bool) -> None:
@@ -74,6 +76,8 @@ def test_extracted_prefixes_match_configured_upstreams() -> None:
     cases = {
         "/auth/me": ("auth", "http://auth.example"),
         "/api/v1/users": ("user", "http://user.example"),
+        "/api/v1/operator/directory/users": ("user", "http://user.example"),
+        "/api/v1/operator/audit": ("user", "http://user.example"),
         "/api/v1/users/11111111-1111-1111-1111-111111111111/assign_role": (
             "user",
             "http://user.example",

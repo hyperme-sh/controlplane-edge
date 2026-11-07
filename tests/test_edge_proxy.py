@@ -475,3 +475,38 @@ def test_unbound_token_cannot_forward_caller_tenant(edge_app):
         })
     assert response.status_code == 200
     assert "x-tenant-id" not in route.calls.last.request.headers
+
+
+@pytest.mark.parametrize(("method", "path", "status"), [
+    ("GET", "/api/v1/operator/directory/users", 200),
+    ("GET", "/api/v1/operator/audit", 200),
+    ("GET", "/api/v1/operator/session", 200),
+    ("POST", "/api/v1/operator/bans", 201),
+    ("POST", "/api/v1/operator/bans/fixture/lift", 200),
+    ("POST", "/api/v1/operator/users/fixture/role", 200),
+    ("GET", "/api/v1/operator/audit", 403),
+])
+@respx.mock
+def test_console_requests_reach_user_owner_with_original_authority(edge_app, method, path, status):
+    upstream = respx.route(method=method, url="http://user.edge.test" + path).mock(
+        return_value=httpx.Response(status, json={"owner": "user", "status": status}))
+    headers = _auth_headers()
+    with TestClient(edge_app) as client:
+        response = client.request(method, path, headers=headers, params={"limit": 1, "offset": 2})
+    assert response.status_code == status
+    assert response.json() == {"owner": "user", "status": status}
+    assert upstream.call_count == 1
+    sent = upstream.calls.last.request
+    assert sent.headers["authorization"] == headers["Authorization"]
+    assert sent.headers["x-tenant-id"] == headers["X-Tenant-ID"]
+    assert dict(sent.url.params) == {"limit": "1", "offset": "2"}
+
+
+@respx.mock
+def test_console_proxy_requires_authentication_before_owner_call(edge_app):
+    upstream = respx.get("http://user.edge.test/api/v1/operator/audit").mock(
+        return_value=httpx.Response(200, json={"items": []}))
+    with TestClient(edge_app) as client:
+        response = client.get("/api/v1/operator/audit")
+    assert response.status_code == 401
+    assert not upstream.called
