@@ -169,24 +169,24 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
                 },
             )
 
-        headers = {
-            k: v
-            for k, v in upstream.headers.items()
-            if k.lower() not in _STRIP_RESPONSE
-        }
-
         async def _release() -> None:
             await upstream.aclose()
             if own_client:
                 await client.aclose()
 
-        return StreamingResponse(
+        response = StreamingResponse(
             # Decoded, because content-encoding is stripped from the response.
             upstream.aiter_bytes(),
             status_code=upstream.status_code,
-            headers=headers,
             background=BackgroundTask(_release),
         )
+        # Keep repeated fields separate, especially Set-Cookie's Expires commas.
+        # ASGI response header names are lowercase; values remain original bytes.
+        response.raw_headers = [
+            (name.lower(), value) for name, value in upstream.headers.raw
+            if name.decode("latin-1").lower() not in _STRIP_RESPONSE
+        ]
+        return response
 
 
 def register_edge_proxy(app: FastAPI) -> None:

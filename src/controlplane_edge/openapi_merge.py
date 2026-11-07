@@ -36,6 +36,48 @@ def _namespace_remote_spec(svc_id: str, spec: dict[str, Any]) -> dict[str, Any]:
     return _rewrite_schema_refs(s, svc_id)
 
 
+_HTTP_METHODS = ("get", "post", "put", "patch", "delete", "options", "head", "trace")
+
+
+def _security_requirements(requirements: Any, names: dict[str, str]) -> Any:
+    if not isinstance(requirements, list):
+        return deepcopy(requirements)
+    return [{names.get(key, key): deepcopy(scopes) for key, scopes in item.items()}
+            if isinstance(item, dict) else deepcopy(item) for item in requirements]
+
+
+def _path_security(path_item: dict[str, Any], names: dict[str, str], inherited: Any) -> None:
+    for method in _HTTP_METHODS:
+        operation = path_item.get(method)
+        if not isinstance(operation, dict):
+            continue
+        if "security" in operation:
+            operation["security"] = _security_requirements(operation["security"], names)
+        elif inherited is not None:
+            # Each upstream can have a different root policy. Materialize it on
+            # its own operations instead of applying one document's policy globally.
+            operation["security"] = _security_requirements(inherited, names)
+        for callback in (operation.get("callbacks") or {}).values():
+            if isinstance(callback, dict):
+                for expression, nested in callback.items():
+                    if expression != "$ref" and isinstance(nested, dict):
+                        _path_security(nested, names, inherited)
+
+
+def _security_refs(value: Any, names: dict[str, str]) -> Any:
+    if isinstance(value, dict):
+        result = {key: _security_refs(item, names) for key, item in value.items()}
+        ref = result.get("$ref")
+        prefix = "#/components/securitySchemes/"
+        if isinstance(ref, str) and ref.startswith(prefix):
+            name = ref[len(prefix):]
+            result["$ref"] = prefix + names.get(name, name)
+        return result
+    if isinstance(value, list):
+        return [_security_refs(item, names) for item in value]
+    return deepcopy(value)
+
+
 def merge_openapi(
     specs: list[tuple[str, dict[str, Any]]],
     *,
@@ -45,7 +87,7 @@ def merge_openapi(
 ) -> dict[str, Any]:
     """Merge OpenAPI dicts. Each tuple is ``(service_id, openapi_dict)``.
 
-    - ``gateway`` (monolith) paths and schemas are merged as-is.
+    - ``controlplane-edge`` paths and schema names remain local.
     - Other services: refs and ``components.schemas`` keys use ``{svc_id}__`` prefix;
       paths are prefixed with ``/_upstream/{service_id}`` to avoid collisions.
     - Operation tags get a ``[service_id]`` prefix for remote services.
@@ -72,13 +114,32 @@ def merge_openapi(
 
         path_prefix = "" if svc_id == "controlplane-edge" else f"/_upstream/{svc_id}"
 
+        comps = merged_spec.get("components") or {}
+        schemes = comps.get("securitySchemes") or {}
+        destination = out["components"]["securitySchemes"]
+        reserved = set(destination) | set(schemes)
+        security_names = {}
+        for name in schemes:
+            key = name
+            if key in destination:
+                base = f"{svc_id}_{name}"
+                key, suffix = base, 2
+                while key in reserved:
+                    key = f"{base}_{suffix}"
+                    suffix += 1
+            security_names[name] = key
+            reserved.add(key)
+        for name, scheme in schemes.items():
+            destination[security_names[name]] = _security_refs(scheme, security_names)
+
         paths = merged_spec.get("paths") or {}
         for p, path_item in paths.items():
             dest_key = f"{path_prefix}{p}" if path_prefix else p
             if dest_key in out["paths"]:
                 dest_key = f"{path_prefix}/__collision__{abs(hash(p)) % 1_000_000}{p}"
             out["paths"][dest_key] = deepcopy(path_item)
-            for method in ("get", "post", "put", "patch", "delete", "options", "head"):
+            _path_security(out["paths"][dest_key], security_names, merged_spec.get("security"))
+            for method in _HTTP_METHODS:
                 op = out["paths"][dest_key].get(method)
                 if not isinstance(op, dict):
                     continue
@@ -90,9 +151,6 @@ def merge_openapi(
         for name, schema in (comps.get("schemas") or {}).items():
             out["components"]["schemas"][name] = deepcopy(schema)
 
-        for name, scheme in (comps.get("securitySchemes") or {}).items():
-            key = name if name not in out["components"]["securitySchemes"] else f"{svc_id}_{name}"
-            out["components"]["securitySchemes"][key] = deepcopy(scheme)
 
     out["x-controlplane-edge-meta"] = {
         "merge_strategy": "http_aggregation",
