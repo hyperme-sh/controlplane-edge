@@ -59,8 +59,11 @@ if (( ${#fixture_wheels[@]} )); then
   uv pip install --no-config --python "$scratch/venv/bin/python" --no-deps "${fixture_wheels[@]}" "$scratch"/dist/*.whl
 else
 uv pip uninstall --python "$scratch/venv/bin/python" controlplane-core controlplane-api controlplane-tenancy controlplane-identity controlplane-db controlplane-events operator-ban-store spanopticon-models controlplane-proto
-uv pip install --python "$scratch/venv/bin/python" --constraint "$scratch/requirements.txt" "$scratch"/dist/*.whl
+# The installed user-service consumer is a declared dev root. Restore its
+# dependencies too after removing source-linked packages from the fresh env.
+uv pip install --python "$scratch/venv/bin/python" --constraint "$scratch/requirements.txt" "$scratch"/dist/*.whl user-service
 fi
+"$scratch/venv/bin/python" scripts/verify_preparation_environment.py "$PWD"
 cp -R tests "$scratch/"
 (cd "$scratch" && "$scratch/venv/bin/python" -I -m pytest -c /dev/null -o asyncio_mode=auto -o asyncio_default_fixture_loop_scope=function tests --junitxml="$scratch/wheel.xml")
 # Rebuild from the sdist; a checkout must not supply omitted package files.
