@@ -109,3 +109,10 @@ Apache License 2.0. See [LICENSE](LICENSE).
 ### Optional access events
 
 `CPEDGE_API_ACCESS_EVENTS=true` requires `CPEDGE_EVENTS_URL` (events owner's base URL) and `CPEDGE_EVENTS_TOKEN` (a producer credential bound to `controlplane-edge`). Startup rejects missing configuration. Install the owner's `gateway_api_access_v1` contract before enabling delivery. Edge sends tenant-bound successful API/GraphQL access events to `/events`, with a matching idempotency key and event identity. Unscoped requests produce no tenant event. The payload contains only method, path and a generated trace identity, never queries, bodies or credentials. Delivery is best effort with a bounded queue and timeout; failures and queue overflow are logged. This is telemetry, not a durable audit log. It does not write a local outbox.
+
+Canonical scope discovery and checks at `/api/v1/authority/*` and public
+`/api/v1/networks/*` forward to User, which owns all current network/tenant/org
+facts. A verified issuer identity can discover its contexts without an implicit
+tenant; a caller-supplied tenant header cannot provide one. User still enforces
+current subject authority. Private network/organization scope-check routes remain
+under `/api/v1/internal/*` and are never exposed by Edge.
