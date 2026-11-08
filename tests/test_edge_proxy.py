@@ -528,3 +528,32 @@ def test_sumsub_deletion_delivery_preserves_bytes_and_rejects_ambiguous_headers(
     assert not is_public_path(path + "/", "POST")
     assert not is_public_path(path, "GET")
     assert not is_public_path(path + "/other", "POST")
+
+
+@respx.mock
+def test_canonical_context_discovery_preserves_verified_identity_without_tenant(edge_app,monkeypatch):
+    from controlplane_edge.middleware import policy
+    async def verified(token):
+        assert token=='issuer-identity'
+        return {'sub':'network-admin','iss':'https://issuer.example','azp':'controlplane-frontend'}
+    monkeypatch.setattr(policy,'resolve_bearer_claims',verified)
+    route=respx.get('http://user.edge.test/api/v1/authority/contexts').mock(return_value=httpx.Response(200,json={'tenants':[]},headers={'Cache-Control':'no-store'}))
+    with TestClient(edge_app) as client:
+        result=client.get('/api/v1/authority/contexts',headers={'Authorization':'Bearer issuer-identity','X-Tenant-ID':str(uuid.uuid4())})
+    assert result.status_code==200
+    assert route.calls.last.request.headers['authorization']=='Bearer issuer-identity'
+    assert 'x-tenant-id' not in route.calls.last.request.headers
+    assert result.headers['cache-control']=='no-store'
+
+
+@respx.mock
+def test_network_authority_reaches_user_and_private_scope_checks_stay_hidden(edge_app):
+    route=respx.get('http://user.edge.test/api/v1/networks/hyperme.sh/authority').mock(return_value=httpx.Response(403,json={'detail':'Current network authority required'}))
+    with TestClient(edge_app) as client:
+        assert client.get('/api/v1/networks/hyperme.sh/authority',headers=_auth_headers()).status_code==403
+        assert route.called
+        before=len(respx.calls)
+        for path in ('/api/v1/internal/network-authority/check','/api/v1/internal/organization-authority/check'):
+            assert client.post(path,headers=_auth_headers(),json={}).status_code==404
+        assert len(respx.calls)==before
+        assert client.get('/api/v1/authority/contexts').status_code==401
