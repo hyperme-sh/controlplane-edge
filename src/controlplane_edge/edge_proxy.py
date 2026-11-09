@@ -21,7 +21,7 @@ from controlplane_edge.edge_routes import (
 )
 from controlplane_edge.edge_settings import GatewayCrossCuttingSettings
 
-from controlplane_edge.public_paths import is_sumsub_cleanup_path
+from controlplane_edge.public_paths import is_sumsub_webhook_path
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +137,7 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
         if request.url.query:
             target = f"{target}?{request.url.query}"
 
-        if is_sumsub_cleanup_path(request.url.path, request.method):
+        if is_sumsub_webhook_path(request.url.path, request.method):
             headers = {}
             for name in ("x-payload-digest-alg", "x-payload-digest"):
                 values = request.headers.getlist(name)

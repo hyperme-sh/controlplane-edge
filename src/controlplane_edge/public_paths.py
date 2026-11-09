@@ -50,8 +50,11 @@ def is_witness_policy_path(path: str, method: str = "GET") -> bool:
     return method.upper() == "GET" and path == "/api/v1/acl/sociacl/witness-policy"
 
 
-def is_sumsub_cleanup_path(path: str, method: str) -> bool:
-    return method == "POST" and path == "/api/v1/verification/webhooks/sumsub/sandbox/applicant-deleted"
+def is_sumsub_webhook_path(path: str, method: str) -> bool:
+    return method == "POST" and path in {
+        "/api/v1/verification/webhooks/sumsub/sandbox/applicant-deleted",
+        "/api/v1/verification/webhooks/sumsub/sandbox/review-events",
+    }
 
 
 def is_public_path(path: str, method: str = "GET") -> bool:
@@ -59,7 +62,7 @@ def is_public_path(path: str, method: str = "GET") -> bool:
 
     if path in ("/",):
         return False
-    if is_witness_policy_path(path, method) or is_sumsub_cleanup_path(path, method):
+    if is_witness_policy_path(path, method) or is_sumsub_webhook_path(path, method):
         return True
     from controlplane_edge.operator_routes import configured_route
     if configured_route("public", path, method):
