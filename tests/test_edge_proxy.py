@@ -512,9 +512,10 @@ def test_console_proxy_requires_authentication_before_owner_call(edge_app):
     assert response.status_code == 401
     assert not upstream.called
 
+@pytest.mark.parametrize("suffix", ["applicant-deleted", "review-events"])
 @respx.mock
-def test_sumsub_deletion_delivery_preserves_bytes_and_rejects_ambiguous_headers(edge_app):
-    path = "/api/v1/verification/webhooks/sumsub/sandbox/applicant-deleted"
+def test_sumsub_delivery_preserves_bytes_and_rejects_ambiguous_headers(edge_app, suffix):
+    path = "/api/v1/verification/webhooks/sumsub/sandbox/" + suffix
     route = respx.post("http://verification.edge.test" + path).mock(return_value=httpx.Response(204))
     raw = b'{ "type" : "applicantDeleted" }\n'
     headers = [("X-Payload-Digest-Alg", "HMAC_SHA256_HEX"), ("X-Payload-Digest", "1" * 64)]

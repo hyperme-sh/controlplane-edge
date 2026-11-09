@@ -22,7 +22,7 @@ Request handling:
 8. `POST /graphql` serves tenant users, marketplace listings, ACL policy rows, and AI token usage, plus the `runInference` mutation. Those fields forward the policy-selected bearer, including an exchanged API-key credential, to the user, marketplace, ACL, and AI services. `GET /graphql` is the playground.
 9. With `CPEDGE_GRPC_ENABLED=true`, ContractEcho answers `EchoUser`, `EchoListing`, and `EchoTokenUsage` on `CPEDGE_GRPC_HOST`:`CPEDGE_GRPC_PORT` (default `127.0.0.1:50051`). Callers pass `authorization` and `x-tenant-id` metadata.
 
-`CPEDGE_VERIFICATION_SERVICE_URL` adds the `/api/v1/verification` prefix to the proxy and to OpenAPI discovery. The exact POST to `/api/v1/verification/webhooks/sumsub/sandbox/applicant-deleted` forwards the raw body and signature headers under the anonymous rate limit. Verification authenticates the sandbox delivery. Internal erasure URLs are not routed. `EDGE_VERSIONS_ACCESS` controls `GET /versions`: `authenticated` (the default), `public`, or `off` (`404`, and upstream version probes are skipped). Set `off` on a production edge.
+`CPEDGE_VERIFICATION_SERVICE_URL` adds the `/api/v1/verification` prefix to the proxy and to OpenAPI discovery. The exact POST routes under `/api/v1/verification/webhooks/sumsub/sandbox/` for `applicant-deleted` and `review-events` forward the raw body and signature headers under the anonymous rate limit. Verification authenticates the sandbox delivery. Internal erasure URLs are not routed. `EDGE_VERSIONS_ACCESS` controls `GET /versions`: `authenticated` (the default), `public`, or `off` (`404`, and upstream version probes are skipped). Set `off` on a production edge.
 
 ## Practical use
 
