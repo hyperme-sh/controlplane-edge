@@ -6,11 +6,11 @@
     "controlplane-edge": {
       "version": "0.2.0",
       "contract": "contract.json",
-      "contract_sha256": "f0f60c0db478ba80e28ef619d5a937c34b0442a63cd4052dc236a739acf547aa",
+      "contract_sha256": "db8600c12fa56ab40d3307a8db98f46f671c15fb9d4b72f6515a50e3b5af05f4",
       "artifact": {
         "kind": "package",
-        "uri": "urn:sha256:03a88678339d4643662db1a3b5f70c9c3d0a77b80df226230cb71acbb688060b",
-        "sha256": "03a88678339d4643662db1a3b5f70c9c3d0a77b80df226230cb71acbb688060b"
+        "uri": "urn:sha256:747e892652d0f8b26e93d085bb02b95020d3ecb2bf7bd3afbd1f8630a37c1052",
+        "sha256": "747e892652d0f8b26e93d085bb02b95020d3ecb2bf7bd3afbd1f8630a37c1052"
       }
     }
   }
