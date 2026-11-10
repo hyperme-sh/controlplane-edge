@@ -8,7 +8,7 @@
     "controlplane_edge/auth_utils.py": "f2a77d1fe1c44dcf962da9e02ac327e3d28d7bd0bbea17a8570faad77c35d352",
     "controlplane_edge/closure_auth.py": "51aebad8f0dfe7e50dd7ca2ce83a923e3a64ea8b326d7eebd196c4387c2b42ff",
     "controlplane_edge/edge_proxy.py": "fa30acfff99aa441ac98b4eec2fe5245b097cc1405945e2f5ca225ad07e8894e",
-    "controlplane_edge/edge_routes.py": "08e564ff685643affc844f1280f060d395f0e969015e4e36ab5676ded7c9f178",
+    "controlplane_edge/edge_routes.py": "76c58166cca7642926be3d31c7ffd4e063bf15b9f3c13c8fb9d4178e9c7ea2a7",
     "controlplane_edge/edge_settings.py": "70fce2cfb665c110ac8d2d6961500b1c8690a7d4a8d4a001aeb7229cf185a82e",
     "controlplane_edge/graphql/__init__.py": "18865e42a1bdda1290b2ddae301161a59d6c9120cd33dc5f30b40c226bf41f11",
     "controlplane_edge/graphql/clients.py": "b6b2ba564820573a76009b5c7e943734aba66d93a094cba2b775d8c7955a297b",

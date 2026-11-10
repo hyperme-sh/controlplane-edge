@@ -263,3 +263,12 @@ def test_verification_route_is_optional_and_internal_erasure_not_exposed():
     assert match_edge_route("/internal/verification/erase", settings) is None
     assert match_edge_route("/api/v1/verification-extra", settings) is None
     assert ("verification", "https://verification.test") in settings.iter_remote_services()
+
+
+def test_self_profile_route_is_narrow_and_user_owned():
+    urls = _urls(user_service_url="http://user.example")
+    match = match_edge_route("/api/v1/me/profile", urls)
+    assert match and match.service_id == "user"
+    assert match.base_url == "http://user.example"
+    assert match_edge_route("/api/v1/me/profiles", urls) is None
+    assert match_edge_route("/api/v1/me/unrelated", urls) is None
