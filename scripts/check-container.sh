@@ -19,11 +19,11 @@ image=$(docker image inspect "$QUALIFIED_IMAGE_REF" --format '{{.Id}}')
 test "$(docker image inspect "$image" --format '{{.Config.User}}')" = '65532:65532'
 container=$(docker run -d --network none --read-only --tmpfs /tmp:rw,noexec,nosuid "$image")
 for attempt in $(seq 1 60); do
-  if docker exec "$container" /opt/edge/bin/python -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/api/v1/health/", timeout=2)' >/dev/null 2>&1; then break; fi
+  if docker exec "$container" python -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/api/v1/health/", timeout=2)' >/dev/null 2>&1; then break; fi
   if [[ "$attempt" = 60 ]]; then docker logs "$container"; exit 1; fi
   sleep 1
 done
-docker exec "$container" /opt/edge/bin/python -c '
+docker exec "$container" python -c '
 import urllib.error, urllib.request
 try:
     urllib.request.urlopen("http://127.0.0.1:8000/api/v1/users", timeout=2)
