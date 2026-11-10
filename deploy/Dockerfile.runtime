@@ -1,0 +1,21 @@
+# Runtime bytes come from the qualified wheel, not a second source build.
+FROM python:3.13-slim-bookworm@sha256:281d39ff02e3b389401586134ff9e6572954687822a58055ec07a60ded4e0b7f AS build
+WORKDIR /build
+RUN pip install --no-cache-dir uv==0.11.26
+COPY requirements.txt ./
+RUN uv venv /opt/edge && uv pip sync --python /opt/edge/bin/python --require-hashes requirements.txt
+COPY private/ ./private/
+COPY *.whl ./
+RUN uv pip install --python /opt/edge/bin/python --no-deps private/*.whl ./*.whl && uv pip check --python /opt/edge/bin/python
+RUN /opt/edge/bin/python -I -c "from controlplane_edge.main import create_app; create_app()"
+
+FROM python:3.13-slim-bookworm@sha256:281d39ff02e3b389401586134ff9e6572954687822a58055ec07a60ded4e0b7f
+COPY --from=build /opt/edge /opt/edge
+ENV PATH=/opt/edge/bin:$PATH PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+ARG GIT_SHA
+ARG WHEEL_SHA256
+LABEL org.opencontainers.image.revision=${GIT_SHA} sh.hyperme.qualified-wheel-sha256=${WHEEL_SHA256}
+ENV GIT_SHA=${GIT_SHA} SERVICE_NAME=controlplane-edge
+USER 65532:65532
+EXPOSE 8000
+CMD ["/opt/edge/bin/python", "-I", "-m", "controlplane_edge.main"]
