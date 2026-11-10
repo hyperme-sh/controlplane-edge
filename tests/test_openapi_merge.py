@@ -111,3 +111,54 @@ def test_scheme_aliases_and_natural_prefixed_keys_do_not_collide_or_rewrite_exam
     assert schemes['auth_OAuth_2']['flows']['clientCredentials']['tokenUrl'] == 'https://two.example/token'
     assert merged['paths']['/_upstream/auth/private']['get']['security'] == [{'auth_OAuth_2': ['read'], 'auth_OAuth': []}]
     assert merged['components']['schemas']['auth__Payload']['example'] == example
+
+
+def test_discriminated_schema_refs_and_bare_names_stay_with_their_owner():
+    from copy import deepcopy
+    literal = {'$ref': '#/components/schemas/BudgetTokens',
+               'discriminator': {'mapping': {'budget': '#/components/schemas/BudgetTokens'}}}
+    union = {'oneOf': [{'$ref': '#/components/schemas/BudgetTokens'}],
+             'discriminator': {'propertyName': 'kind', 'mapping': {
+                 'pointer': '#/components/schemas/BudgetTokens', 'bare': 'BudgetTokens',
+                 'external': 'https://example.test/types.json#/BudgetTokens'}}}
+    spec = {'openapi': '3.1.0', 'info': {'title': 'owner', 'version': '1'},
+            'paths': {'/grants': {'post': {'requestBody': {'content': {'application/json': {
+                'schema': union, 'example': literal, 'examples': {'literal': {'value': literal}}}}},
+                'responses': {'200': {'description': 'ok'}}}}},
+            'components': {'schemas': {'BudgetTokens': {'type': 'object'}, 'Grant': {
+                'type': 'object', 'properties': {'asks': {'type': 'array', 'items': union},
+                    'value': {'$ref': '#/components/schemas/BudgetTokens'}},
+                'example': literal, 'default': literal, 'enum': [literal], 'x-literal': literal}}}}
+    original = deepcopy(spec)
+    merged = merge_openapi([('hypermesh', spec), ('other', spec)])
+    assert spec == original
+    for owner in ('hypermesh', 'other'):
+        grant = merged['components']['schemas'][owner + '__Grant']
+        mapping = grant['properties']['asks']['items']['discriminator']['mapping']
+        ref = '#/components/schemas/' + owner + '__BudgetTokens'
+        assert mapping == {'pointer': ref, 'bare': ref, 'external': 'https://example.test/types.json#/BudgetTokens'}
+        assert grant['properties']['asks']['items']['oneOf'] == [{'$ref': ref}]
+        assert grant['properties']['value']['$ref'] == ref
+        assert grant['example'] == grant['default'] == grant['x-literal'] == literal
+        assert grant['enum'] == [literal]
+        media = merged['paths']['/_upstream/' + owner + '/grants']['post']['requestBody']['content']['application/json']
+        assert media['schema']['discriminator']['mapping'] == mapping
+        assert media['example'] == literal and media['examples']['literal']['value'] == literal
+
+
+def test_inline_parameter_response_and_recursive_schema_discriminators_are_namespaced():
+    schema = {'oneOf': [{'$ref': '#/components/schemas/Node'}],
+              'discriminator': {'propertyName': 'kind', 'mapping': {'node': 'Node'}}}
+    spec = {'openapi': '3.1.0', 'info': {'title': 'Owner', 'version': '1'},
+            'components': {'schemas': {'Node': {'type': 'object', 'additionalProperties': schema}}},
+            'paths': {'/nodes': {'parameters': [{'name': 'filter', 'in': 'query', 'schema': schema}],
+                'get': {'responses': {'200': {'description': 'ok', 'content': {
+                    'application/json': {'schema': schema}}}}}}}}
+    merged = merge_openapi([('owner', spec)])
+    ref = '#/components/schemas/owner__Node'
+    path = merged['paths']['/_upstream/owner/nodes']
+    for found in [path['parameters'][0]['schema'],
+                  path['get']['responses']['200']['content']['application/json']['schema'],
+                  merged['components']['schemas']['owner__Node']['additionalProperties']]:
+        assert found['oneOf'] == [{'$ref': ref}]
+        assert found['discriminator']['mapping'] == {'node': ref}

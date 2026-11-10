@@ -6,34 +6,95 @@ from copy import deepcopy
 from typing import Any
 
 
-def _rewrite_schema_refs(obj: Any, svc_id: str) -> Any:
-    """Rewrite ``#/components/schemas/Name`` → ``#/components/schemas/{svc_id}__Name``."""
+def _rewrite_schema_refs(obj: Any, svc_id: str, schema_names: set[str]) -> Any:
+    """Rewrite schema pointers in OpenAPI structure, never application literals."""
+    prefix = "#/components/schemas/"
 
-    if isinstance(obj, dict):
-        ref = obj.get("$ref")
-        if isinstance(ref, str) and ref.startswith("#/components/schemas/"):
-            name = ref.rsplit("/", 1)[-1]
-            return {
-                **{k: _rewrite_schema_refs(v, svc_id) for k, v in obj.items() if k != "$ref"},
-                "$ref": f"#/components/schemas/{svc_id}__{name}",
-            }
-        return {k: _rewrite_schema_refs(v, svc_id) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [_rewrite_schema_refs(x, svc_id) for x in obj]
-    return obj
+    def pointer(ref: str) -> str:
+        return prefix + svc_id + "__" + ref[len(prefix):] if ref.startswith(prefix) else ref
+
+    def walk(value: Any, kind: str) -> Any:
+        if not isinstance(value, dict):
+            return deepcopy(value)
+        result = deepcopy(value)
+        if isinstance(result.get("$ref"), str):
+            result["$ref"] = pointer(result["$ref"])
+
+        def mapping(key: str, child: str) -> None:
+            if isinstance(result.get(key), dict):
+                result[key] = {name: walk(item, child) for name, item in result[key].items()}
+
+        def sequence(key: str, child: str) -> None:
+            if isinstance(result.get(key), list):
+                result[key] = [walk(item, child) for item in result[key]]
+
+        def single(key: str, child: str) -> None:
+            if key in result:
+                result[key] = walk(result[key], child)
+
+        if kind == "document":
+            mapping("paths", "path")
+            mapping("webhooks", "path")
+            components = result.get("components", {})
+            for category, child in {"schemas": "schema", "parameters": "parameter", "headers": "parameter",
+                                    "requestBodies": "body", "responses": "response", "callbacks": "callback",
+                                    "pathItems": "path"}.items():
+                if isinstance(components.get(category), dict):
+                    components[category] = {name: walk(item, child) for name, item in components[category].items()}
+        elif kind == "schema":
+            for key in ("properties", "patternProperties", "$defs", "definitions", "dependentSchemas"):
+                mapping(key, "schema")
+            for key in ("allOf", "oneOf", "anyOf", "prefixItems"):
+                sequence(key, "schema")
+            for key in ("items", "additionalItems", "additionalProperties", "unevaluatedProperties",
+                        "unevaluatedItems", "not", "contains", "propertyNames", "if", "then", "else", "contentSchema"):
+                single(key, "schema")
+            discriminator = result.get("discriminator")
+            if isinstance(discriminator, dict) and isinstance(discriminator.get("mapping"), dict):
+                targets = {}
+                for tag, target in discriminator["mapping"].items():
+                    if isinstance(target, str) and target in schema_names:
+                        target = prefix + target.replace("~", "~0").replace("/", "~1")
+                    targets[tag] = pointer(target) if isinstance(target, str) else target
+                discriminator["mapping"] = targets
+        elif kind == "path":
+            for method in _HTTP_METHODS:
+                single(method, "operation")
+            sequence("parameters", "parameter")
+        elif kind == "operation":
+            sequence("parameters", "parameter")
+            single("requestBody", "body")
+            mapping("responses", "response")
+            mapping("callbacks", "callback")
+        elif kind == "response":
+            mapping("content", "media")
+            mapping("headers", "parameter")
+        elif kind == "body":
+            mapping("content", "media")
+        elif kind in ("parameter", "media"):
+            single("schema", "schema")
+            if kind == "parameter":
+                mapping("content", "media")
+            else:
+                encoding = result.get("encoding", {})
+                for item in encoding.values() if isinstance(encoding, dict) else ():
+                    if isinstance(item, dict) and isinstance(item.get("headers"), dict):
+                        item["headers"] = {name: walk(header, "parameter") for name, header in item["headers"].items()}
+        elif kind == "callback":
+            result = {name: walk(item, "path") if name != "$ref" and not name.startswith("x-") else item
+                      for name, item in result.items()}
+        return result
+
+    return walk(obj, "document")
 
 
 def _namespace_remote_spec(svc_id: str, spec: dict[str, Any]) -> dict[str, Any]:
-    """Deep copy remote spec; namespace component schema keys and all refs."""
-
+    """Namespace schema names, structural references and discriminator mappings."""
     s = deepcopy(spec)
     comps = s.setdefault("components", {})
     schemas = comps.get("schemas") or {}
-    new_schemas: dict[str, Any] = {}
-    for name, body in schemas.items():
-        new_schemas[f"{svc_id}__{name}"] = body
-    comps["schemas"] = new_schemas
-    return _rewrite_schema_refs(s, svc_id)
+    comps["schemas"] = {f"{svc_id}__{name}": body for name, body in schemas.items()}
+    return _rewrite_schema_refs(s, svc_id, set(schemas))
 
 
 _HTTP_METHODS = ("get", "post", "put", "patch", "delete", "options", "head", "trace")
