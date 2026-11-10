@@ -7,6 +7,12 @@ permissions:
   contents: read
 jobs:
   package:
+    permissions:
+      contents: read
+      packages: write
+    concurrency:
+      group: edge-moving-test-${{ github.repository }}
+      cancel-in-progress: false
     if: github.ref == 'refs/heads/main'
     runs-on: ${{ github.event.repository.private && fromJSON('["self-hosted", "linux", "x64", "debrunner"]') || 'ubuntu-24.04' }}
     timeout-minutes: 15
@@ -29,6 +35,16 @@ jobs:
           unset GH_TOKEN GITHUB_TOKEN DEPENDENCY_READ_TOKEN
           export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_COUNT=0 GIT_TERMINAL_PROMPT=0
           bash scripts/check-package.sh
+      - name: Qualify credential-free standalone runtime
+        env:
+          QUALIFIED_IMAGE_REF: edge:ci-${{ github.run_id }}-${{ github.run_attempt }}
+        run: bash scripts/check-container.sh
+      - name: Advance moving TEST from qualified current main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QUALIFIED_IMAGE_REF: edge:ci-${{ github.run_id }}-${{ github.run_attempt }}
+        run: bash scripts/publish-test-runtime.sh
       - name: Retain validated package bytes
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -45,3 +61,6 @@ jobs:
           path: ${{ runner.temp }}/edge-test-results/*.xml
           if-no-files-found: error
           retention-days: 90
+      - name: Remove job-owned local runtime image
+        if: always()
+        run: docker image rm "edge:ci-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >/dev/null 2>&1 || true

@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+: "${RELEASE_ARTIFACT_DIR:?Use the exact qualified package output}"
+: "${QUALIFIED_IMAGE_REF:?Choose a job-owned local image name}"
+: "${GITHUB_SHA:?Record the source revision}"
+[[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]]
+scratch=$(mktemp -d)
+container=
+cleanup() {
+  if [[ -n "$container" ]]; then docker rm -f "$container" >/dev/null; fi
+  rm -rf -- "$scratch"
+}
+trap cleanup EXIT
+python3 scripts/prepare-runtime-context.py "$RELEASE_ARTIFACT_DIR" "$scratch/context"
+wheel=$(sha256sum "$scratch"/context/*.whl | cut -d ' ' -f 1)
+docker build --build-arg "GIT_SHA=$GITHUB_SHA" --build-arg "WHEEL_SHA256=$wheel" -t "$QUALIFIED_IMAGE_REF" "$scratch/context"
+image=$(docker image inspect "$QUALIFIED_IMAGE_REF" --format '{{.Id}}')
+test "$(docker image inspect "$image" --format '{{.Config.User}}')" = '65532:65532'
+container=$(docker run -d --network none --read-only --tmpfs /tmp:rw,noexec,nosuid "$image")
+for attempt in $(seq 1 60); do
+  if docker exec "$container" /opt/edge/bin/python -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/api/v1/health/", timeout=2)' >/dev/null 2>&1; then break; fi
+  if [[ "$attempt" = 60 ]]; then docker logs "$container"; exit 1; fi
+  sleep 1
+done
+docker exec "$container" /opt/edge/bin/python -c '
+import urllib.error, urllib.request
+try:
+    urllib.request.urlopen("http://127.0.0.1:8000/api/v1/users", timeout=2)
+except urllib.error.HTTPError as error:
+    assert error.code == 401, error.code
+else:
+    raise AssertionError("Anonymous owner access must be refused")
+'
+cp "$scratch/context/inventory.json" "$RELEASE_ARTIFACT_DIR/runtime-context.json"
+printf '%s\n' "$image" > "$RELEASE_ARTIFACT_DIR/runtime-image-id.txt"

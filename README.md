@@ -116,3 +116,20 @@ facts. A verified issuer identity can discover its contexts without an implicit
 tenant; a caller-supplied tenant header cannot provide one. User still enforces
 current subject authority. Private network/organization scope-check routes remain
 under `/api/v1/internal/*` and are never exposed by Edge.
+
+## Moving TEST runtime
+
+Main qualification builds the stateless service image from the exact tested Edge
+wheel. Its private runtime dependencies are the same digest-verified exact-source
+wheel fixtures used by package qualification; public dependencies come from the
+frozen runtime lock with required hashes. No Git credential enters the container
+build. The final image runs as a non-root user with no database or migration
+startup and is exercised with networking disabled and a read-only filesystem.
+
+Successful current-main pushes advance `ghcr.io/hyperme-sh/controlplane-edge/runtime:test`.
+PR checks build and exercise a local image without publishing. Manual workflow
+runs also stop before TEST publication. Revision/wheel labels and context digests
+record provenance; they do not require pinning running services. Superseded builds
+cannot advance the channel. This is a TEST service channel, not a production
+release or deployment. Infra owns the separate moving-channel adoption and live
+acceptance; no TEST fixture reset or reseeding is involved.

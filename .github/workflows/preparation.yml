@@ -25,6 +25,11 @@ jobs:
           export TEST_EVIDENCE_DIR="$output/consumers"
           echo "PREPARED_OUTPUT=$output" >> "$GITHUB_ENV"
           bash scripts/check-package.sh --fixtures
+      - name: Qualify credential-free standalone runtime
+        env:
+          QUALIFIED_IMAGE_REF: edge:ci-${{ github.run_id }}-${{ github.run_attempt }}
+          RELEASE_ARTIFACT_DIR: ${{ env.PREPARED_OUTPUT }}/dist
+        run: bash scripts/check-container.sh
       - name: Retain tested preparation bytes
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -33,3 +38,6 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           compression-level: 0
+      - name: Remove job-owned local runtime image
+        if: always()
+        run: docker image rm "edge:ci-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >/dev/null 2>&1 || true
