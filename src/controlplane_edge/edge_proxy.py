@@ -232,6 +232,8 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
                 body = await storage_body(request)
             except StorageBodyError as exc:
                 return Response(status_code=exc.status)
+            except TimeoutError:
+                return Response(status_code=408)
             headers = _forward_request_headers(request)
         else:
             body = await request.body()

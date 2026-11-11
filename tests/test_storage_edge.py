@@ -148,3 +148,19 @@ async def test_slow_storage_downloads_do_not_reserve_upload_capacity():
     async def send(message): pass
     await upload({'type': 'http'}, receive, send)
     assert edge._storage_capacity.borrowed_tokens == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('method', ['GET', 'HEAD', 'DELETE', 'PUT'])
+async def test_storage_body_timeout_returns_408_for_every_method(monkeypatch, method):
+    from controlplane_edge import edge_proxy
+    from controlplane_edge.aggregation_settings import OpenAPIAggregationSettings
+    edge = edge_proxy.EdgeProxyMiddleware(FastAPI(), settings=OpenAPIAggregationSettings(
+        CPEDGE_STORAGE_SERVICE_URL='https://storage.owner'))
+    monkeypatch.setattr(edge_proxy, 'storage_body', AsyncMock(side_effect=TimeoutError))
+    response = await edge.dispatch(body_request([], method=method), None)
+    assert response.status_code == 408
+    async def receive(): return {'type': 'http.disconnect'}
+    async def send(message): pass
+    await response({'type': 'http'}, receive, send)
+    assert edge._storage_capacity.borrowed_tokens == 0
