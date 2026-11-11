@@ -121,3 +121,30 @@ async def test_storage_response_releases_capacity_on_disconnect():
     with pytest.raises(ConnectionError): await response({'type':'http'},receive,send)
     assert response._response is None
     assert capacity.borrowed_tokens==0
+
+
+@pytest.mark.asyncio
+async def test_slow_storage_downloads_do_not_reserve_upload_capacity():
+    from controlplane_edge.edge_proxy import EdgeProxyMiddleware
+    from controlplane_edge.aggregation_settings import OpenAPIAggregationSettings
+    from starlette.responses import StreamingResponse
+    import asyncio
+
+    edge = EdgeProxyMiddleware(FastAPI(), settings=OpenAPIAggregationSettings(
+        CPEDGE_STORAGE_SERVICE_URL='https://storage.owner'))
+    async def slow_body():
+        await asyncio.Event().wait()
+        yield b'chunk'
+    async def forward(request, call_next):
+        return StreamingResponse(slow_body())
+    edge._dispatch = forward
+    responses = [await asyncio.wait_for(edge.dispatch(
+        body_request([], method='GET'), None), 1) for _ in range(9)]
+    assert edge._storage_capacity.borrowed_tokens == 0
+    # Unconsumed downloads cannot prevent an upload from being admitted.
+    upload = await asyncio.wait_for(edge.dispatch(body_request([]), None), 1)
+    assert edge._storage_capacity.borrowed_tokens == 1
+    async def receive(): return {'type': 'http.disconnect'}
+    async def send(message): pass
+    await upload({'type': 'http'}, receive, send)
+    assert edge._storage_capacity.borrowed_tokens == 0

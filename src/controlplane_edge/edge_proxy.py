@@ -159,7 +159,8 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next) -> Response:
         match = match_edge_route(request.url.path, self._settings)
-        if match and match.service_id == 'storage':
+        if (match and match.service_id == 'storage'
+                and request.method not in ('GET', 'HEAD', 'DELETE')):
             borrower = object()
             acquired = False
             try:
