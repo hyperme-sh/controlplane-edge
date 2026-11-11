@@ -163,8 +163,16 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next) -> Response:
         match = match_edge_route(request.url.path, self._settings)
-        if (match and match.service_id == 'storage'
-                and request.method not in ('GET', 'HEAD', 'DELETE')):
+        if (match and match.service_id == 'storage' and request.method == 'PUT'
+                and request.url.path.startswith('/api/v1/storage/objects/')):
+            # Only object uploads can buffer 64 MiB. Administrative bodies are
+            # limited to 8 KiB and must not reserve object-upload capacity.
+            claims = getattr(request.state, "jwt_claims", None) or {}
+            scopes = claims.get("scope")
+            if (claims.get("azp") != "controlplane-api-key"
+                    or not isinstance(scopes, str)
+                    or "storage:objects:write" not in scopes.split()):
+                return Response(status_code=403)
             borrower = object()
             tenant = str(getattr(request.state, "tenant_id", None))
             capacity = self._storage_tenant_capacity.setdefault(tenant, anyio.CapacityLimiter(2))

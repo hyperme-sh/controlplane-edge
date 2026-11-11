@@ -17,7 +17,9 @@ def body_request(chunks, headers=(), method='PUT', path='/api/v1/storage/objects
     async def receive():
         try: return {'type':'http.request','body':next(parts),'more_body':True}
         except StopIteration: return {'type':'http.request','body':b'','more_body':False}
-    return Request({'type':'http','method':method,'path':path,'headers':headers},receive)
+    request = Request({'type':'http','method':method,'path':path,'headers':headers},receive)
+    request.state.jwt_claims = {'azp': 'controlplane-api-key', 'scope': 'storage:objects:write'}
+    return request
 
 
 @pytest.mark.parametrize('length,chunks,status',[(None,[b'x'],411),('67108865',[],413),('1',[b'xx'],413),('2',[b'x'],400),('bad',[],411)])
@@ -193,5 +195,41 @@ async def test_storage_upload_admission_is_partitioned_by_tenant():
     async def send(message): pass
     for response in held:
         await response({'type': 'http'}, receive, send)
+    assert edge._storage_capacity.borrowed_tokens == 0
+    assert edge._storage_tenant_capacity == {}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('claims', [{}, {'azp': 'tenant-session', 'scope': 'storage:objects:write'},
+                                   {'azp': 'controlplane-api-key', 'scope': 'storage:objects:read'}])
+async def test_unscoped_member_cannot_reserve_upload_slots(monkeypatch, claims):
+    from controlplane_edge.edge_proxy import EdgeProxyMiddleware
+    from controlplane_edge.aggregation_settings import OpenAPIAggregationSettings
+    edge = EdgeProxyMiddleware(FastAPI(), settings=OpenAPIAggregationSettings(
+        CPEDGE_STORAGE_SERVICE_URL='https://storage.owner'))
+    forward = AsyncMock()
+    edge._dispatch = forward
+    request = body_request([])
+    request.state.jwt_claims = claims
+    response = await edge.dispatch(request, None)
+    assert response.status_code == 403
+    forward.assert_not_called()
+    assert edge._storage_capacity.borrowed_tokens == 0
+    assert edge._storage_tenant_capacity == {}
+
+
+@pytest.mark.asyncio
+async def test_small_admin_bodies_cannot_reserve_object_upload_slots():
+    from controlplane_edge.edge_proxy import EdgeProxyMiddleware
+    from controlplane_edge.aggregation_settings import OpenAPIAggregationSettings
+    from starlette.responses import Response
+    edge = EdgeProxyMiddleware(FastAPI(), settings=OpenAPIAggregationSettings(
+        CPEDGE_STORAGE_SERVICE_URL='https://storage.owner'))
+    async def forward(request, call_next): return Response(b'admin response')
+    edge._dispatch = forward
+    for _ in range(9):
+        request = body_request([], method='POST', path='/api/v1/storage/tenant/configure')
+        request.state.jwt_claims = {}
+        assert (await edge.dispatch(request, None)).status_code == 200
     assert edge._storage_capacity.borrowed_tokens == 0
     assert edge._storage_tenant_capacity == {}
