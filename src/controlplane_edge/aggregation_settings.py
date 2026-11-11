@@ -15,6 +15,8 @@ class OpenAPIAggregationSettings(BaseSettings):
         extra="ignore",
     )
 
+    storage_service_url: str | None = Field(default=None, validation_alias="CPEDGE_STORAGE_SERVICE_URL")
+
     verification_service_url: str | None = Field(default=None, validation_alias="CPEDGE_VERIFICATION_SERVICE_URL")
 
     auth_service_url: str | None = Field(

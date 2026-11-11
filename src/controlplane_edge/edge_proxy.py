@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import anyio
+import re
 import logging
 from http.cookiejar import CookieJar, DefaultCookiePolicy
 
@@ -92,6 +94,57 @@ def _forward_request_headers(request: Request) -> dict[str, str]:
     return out
 
 
+class StorageBodyError(ValueError):
+    def __init__(self, status):
+        self.status = status
+
+
+async def storage_body(request: Request) -> bytes:
+    maximum = 64 * 1024 * 1024 if request.method == 'PUT' and request.url.path.startswith('/api/v1/storage/objects/') else 8192
+    values = request.headers.getlist('content-length')
+    if len(values) != 1 or not re.fullmatch('[0-9]{1,9}', values[0]):
+        # Empty GET/HEAD/DELETE requests need no declared body.
+        if request.method in ('GET','HEAD','DELETE') and not values:
+            expected = 0
+        else:
+            raise StorageBodyError(411)
+    else:
+        expected = int(values[0])
+    if expected > maximum:
+        raise StorageBodyError(413)
+    if request.headers.getlist('content-encoding') not in ([], ['identity']):
+        raise StorageBodyError(415)
+    body = bytearray()
+    async with asyncio.timeout(30):
+        async for chunk in request.stream():
+            if len(body) + len(chunk) > expected:
+                raise StorageBodyError(413)
+            body.extend(chunk)
+    if len(body) != expected:
+        raise StorageBodyError(400)
+    return bytes(body)
+
+
+class StorageCapacityResponse(Response):
+    """Keep upload memory accounted for until response cleanup completes."""
+    def __init__(self, response: Response, capacity, borrower, release_tenant=None):
+        super().__init__(status_code=response.status_code)
+        self.raw_headers = response.raw_headers
+        self._response = response
+        self._capacity, self._borrower = capacity, borrower
+        self._release_tenant = release_tenant
+
+    async def __call__(self, scope, receive, send):
+        try:
+            await self._response(scope, receive, send)
+        finally:
+            # The upstream response can retain its request's upload bytes.
+            self._response = None
+            self._capacity.release_on_behalf_of(self._borrower)
+            if self._release_tenant is not None:
+                self._release_tenant()
+
+
 class EdgeProxyMiddleware(BaseHTTPMiddleware):
     """Forward matched prefixes to extracted services; leave monolith routes alone."""
 
@@ -105,8 +158,51 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self._settings = settings or OpenAPIAggregationSettings()
         self._cross = cross or GatewayCrossCuttingSettings()
+        self._storage_capacity = anyio.CapacityLimiter(8)
+        self._storage_tenant_capacity = {}
 
     async def dispatch(self, request: Request, call_next) -> Response:
+        match = match_edge_route(request.url.path, self._settings)
+        if (match and match.service_id == 'storage' and request.method == 'PUT'
+                and request.url.path.startswith('/api/v1/storage/objects/')):
+            # Only object uploads can buffer 64 MiB. Administrative bodies are
+            # limited to 8 KiB and must not reserve object-upload capacity.
+            claims = getattr(request.state, "jwt_claims", None) or {}
+            scopes = claims.get("scope")
+            if (claims.get("azp") != "controlplane-api-key"
+                    or not isinstance(scopes, str)
+                    or "storage:objects:write" not in scopes.split()):
+                return Response(status_code=403)
+            borrower = object()
+            tenant = str(getattr(request.state, "tenant_id", None))
+            capacity = self._storage_tenant_capacity.setdefault(tenant, anyio.CapacityLimiter(2))
+            try:
+                capacity.acquire_on_behalf_of_nowait(borrower)
+            except anyio.WouldBlock:
+                return Response(status_code=429, headers={"Retry-After": "1"})
+
+            def release_tenant():
+                capacity.release_on_behalf_of(borrower)
+                if not capacity.borrowed_tokens:
+                    self._storage_tenant_capacity.pop(tenant, None)
+
+            acquired = False
+            try:
+                with anyio.fail_after(120):
+                    await self._storage_capacity.acquire_on_behalf_of(borrower)
+                    acquired = True
+                    response = await self._dispatch(request, call_next)
+                return StorageCapacityResponse(response, self._storage_capacity, borrower, release_tenant)
+            except BaseException as error:
+                if acquired:
+                    self._storage_capacity.release_on_behalf_of(borrower)
+                release_tenant()
+                if isinstance(error, TimeoutError):
+                    return Response(status_code=408)
+                raise
+        return await self._dispatch(request, call_next)
+
+    async def _dispatch(self, request: Request, call_next) -> Response:
         if locked_monolith_checkout_path(request.url.path):
             return JSONResponse(
                 status_code=410,
@@ -156,6 +252,14 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
             except TimeoutError:
                 return Response(status_code=408)
             body = bytes(payload)
+        elif match.service_id == 'storage':
+            try:
+                body = await storage_body(request)
+            except StorageBodyError as exc:
+                return Response(status_code=exc.status)
+            except TimeoutError:
+                return Response(status_code=408)
+            headers = _forward_request_headers(request)
         else:
             body = await request.body()
             headers = _forward_request_headers(request)
