@@ -88,9 +88,13 @@ async def test_storage_requests_hold_capacity_until_response_consumption():
     edge=EdgeProxyMiddleware(FastAPI(),settings=OpenAPIAggregationSettings(CPEDGE_STORAGE_SERVICE_URL='https://storage.owner'))
     async def forward(request,call_next): return Response(content=b'upstream response')
     edge._dispatch=forward
-    responses=[await edge.dispatch(body_request([]),None) for _ in range(8)]
+    def tenant_request():
+        request = body_request([])
+        request.state.tenant_id = uuid.uuid4()
+        return request
+    responses=[await edge.dispatch(tenant_request(),None) for _ in range(8)]
     assert edge._storage_capacity.borrowed_tokens==8
-    waiting=asyncio.create_task(edge.dispatch(body_request([]),None))
+    waiting=asyncio.create_task(edge.dispatch(tenant_request(),None))
     async def receive(): return {'type':'http.disconnect'}
     async def send(message): pass
     try:
@@ -164,3 +168,30 @@ async def test_storage_body_timeout_returns_408_for_every_method(monkeypatch, me
     async def send(message): pass
     await response({'type': 'http'}, receive, send)
     assert edge._storage_capacity.borrowed_tokens == 0
+
+
+@pytest.mark.asyncio
+async def test_storage_upload_admission_is_partitioned_by_tenant():
+    from controlplane_edge.edge_proxy import EdgeProxyMiddleware
+    from controlplane_edge.aggregation_settings import OpenAPIAggregationSettings
+    from starlette.responses import Response
+    edge = EdgeProxyMiddleware(FastAPI(), settings=OpenAPIAggregationSettings(
+        CPEDGE_STORAGE_SERVICE_URL='https://storage.owner'))
+    async def forward(request, call_next): return Response(b'buffer retained')
+    edge._dispatch = forward
+    def request(tenant):
+        req = body_request([])
+        req.state.tenant_id = tenant
+        return req
+    held = [await edge.dispatch(request('tenant-a'), None) for _ in range(2)]
+    refused = await edge.dispatch(request('tenant-a'), None)
+    assert refused.status_code == 429
+    held.append(await edge.dispatch(request('tenant-b'), None))
+    assert held[-1].status_code == 200
+    assert edge._storage_capacity.borrowed_tokens == 3
+    async def receive(): return {'type': 'http.disconnect'}
+    async def send(message): pass
+    for response in held:
+        await response({'type': 'http'}, receive, send)
+    assert edge._storage_capacity.borrowed_tokens == 0
+    assert edge._storage_tenant_capacity == {}
