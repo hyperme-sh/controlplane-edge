@@ -125,6 +125,23 @@ async def storage_body(request: Request) -> bytes:
     return bytes(body)
 
 
+class StorageCapacityResponse(Response):
+    """Keep upload memory accounted for until response cleanup completes."""
+    def __init__(self, response: Response, capacity, borrower):
+        super().__init__(status_code=response.status_code)
+        self.raw_headers = response.raw_headers
+        self._response = response
+        self._capacity, self._borrower = capacity, borrower
+
+    async def __call__(self, scope, receive, send):
+        try:
+            await self._response(scope, receive, send)
+        finally:
+            # The upstream response can retain its request's upload bytes.
+            self._response = None
+            self._capacity.release_on_behalf_of(self._borrower)
+
+
 class EdgeProxyMiddleware(BaseHTTPMiddleware):
     """Forward matched prefixes to extracted services; leave monolith routes alone."""
 
@@ -143,12 +160,20 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         match = match_edge_route(request.url.path, self._settings)
         if match and match.service_id == 'storage':
+            borrower = object()
+            acquired = False
             try:
                 with anyio.fail_after(120):
-                    async with self._storage_capacity:
-                        return await self._dispatch(request, call_next)
-            except TimeoutError:
-                return Response(status_code=408)
+                    await self._storage_capacity.acquire_on_behalf_of(borrower)
+                    acquired = True
+                    response = await self._dispatch(request, call_next)
+                return StorageCapacityResponse(response, self._storage_capacity, borrower)
+            except BaseException as error:
+                if acquired:
+                    self._storage_capacity.release_on_behalf_of(borrower)
+                if isinstance(error, TimeoutError):
+                    return Response(status_code=408)
+                raise
         return await self._dispatch(request, call_next)
 
     async def _dispatch(self, request: Request, call_next) -> Response:

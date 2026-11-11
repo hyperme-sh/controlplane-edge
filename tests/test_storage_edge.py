@@ -80,26 +80,44 @@ async def test_stalled_storage_body_times_out(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_storage_requests_limit_concurrent_buffers():
+async def test_storage_requests_hold_capacity_until_response_consumption():
     import asyncio
     from controlplane_edge.edge_proxy import EdgeProxyMiddleware
     from controlplane_edge.aggregation_settings import OpenAPIAggregationSettings
     from starlette.responses import Response
     edge=EdgeProxyMiddleware(FastAPI(),settings=OpenAPIAggregationSettings(CPEDGE_STORAGE_SERVICE_URL='https://storage.owner'))
-    release=asyncio.Event();eight=asyncio.Event();entered=[]
-    async def forward(request,call_next):
-        entered.append(request)
-        if len(entered)==8: eight.set()
-        await release.wait()
-        return Response(status_code=204)
+    async def forward(request,call_next): return Response(content=b'upstream response')
     edge._dispatch=forward
-    tasks=[asyncio.create_task(edge.dispatch(body_request([]),None)) for _ in range(9)]
+    responses=[await edge.dispatch(body_request([]),None) for _ in range(8)]
+    assert edge._storage_capacity.borrowed_tokens==8
+    waiting=asyncio.create_task(edge.dispatch(body_request([]),None))
+    async def receive(): return {'type':'http.disconnect'}
+    async def send(message): pass
     try:
-        await asyncio.wait_for(eight.wait(),1)
-        assert len(entered)==8
-        release.set()
-        assert all(row.status_code==204 for row in await asyncio.gather(*tasks))
-        assert len(entered)==9
+        await asyncio.sleep(0)
+        assert not waiting.done()
+        for response in responses:
+            await response({'type':'http'},receive,send)
+            assert response._response is None
+        last=await asyncio.wait_for(waiting,1)
+        assert edge._storage_capacity.borrowed_tokens==1
+        await last({'type':'http'},receive,send)
+        assert edge._storage_capacity.borrowed_tokens==0
     finally:
-        for task in tasks: task.cancel()
-        await asyncio.gather(*tasks,return_exceptions=True)
+        waiting.cancel()
+        await asyncio.gather(waiting,return_exceptions=True)
+
+
+@pytest.mark.asyncio
+async def test_storage_response_releases_capacity_on_disconnect():
+    import anyio
+    from controlplane_edge.edge_proxy import StorageCapacityResponse
+    from starlette.responses import Response
+    capacity=anyio.CapacityLimiter(1);borrower=object()
+    await capacity.acquire_on_behalf_of(borrower)
+    response=StorageCapacityResponse(Response(b'held upload'),capacity,borrower)
+    async def receive(): return {'type':'http.disconnect'}
+    async def send(message): raise ConnectionError('client disconnected')
+    with pytest.raises(ConnectionError): await response({'type':'http'},receive,send)
+    assert response._response is None
+    assert capacity.borrowed_tokens==0
