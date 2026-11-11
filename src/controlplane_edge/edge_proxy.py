@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import anyio
+import re
 import logging
 from http.cookiejar import CookieJar, DefaultCookiePolicy
 
@@ -92,6 +94,37 @@ def _forward_request_headers(request: Request) -> dict[str, str]:
     return out
 
 
+class StorageBodyError(ValueError):
+    def __init__(self, status):
+        self.status = status
+
+
+async def storage_body(request: Request) -> bytes:
+    maximum = 64 * 1024 * 1024 if request.method == 'PUT' and request.url.path.startswith('/api/v1/storage/objects/') else 8192
+    values = request.headers.getlist('content-length')
+    if len(values) != 1 or not re.fullmatch('[0-9]{1,9}', values[0]):
+        # Empty GET/HEAD/DELETE requests need no declared body.
+        if request.method in ('GET','HEAD','DELETE') and not values:
+            expected = 0
+        else:
+            raise StorageBodyError(411)
+    else:
+        expected = int(values[0])
+    if expected > maximum:
+        raise StorageBodyError(413)
+    if request.headers.getlist('content-encoding') not in ([], ['identity']):
+        raise StorageBodyError(415)
+    body = bytearray()
+    async with asyncio.timeout(30):
+        async for chunk in request.stream():
+            if len(body) + len(chunk) > expected:
+                raise StorageBodyError(413)
+            body.extend(chunk)
+    if len(body) != expected:
+        raise StorageBodyError(400)
+    return bytes(body)
+
+
 class EdgeProxyMiddleware(BaseHTTPMiddleware):
     """Forward matched prefixes to extracted services; leave monolith routes alone."""
 
@@ -105,8 +138,20 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self._settings = settings or OpenAPIAggregationSettings()
         self._cross = cross or GatewayCrossCuttingSettings()
+        self._storage_capacity = anyio.CapacityLimiter(8)
 
     async def dispatch(self, request: Request, call_next) -> Response:
+        match = match_edge_route(request.url.path, self._settings)
+        if match and match.service_id == 'storage':
+            try:
+                with anyio.fail_after(120):
+                    async with self._storage_capacity:
+                        return await self._dispatch(request, call_next)
+            except TimeoutError:
+                return Response(status_code=408)
+        return await self._dispatch(request, call_next)
+
+    async def _dispatch(self, request: Request, call_next) -> Response:
         if locked_monolith_checkout_path(request.url.path):
             return JSONResponse(
                 status_code=410,
@@ -156,6 +201,12 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
             except TimeoutError:
                 return Response(status_code=408)
             body = bytes(payload)
+        elif match.service_id == 'storage':
+            try:
+                body = await storage_body(request)
+            except StorageBodyError as exc:
+                return Response(status_code=exc.status)
+            headers = _forward_request_headers(request)
         else:
             body = await request.body()
             headers = _forward_request_headers(request)

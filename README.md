@@ -133,3 +133,22 @@ record provenance; they do not require pinning running services. Superseded buil
 cannot advance the channel. This is a TEST service channel, not a production
 release or deployment. Infra owns the separate moving-channel adoption and live
 acceptance; no TEST fixture reset or reseeding is involved.
+
+### Tenant object storage
+
+`CPEDGE_STORAGE_SERVICE_URL` routes only `/api/v1/storage/objects` and
+`/api/v1/storage/tenant` to Spanopticon's storage-only process. An unset owner
+returns 503; anonymous requests still fail authentication. The old
+`/api/v1/storage/configure` and other retired monolith paths are not restored.
+The storage process verifies operation scopes/current tenant administration.
+Existing API-key exchange strips the raw key and forwards its bounded signed
+bearer with the credential's tenant, preserving binary bodies and response
+streaming. Storage is not added to OpenAPI discovery because its current process
+does not expose an OpenAPI endpoint.
+
+Storage bodies require one numeric Content-Length (empty GET/HEAD/DELETE may
+omit it). Object PUTs allow at most 64 MiB; administration bodies allow 8 KiB.
+The proxy rejects compressed, oversized and length-mismatched bodies, limits
+buffered storage requests to eight per worker, limits body reads to 30 seconds,
+and limits the queue/read/upstream phase to 120 seconds. Tenant configuration
+and deployment remain operator-owned; this setting does not provision storage.

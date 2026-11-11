@@ -35,6 +35,7 @@ def test_path_matches_prefix_boundary(path: str, prefix: str, expected: bool) ->
 
 def _urls(**overrides: str | None) -> SimpleNamespace:
     base = dict(
+        storage_service_url=None,
         auth_service_url=None,
         user_service_url=None,
         payment_service_url=None,
@@ -272,3 +273,16 @@ def test_self_profile_route_is_narrow_and_user_owned():
     assert match.base_url == "http://user.example"
     assert match_edge_route("/api/v1/me/profiles", urls) is None
     assert match_edge_route("/api/v1/me/unrelated", urls) is None
+
+
+@pytest.mark.parametrize('path',['/api/v1/storage/objects/'+'a'*64,'/api/v1/storage/tenant','/api/v1/storage/tenant/configure'])
+def test_storage_routes_require_explicit_owner_configuration(path):
+    missing=match_edge_route(path,_urls())
+    assert missing.service_id=='storage' and missing.base_url is None
+    configured=match_edge_route(path,_urls(storage_service_url='https://storage.owner/'))
+    assert configured.base_url=='https://storage.owner'
+
+
+@pytest.mark.parametrize('path',['/api/v1/storage','/api/v1/storage/configure','/api/v1/storage/objects-export','/api/v1/storage/tenant-export'])
+def test_storage_routing_does_not_restore_monolith_or_prefix_siblings(path):
+    assert match_edge_route(path,_urls(storage_service_url='https://storage.owner')) is None
