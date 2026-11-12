@@ -18,7 +18,7 @@ from controlplane_edge.auth_utils import resolve_bearer_claims
 from controlplane_edge.closure_auth import closure_claims, closure_route
 from controlplane_edge.edge_settings import GatewayCrossCuttingSettings
 from controlplane_edge.host_setup_auth import resolve_setup_claims
-from controlplane_edge.public_paths import is_public_path
+from controlplane_edge.public_paths import is_public_path, is_contact_lane_path
 
 SITE_TOKEN_HEAD = "hm_site_"
 
@@ -80,6 +80,8 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
     ) -> None:
         super().__init__(app)
         self._settings = settings or GatewayCrossCuttingSettings()
+        from controlplane_edge.lane_access_log import install_lane_log_filter
+        install_lane_log_filter()
 
     async def dispatch(self, request: Request, call_next) -> Response:
         if request.url.path.startswith("/api/v1/internal/") or "/internal/account-lifecycle" in request.url.path:
@@ -88,6 +90,13 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         path = request.url.path
+        if is_contact_lane_path(path, request.method):
+            # Lane possession is a transport capability, not an account lookup.
+            request.state.jwt_claims = None
+            request.state.tenant_id = None
+            request.state.user_sub = None
+            request.state.bearer_token = None
+            return await call_next(request)
         if "Authorization" in request.headers and "X-Api-Key" in request.headers:
             return JSONResponse(
                 status_code=401,
