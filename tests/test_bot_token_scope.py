@@ -18,6 +18,8 @@ def app(monkeypatch, enabled=True):
     monkeypatch.setattr('controlplane_edge.middleware.policy.resolve_setup_claims', reject)
     instance = FastAPI()
     instance.state.forwarded = []
+    from controlplane_edge.middleware.rate_limit import GatewayRateLimitMiddleware
+    instance.add_middleware(GatewayRateLimitMiddleware)
     instance.add_middleware(GatewayAuthMiddleware,
         settings=GatewayCrossCuttingSettings(CPEDGE_EDGE_PROXY=enabled))
     @instance.api_route('/{path:path}', methods=['POST', 'GET', 'DELETE', 'PUT'])
@@ -74,3 +76,17 @@ def test_agent_forwarding_requires_token_shape_and_tenant(monkeypatch, token, te
             headers={'Authorization': 'Bearer ' + token, 'X-Tenant-ID': tenant})
     assert response.status_code == 401
     assert not instance.state.forwarded
+
+
+def test_unverified_tenant_rotation_does_not_reset_bot_rate_limit(monkeypatch):
+    from controlplane_edge.rate_limiter import TenantUserRateLimiter
+    instance = app(monkeypatch)
+    instance.state.gateway_rate_limiter = TenantUserRateLimiter(per_minute=2)
+    with TestClient(instance) as client:
+        statuses = [client.post(f'/api/v1/hypermesh/bots/{BOT}/agent/claim', headers={
+            'Authorization': 'Bearer ' + TOKEN,
+            'X-Tenant-ID': str(uuid.uuid4()),
+        }).status_code for _ in range(3)]
+    assert statuses == [403, 403, 429]
+    assert len(instance.state.forwarded) == 2
+    assert instance.state.forwarded[0][1] != instance.state.forwarded[1][1]
