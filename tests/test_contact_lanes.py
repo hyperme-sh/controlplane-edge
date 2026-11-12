@@ -66,3 +66,47 @@ def test_lane_log_redaction():
     assert LaneAccessLogFilter().filter(record)
     assert 'ab'*32 not in record.getMessage()
     assert 'identity' not in record.getMessage()
+
+
+def test_lane_concurrency_is_bounded_until_response_cleanup(monkeypatch):
+    import asyncio
+    from starlette.requests import Request
+    from starlette.responses import Response
+    from controlplane_edge.edge_proxy import EdgeProxyMiddleware
+    monkeypatch.setenv('CPEDGE_ACL_SERVICE_URL', 'http://acl.edge.test')
+    async def scenario():
+        proxy = EdgeProxyMiddleware(FastAPI())
+        calls = []
+        async def forward(request, call_next):
+            calls.append(request.url.path)
+            return Response(b'ciphertext')
+        proxy._dispatch = forward
+        request = Request({'type': 'http', 'method': 'POST', 'path': PATH, 'headers': [], 'query_string': b''})
+        held = [await proxy.dispatch(request, None) for _ in range(16)]
+        assert (await proxy.dispatch(request, None)).status_code == 429
+        assert len(calls) == 16
+        async def receive(): return {'type': 'http.disconnect'}
+        async def send(message): pass
+        for response in held:
+            await response(request.scope, receive, send)
+        response = await proxy.dispatch(request, None)
+        assert response.status_code == 200
+        await response(request.scope, receive, send)
+        assert proxy._lane_capacity.borrowed_tokens == 0
+    asyncio.run(scenario())
+
+
+def test_lane_never_publishes_tenant_access_event(monkeypatch):
+    import asyncio
+    from types import SimpleNamespace
+    from starlette.requests import Request
+    from starlette.responses import Response
+    from controlplane_edge.middleware.api_events import GatewayApiAccessEventMiddleware
+    app = FastAPI(); submitted = []
+    app.state.access_event_publisher = SimpleNamespace(submit=lambda *args: submitted.append(args))
+    middleware = GatewayApiAccessEventMiddleware(app, settings=SimpleNamespace(api_access_events_enabled=True))
+    request = Request({'type': 'http', 'method': 'GET', 'path': PATH, 'headers': [], 'query_string': b'', 'app': app})
+    request.state.tenant_id = uuid.uuid4()
+    async def response(_): return Response(status_code=200)
+    asyncio.run(middleware.dispatch(request, response))
+    assert submitted == []

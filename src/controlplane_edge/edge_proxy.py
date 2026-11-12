@@ -159,10 +159,23 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
         self._settings = settings or OpenAPIAggregationSettings()
         self._cross = cross or GatewayCrossCuttingSettings()
         self._storage_capacity = anyio.CapacityLimiter(8)
+        self._lane_capacity = anyio.CapacityLimiter(16)
         self._storage_tenant_capacity = {}
 
     async def dispatch(self, request: Request, call_next) -> Response:
         match = match_edge_route(request.url.path, self._settings)
+        if match and is_contact_lane_path(request.url.path, request.method):
+            borrower = object()
+            try:
+                self._lane_capacity.acquire_on_behalf_of_nowait(borrower)
+            except anyio.WouldBlock:
+                return Response(status_code=429, headers={"Retry-After": "1"})
+            try:
+                response = await self._dispatch(request, call_next)
+                return StorageCapacityResponse(response, self._lane_capacity, borrower)
+            except BaseException:
+                self._lane_capacity.release_on_behalf_of(borrower)
+                raise
         if (match and match.service_id == 'storage' and request.method == 'PUT'
                 and request.url.path.startswith('/api/v1/storage/objects/')):
             # Only object uploads can buffer 64 MiB. Administrative bodies are
