@@ -100,7 +100,12 @@ class StorageBodyError(ValueError):
 
 
 async def storage_body(request: Request) -> bytes:
-    maximum = 64 * 1024 * 1024 if request.method == 'PUT' and request.url.path.startswith('/api/v1/storage/objects/') else 8192
+    maximum = 8192
+    if request.method == 'PUT':
+        if request.url.path.startswith('/api/v1/storage/objects/'):
+            maximum = 64 * 1024 * 1024
+        elif request.url.path.startswith('/api/v1/storage/records/'):
+            maximum = 8 * 1024 * 1024
     values = request.headers.getlist('content-length')
     if len(values) != 1 or not re.fullmatch('[0-9]{1,9}', values[0]):
         # Empty GET/HEAD/DELETE requests need no declared body.
@@ -177,14 +182,15 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
                 self._lane_capacity.release_on_behalf_of(borrower)
                 raise
         if (match and match.service_id == 'storage' and request.method == 'PUT'
-                and request.url.path.startswith('/api/v1/storage/objects/')):
-            # Only object uploads can buffer 64 MiB. Administrative bodies are
-            # limited to 8 KiB and must not reserve object-upload capacity.
+                and request.url.path.startswith(('/api/v1/storage/objects/', '/api/v1/storage/records/'))):
+            # Object and record uploads share bounded capacity; administrative
+            # bodies remain limited to 8 KiB.
+            family = "records" if request.url.path.startswith("/api/v1/storage/records/") else "objects"
             claims = getattr(request.state, "jwt_claims", None) or {}
             scopes = claims.get("scope")
             if (claims.get("azp") != "controlplane-api-key"
                     or not isinstance(scopes, str)
-                    or "storage:objects:write" not in scopes.split()):
+                    or f"storage:{family}:write" not in scopes.split()):
                 return Response(status_code=403)
             borrower = object()
             tenant = str(getattr(request.state, "tenant_id", None))
