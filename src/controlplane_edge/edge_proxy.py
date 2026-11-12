@@ -23,7 +23,7 @@ from controlplane_edge.edge_routes import (
 )
 from controlplane_edge.edge_settings import GatewayCrossCuttingSettings
 
-from controlplane_edge.public_paths import is_sumsub_webhook_path
+from controlplane_edge.public_paths import is_sumsub_webhook_path, is_contact_lane_path
 
 logger = logging.getLogger(__name__)
 
@@ -252,6 +252,22 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
             except TimeoutError:
                 return Response(status_code=408)
             body = bytes(payload)
+        elif is_contact_lane_path(request.url.path, request.method):
+            # Do not forward identity headers/cookies or buffer an unbounded body
+            # before the ACL service can apply its ciphertext size limit.
+            headers = {"Content-Type": request.headers.get("content-type", "")}
+            if request.headers.getlist("content-encoding") not in ([], ["identity"]):
+                return Response(status_code=415)
+            payload = bytearray()
+            try:
+                async with asyncio.timeout(30):
+                    async for chunk in request.stream():
+                        if len(payload) + len(chunk) > 65536:
+                            return Response(status_code=413)
+                        payload.extend(chunk)
+            except TimeoutError:
+                return Response(status_code=408)
+            body = bytes(payload)
         elif match.service_id == 'storage':
             try:
                 body = await storage_body(request)
@@ -285,7 +301,7 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
             logger.warning(
                 "edge proxy upstream error service=%s: %s",
                 match.service_id,
-                exc,
+                type(exc).__name__,
             )
             if own_client:
                 await client.aclose()

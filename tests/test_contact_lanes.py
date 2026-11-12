@@ -39,3 +39,30 @@ def test_ciphertext_proxy_preserves_body_and_anonymous_limits(monkeypatch):
         assert client.post(PATH, content=ciphertext, headers={'Content-Type': 'application/octet-stream', 'X-Tenant-ID': str(uuid.uuid4())}).status_code == 429
         assert client.delete(PATH).status_code == 401
     assert put.call_count == get.call_count == 1
+
+@respx.mock
+def test_lane_proxy_drops_identity_headers_and_bounds_body(monkeypatch):
+    monkeypatch.setenv('CPEDGE_ACL_SERVICE_URL', 'http://acl.edge.test')
+    monkeypatch.setenv('CPEDGE_RATE_LIMIT_PER_MINUTE', '5000')
+    app = FastAPI()
+    register_gateway_cross_cutting(app)
+    upstream = respx.post('http://acl.edge.test' + PATH).mock(return_value=httpx.Response(200, json={'id': 'cd'*32}))
+    with TestClient(app) as client:
+        headers = {'Content-Type': 'application/octet-stream', 'Authorization': 'Bearer ignored',
+                   'X-Api-Key': 'ignored', 'Cookie': 'session=private', 'X-Tenant-ID': str(uuid.uuid4())}
+        assert client.post(PATH, content=b'x'*32, headers=headers).status_code == 200
+        sent = upstream.calls.last.request.headers
+        for key in ('authorization', 'x-api-key', 'cookie', 'x-tenant-id'):
+            assert key not in sent
+        assert client.post(PATH, content=b'x'*65537, headers=headers).status_code == 413
+    assert upstream.call_count == 1
+
+
+def test_lane_log_redaction():
+    import logging
+    from controlplane_edge.lane_access_log import LaneAccessLogFilter
+    record = logging.LogRecord('uvicorn.access', logging.INFO, '', 0, '%s %s %s %s %s',
+        ('client', 'GET', PATH+'?private=identity', '1.1', 200), None)
+    assert LaneAccessLogFilter().filter(record)
+    assert 'ab'*32 not in record.getMessage()
+    assert 'identity' not in record.getMessage()
