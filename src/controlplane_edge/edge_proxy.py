@@ -101,6 +101,14 @@ class StorageBodyError(ValueError):
 
 async def storage_body(request: Request) -> bytes:
     maximum = 8192
+    if request.url.path.startswith('/api/v1/storage/replays/'):
+        expiry = request.headers.getlist('x-replay-expires-at')
+        if (request.headers.getlist('content-length') != ['0']
+                or request.headers.getlist('transfer-encoding')
+                or request.headers.getlist('content-encoding')
+                or len(expiry) != 1 or not re.fullmatch('[1-9][0-9]{0,15}', expiry[0])):
+            raise StorageBodyError(400)
+        maximum = 0
     if request.method == 'PUT':
         if request.url.path.startswith('/api/v1/storage/objects/'):
             maximum = 64 * 1024 * 1024
@@ -170,6 +178,14 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next) -> Response:
         match = match_edge_route(request.url.path, self._settings)
+        if match and match.service_id == 'storage' and request.url.path.startswith('/api/v1/storage/replays'):
+            if request.method != 'POST':
+                return Response(status_code=405, headers={'Allow': 'POST'})
+            claims = getattr(request.state, 'jwt_claims', None) or {}
+            scopes = claims.get('scope')
+            if (claims.get('azp') != 'controlplane-api-key' or not isinstance(scopes, str)
+                    or 'storage:replays:consume' not in scopes.split()):
+                return Response(status_code=403)
         if match and is_contact_lane_path(request.url.path, request.method):
             capacity = self._first_contact_capacity if "/first-contact/" in request.url.path else self._lane_capacity
             borrower = object()

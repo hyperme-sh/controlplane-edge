@@ -268,3 +268,80 @@ def test_record_proxy_preserves_conditions_and_requires_record_scope(monkeypatch
         assert 'x-api-key' not in request.headers
         claims = try_decode_api_key_session_jwt(request.headers['authorization'].removeprefix('Bearer '))
         assert claims['scope'] == scope
+
+
+@respx.mock
+@pytest.mark.parametrize('scope,status', [('storage:replays:consume', 204),
+    ('storage:records:write', 403), ('storage:objects:write', 403), ('storage:replays:read', 403)])
+def test_replay_proxy_requires_dedicated_scope_and_preserves_expiry(monkeypatch, scope, status):
+    monkeypatch.setenv('CPEDGE_STORAGE_SERVICE_URL', 'https://storage.owner')
+    monkeypatch.setenv('CPEDGE_API_KEYS_SERVICE_URL', 'https://keys.owner')
+    tenant = uuid.uuid4()
+    validate = AsyncMock(return_value={'valid': True, 'key_id': str(uuid.uuid4()),
+        'tenant_id': str(tenant), 'scopes': [scope], 'purpose': 'service'})
+    monkeypatch.setattr('controlplane_edge.middleware.policy.validate_api_key_remote', validate)
+    path = '/api/v1/storage/replays/'+'a'*64+'/'+'b'*64
+    upstream = respx.post('https://storage.owner'+path).mock(return_value=httpx.Response(204))
+    app = FastAPI(); register_gateway_cross_cutting(app)
+    with TestClient(app) as client:
+        response = client.post(path, headers={'X-Api-Key':'private.key', 'X-Tenant-ID':str(tenant), 'X-Replay-Expires-At':'200'})
+    assert response.status_code == status
+    assert upstream.call_count == int(status == 204)
+    if status == 204:
+        request = upstream.calls[0].request
+        assert request.content == b'' and request.headers['content-length'] == '0'
+        assert request.headers['x-replay-expires-at'] == '200'
+        assert 'x-api-key' not in request.headers
+        claims = try_decode_api_key_session_jwt(request.headers['authorization'].removeprefix('Bearer '))
+        assert claims['scope'] == scope and claims['https://spanopticon.dev/tenant_id'] == str(tenant)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('method', ['GET','HEAD','PUT','DELETE'])
+async def test_replay_nonconsume_methods_never_forward(method):
+    from controlplane_edge.edge_proxy import EdgeProxyMiddleware
+    from controlplane_edge.aggregation_settings import OpenAPIAggregationSettings
+    edge = EdgeProxyMiddleware(FastAPI(), settings=OpenAPIAggregationSettings(
+        CPEDGE_STORAGE_SERVICE_URL='https://storage.owner'))
+    edge._dispatch = AsyncMock()
+    request = body_request([], method=method, path='/api/v1/storage/replays/'+'a'*64+'/'+'b'*64)
+    request.state.jwt_claims = {'azp':'controlplane-api-key','scope':'storage:replays:consume'}
+    assert (await edge.dispatch(request, None)).status_code == 405
+    edge._dispatch.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('claims', [{}, {'azp':'tenant-session','scope':'storage:replays:consume'},
+    {'azp':'controlplane-api-key','scope':['storage:replays:consume']}])
+async def test_replay_rejects_non_api_key_claims_before_forwarding(claims):
+    from controlplane_edge.edge_proxy import EdgeProxyMiddleware
+    from controlplane_edge.aggregation_settings import OpenAPIAggregationSettings
+    edge = EdgeProxyMiddleware(FastAPI(), settings=OpenAPIAggregationSettings(
+        CPEDGE_STORAGE_SERVICE_URL='https://storage.owner'))
+    edge._dispatch = AsyncMock()
+    request = body_request([], method='POST', path='/api/v1/storage/replays/'+'a'*64+'/'+'b'*64)
+    request.state.jwt_claims = claims
+    assert (await edge.dispatch(request, None)).status_code == 403
+    edge._dispatch.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('extra', [[(b'x-replay-expires-at',b'200')], [(b'transfer-encoding',b'chunked')],
+    [(b'content-encoding',b'identity')], [(b'content-length',b'0')]])
+async def test_replay_rejects_ambiguous_headers_before_proxy_normalization(extra):
+    headers = [(b'content-length',b'0'),(b'x-replay-expires-at',b'200')] + extra
+    request = body_request([], headers, method='POST', path='/api/v1/storage/replays/'+'a'*64+'/'+'b'*64)
+    with pytest.raises(StorageBodyError) as caught:
+        await storage_body(request)
+    assert caught.value.status == 400
+
+
+@pytest.mark.asyncio
+async def test_replay_requires_empty_body_and_canonical_expiry():
+    path = '/api/v1/storage/replays/'+'a'*64+'/'+'b'*64
+    for headers, chunks, status in [([],[],400), ([(b'content-length',b'1'),(b'x-replay-expires-at',b'200')],[b'x'],400),
+        ([(b'content-length',b'0'),(b'x-replay-expires-at',b'2e2')],[],400),
+        ([(b'content-length',b'0'),(b'x-replay-expires-at',b'200')],[b'x'],413)]:
+        with pytest.raises(StorageBodyError) as caught:
+            await storage_body(body_request(chunks,headers,method='POST',path=path))
+        assert caught.value.status == status
