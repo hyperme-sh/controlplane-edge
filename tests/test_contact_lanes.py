@@ -1,0 +1,41 @@
+"""Only opaque ciphertext lane operations skip session authentication."""
+import uuid
+import httpx
+import pytest
+import respx
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from controlplane_edge.rate_limiter import TenantUserRateLimiter
+from controlplane_edge.public_paths import is_public_path
+from controlplane_edge.register_cross_cutting import register_gateway_cross_cutting
+
+PATH = '/api/v1/acl/sociacl/contact-lanes/' + 'ab' * 32 + '/messages'
+
+@pytest.mark.parametrize('method,path', [('PUT', PATH), ('DELETE', PATH), ('HEAD', PATH),
+    ('GET', PATH + '/'), ('GET', PATH + '/admin'), ('POST', PATH.replace('ab' * 32, '~pub')),
+    ('GET', PATH.replace('ab' * 32, 'AB' * 32)), ('GET', '/api/v1/acl/sociacl/contact-lanes'),
+    ('GET', '/api/v1/acl/sociacl/keyring/recovery/rows/id')])
+def test_lane_exemption_is_exact(method, path):
+    assert not is_public_path(path, method)
+
+@respx.mock
+def test_ciphertext_proxy_preserves_body_and_anonymous_limits(monkeypatch):
+    monkeypatch.setenv('CPEDGE_ACL_SERVICE_URL', 'http://acl.edge.test')
+    monkeypatch.setenv('CPEDGE_RATE_LIMIT_PER_MINUTE', '5000')
+    app = FastAPI()
+    register_gateway_cross_cutting(app)
+    app.state.gateway_rate_limiter = TenantUserRateLimiter(per_minute=2)
+    ciphertext = b'opaque-encrypted-envelope' * 3
+    put = respx.post('http://acl.edge.test' + PATH).mock(return_value=httpx.Response(
+        200, json={'id': 'cd' * 32}, headers={'Cache-Control': 'no-store'}))
+    get = respx.get('http://acl.edge.test' + PATH).mock(return_value=httpx.Response(
+        200, json={'messages': []}, headers={'Cache-Control': 'no-store'}))
+    with TestClient(app) as client:
+        response = client.post(PATH, content=ciphertext, headers={'Content-Type': 'application/octet-stream', 'X-Tenant-ID': str(uuid.uuid4())})
+        assert response.status_code == 200
+        assert put.calls.last.request.content == ciphertext
+        assert response.headers['cache-control'] == 'no-store'
+        assert client.get(PATH, headers={'X-Tenant-ID': str(uuid.uuid4())}).status_code == 200
+        assert client.post(PATH, content=ciphertext, headers={'Content-Type': 'application/octet-stream', 'X-Tenant-ID': str(uuid.uuid4())}).status_code == 429
+        assert client.delete(PATH).status_code == 401
+    assert put.call_count == get.call_count == 1

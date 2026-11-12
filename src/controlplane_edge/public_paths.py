@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from controlplane_api.config import settings
 
 from controlplane_edge.edge_settings import versions_access_mode
@@ -50,6 +52,13 @@ def is_witness_policy_path(path: str, method: str = "GET") -> bool:
     return method.upper() == "GET" and path == "/api/v1/acl/sociacl/witness-policy"
 
 
+def is_contact_lane_path(path: str, method: str = "GET") -> bool:
+    """Opaque ciphertext lanes only; never a broad SociACL authentication bypass."""
+    return method.upper() in {"GET", "POST"} and re.fullmatch(
+        r"/api/v1/acl/sociacl/contact-lanes/[0-9a-f]{64}/messages", path
+    ) is not None
+
+
 def is_sumsub_webhook_path(path: str, method: str) -> bool:
     return method == "POST" and path in {
         "/api/v1/verification/webhooks/sumsub/sandbox/applicant-deleted",
@@ -62,7 +71,7 @@ def is_public_path(path: str, method: str = "GET") -> bool:
 
     if path in ("/",):
         return False
-    if is_witness_policy_path(path, method) or is_sumsub_webhook_path(path, method):
+    if is_witness_policy_path(path, method) or is_sumsub_webhook_path(path, method) or is_contact_lane_path(path, method):
         return True
     from controlplane_edge.operator_routes import configured_route
     if configured_route("public", path, method):
