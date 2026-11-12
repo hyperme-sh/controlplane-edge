@@ -233,3 +233,38 @@ async def test_small_admin_bodies_cannot_reserve_object_upload_slots():
         assert (await edge.dispatch(request, None)).status_code == 200
     assert edge._storage_capacity.borrowed_tokens == 0
     assert edge._storage_tenant_capacity == {}
+
+
+@pytest.mark.asyncio
+async def test_record_body_has_its_own_eight_mib_limit():
+    path = '/api/v1/storage/records/cache/feed'
+    data = b'x' * (8 * 1024 * 1024)
+    assert await storage_body(body_request([data], [(b'content-length', str(len(data)).encode())], path=path)) == data
+    with pytest.raises(StorageBodyError) as caught:
+        await storage_body(body_request([], [(b'content-length', b'8388609')], path=path))
+    assert caught.value.status == 413
+
+
+@respx.mock
+@pytest.mark.parametrize('scope,status', [('storage:records:write', 201), ('storage:objects:write', 403)])
+def test_record_proxy_preserves_conditions_and_requires_record_scope(monkeypatch, scope, status):
+    monkeypatch.setenv('CPEDGE_STORAGE_SERVICE_URL', 'https://storage.owner')
+    monkeypatch.setenv('CPEDGE_API_KEYS_SERVICE_URL', 'https://keys.owner')
+    tenant = uuid.uuid4()
+    validate = AsyncMock(return_value={'valid': True, 'key_id': str(uuid.uuid4()), 'tenant_id': str(tenant), 'scopes': [scope], 'purpose': 'service'})
+    monkeypatch.setattr('controlplane_edge.middleware.policy.validate_api_key_remote', validate)
+    path = '/api/v1/storage/records/cache/feed'
+    upstream = respx.put('https://storage.owner' + path).mock(return_value=httpx.Response(201, headers={'ETag': '"' + 'a'*64 + '"'}))
+    app = FastAPI(); register_gateway_cross_cutting(app)
+    with TestClient(app) as client:
+        response = client.put(path, content=b'cache', headers={'X-Api-Key': 'private.key', 'X-Tenant-ID': str(tenant), 'Content-Type': 'application/octet-stream', 'If-None-Match': '*'})
+    assert response.status_code == status
+    assert upstream.call_count == (1 if status == 201 else 0)
+    if status == 201:
+        request = upstream.calls[0].request
+        assert request.content == b'cache'
+        assert request.headers['if-none-match'] == '*'
+        assert response.headers['etag'] == '"' + 'a'*64 + '"'
+        assert 'x-api-key' not in request.headers
+        claims = try_decode_api_key_session_jwt(request.headers['authorization'].removeprefix('Bearer '))
+        assert claims['scope'] == scope

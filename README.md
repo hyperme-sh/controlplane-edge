@@ -136,7 +136,7 @@ acceptance; no TEST fixture reset or reseeding is involved.
 
 ### Tenant object storage
 
-`CPEDGE_STORAGE_SERVICE_URL` routes only `/api/v1/storage/objects` and
+`CPEDGE_STORAGE_SERVICE_URL` routes only `/api/v1/storage/objects`, `/api/v1/storage/records` and
 `/api/v1/storage/tenant` to Spanopticon's storage-only process. An unset owner
 returns 503; anonymous requests still fail authentication. The old
 `/api/v1/storage/configure` and other retired monolith paths are not restored.
@@ -147,7 +147,10 @@ streaming. Storage is not added to OpenAPI discovery because its current process
 does not expose an OpenAPI endpoint.
 
 Storage bodies require one numeric Content-Length (empty GET/HEAD/DELETE may
-omit it). Object PUTs allow at most 64 MiB; administration bodies allow 8 KiB.
+omit it). Object PUTs allow at most 64 MiB; named record PUTs allow 8 MiB; administration
+bodies allow 8 KiB. Record writes require `storage:records:write`, separately
+from `storage:objects:write`. Conditional request headers and response ETags pass
+through so callers can detect conflicting cache updates.
 The proxy rejects compressed, oversized and length-mismatched bodies, limits
 buffered storage requests to eight per worker, limits body reads to 30 seconds,
 and limits the queue/read/upstream phase to 120 seconds. Tenant configuration
