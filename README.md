@@ -175,3 +175,8 @@ limit is independent of the unverified tenant header, and upstream response
 status remains intact. Bot enrollment, listing,
 assignment, control and task dispatch still require a verified owner session;
 a bot bearer cannot call those operations or host/service routes.
+Private media metadata uses `/api/v1/storage/records/media/{name}` and the
+`storage:media:write` upload scope. The edge rejects cache/object credentials
+before buffering a media record, preserving the existing 8 MiB record limit,
+tenant capacity, conditional headers, and bounded exchanged token. The storage
+owner enforces method-specific media scopes for reads, writes, and deletion.

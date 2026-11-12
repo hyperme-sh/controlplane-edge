@@ -246,14 +246,16 @@ async def test_record_body_has_its_own_eight_mib_limit():
 
 
 @respx.mock
-@pytest.mark.parametrize('scope,status', [('storage:records:write', 201), ('storage:objects:write', 403)])
-def test_record_proxy_preserves_conditions_and_requires_record_scope(monkeypatch, scope, status):
+@pytest.mark.parametrize('namespace,scope,status', [('cache', 'storage:records:write', 201), ('cache', 'storage:objects:write', 403),
+    ('cache', 'storage:media:write', 403), ('media', 'storage:media:write', 201),
+    ('media', 'storage:records:write', 403), ('media', 'storage:objects:write', 403)])
+def test_record_proxy_preserves_conditions_and_requires_record_scope(monkeypatch, namespace, scope, status):
     monkeypatch.setenv('CPEDGE_STORAGE_SERVICE_URL', 'https://storage.owner')
     monkeypatch.setenv('CPEDGE_API_KEYS_SERVICE_URL', 'https://keys.owner')
     tenant = uuid.uuid4()
     validate = AsyncMock(return_value={'valid': True, 'key_id': str(uuid.uuid4()), 'tenant_id': str(tenant), 'scopes': [scope], 'purpose': 'service'})
     monkeypatch.setattr('controlplane_edge.middleware.policy.validate_api_key_remote', validate)
-    path = '/api/v1/storage/records/cache/feed'
+    path = '/api/v1/storage/records/' + namespace + '/feed'
     upstream = respx.put('https://storage.owner' + path).mock(return_value=httpx.Response(201, headers={'ETag': '"' + 'a'*64 + '"'}))
     app = FastAPI(); register_gateway_cross_cutting(app)
     with TestClient(app) as client:
