@@ -82,7 +82,7 @@ class GatewayApiAccessEventMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         if self._settings.api_access_events_enabled and 200 <= response.status_code < 300:
             path = request.url.path
-            if path.startswith('/api/v1/acl/sociacl/contact-lanes/'):
+            if path.startswith(('/api/v1/acl/sociacl/contact-lanes/', '/api/v1/acl/sociacl/first-contact/')):
                 return response  # Never correlate an opaque lane with a tenant.
             if path == '/api/v1' or path.startswith('/api/v1/') or path == '/graphql':
                 publisher = getattr(request.app.state, 'access_event_publisher', None)

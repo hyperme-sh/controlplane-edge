@@ -55,7 +55,7 @@ def is_witness_policy_path(path: str, method: str = "GET") -> bool:
 def is_contact_lane_path(path: str, method: str = "GET") -> bool:
     """Opaque ciphertext lanes only; never a broad SociACL authentication bypass."""
     return method.upper() in {"GET", "POST"} and re.fullmatch(
-        r"/api/v1/acl/sociacl/contact-lanes/[0-9a-f]{64}/messages", path
+        r"/api/v1/acl/sociacl/(?:contact-lanes|first-contact)/[0-9a-f]{64}/messages", path
     ) is not None
 
 
