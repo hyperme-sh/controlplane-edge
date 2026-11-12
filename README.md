@@ -155,3 +155,11 @@ The proxy rejects compressed, oversized and length-mismatched bodies, limits
 buffered storage requests to eight per worker, limits body reads to 30 seconds,
 and limits the queue/read/upstream phase to 120 seconds. Tenant configuration
 and deployment remain operator-owned; this setting does not provision storage.
+
+The storage owner also accepts consume-only challenge replay calls at
+`POST /api/v1/storage/replays/{namespace}/{nonce}`. Edge requires an exchanged
+API-key session with `storage:replays:consume`, an empty body and one canonical
+`X-Replay-Expires-At` Unix-seconds header. Other methods, mutable cache/object
+scopes and ambiguous body/expiry headers are refused before forwarding. The
+storage owner enforces expiry, atomic replay rejection and tenant isolation.
+This route does not grant or provision an issuer credential.
