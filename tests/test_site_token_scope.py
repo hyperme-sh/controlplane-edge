@@ -27,6 +27,7 @@ def test_forged_site_token_cannot_authorize_other_routes(monkeypatch, method, pa
         response = client.request(method,path,headers={'Authorization':'Bearer hm_site_forged'})
     assert response.status_code == 401
 
+@pytest.mark.parametrize('proxy_enabled', [True, False])
 @pytest.mark.parametrize('method,path', [
     ('POST','/api/v1/hypermesh/site/jobs'),
     ('GET',f'/api/v1/hypermesh/site/jobs/{ID}'),
@@ -38,9 +39,24 @@ def test_forged_site_token_cannot_authorize_other_routes(monkeypatch, method, pa
     ('POST','/api/v1/grants/v0/grants'),
     ('GET',f'/api/v1/grants/v0/grants/{ID}'),
 ])
-def test_site_allowlist_is_method_and_path_bounded(method,path):
+def test_site_allowlist_is_method_and_path_bounded(monkeypatch, method, path, proxy_enabled):
     assert site_token_route(path,method)
     assert not site_token_route(path+'/extra',method)
+    assert not site_token_route(path, 'DELETE')
+    async def reject(token):
+        return None
+    monkeypatch.setattr('controlplane_edge.middleware.policy.resolve_bearer_claims', reject)
+    app = FastAPI()
+    app.add_middleware(GatewayAuthMiddleware,
+        settings=GatewayCrossCuttingSettings(CPEDGE_EDGE_PROXY=proxy_enabled))
+    @app.api_route('/{rest:path}', methods=['GET', 'POST', 'DELETE'])
+    def upstream_stub(rest):
+        return {'accepted': True}
+    with TestClient(app) as client:
+        headers = {'Authorization': 'Bearer hm_site_forged'}
+        assert client.request(method, path, headers=headers).status_code == (200 if proxy_enabled else 401)
+        assert client.request(method, path+'/extra', headers=headers).status_code == 401
+        assert client.delete(path, headers=headers).status_code == 401
 
 
 def test_site_passthrough_disabled_without_proxy(monkeypatch):
