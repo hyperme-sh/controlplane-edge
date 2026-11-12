@@ -18,9 +18,14 @@ async def test_shared_client_never_replays_another_callers_cookie():
         cross=SimpleNamespace(edge_proxy_enabled=True, proxy_timeout_s=5))
     async with httpx.AsyncClient(transport=httpx.MockTransport(upstream)) as shared:
         app.state.edge_proxy_client = shared
-        for cookie in [None, None, 'session=bob', None]:
+        for method, path, cookie in [
+            ('GET', '/auth/login', None),
+            ('GET', '/auth/callback', None),
+            ('POST', '/auth/refresh', 'session=bob'),
+            ('POST', '/auth/refresh', None),
+        ]:
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url='https://edge.example') as caller:
-                response = await caller.get('/auth/login', headers={} if cookie is None else {'Cookie': cookie})
+                response = await caller.request(method, path, headers={} if cookie is None else {'Cookie': cookie})
                 assert response.status_code == 200
                 assert response.headers['set-cookie'] == 'session=alice; Path=/'
     assert seen == [None, None, 'session=bob', None]
