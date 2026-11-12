@@ -204,6 +204,8 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
             # Object and record uploads share bounded capacity; administrative
             # bodies remain limited to 8 KiB.
             family = "records" if request.url.path.startswith("/api/v1/storage/records/") else "objects"
+            if request.url.path.startswith("/api/v1/storage/records/media/"):
+                family = "media"
             claims = getattr(request.state, "jwt_claims", None) or {}
             scopes = claims.get("scope")
             if (claims.get("azp") != "controlplane-api-key"
