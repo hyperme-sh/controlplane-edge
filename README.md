@@ -163,3 +163,14 @@ API-key session with `storage:replays:consume`, an empty body and one canonical
 scopes and ambiguous body/expiry headers are refused before forwarding. The
 storage owner enforces expiry, atomic replay rejection and tenant isolation.
 This route does not grant or provision an issuer credential.
+
+### Visor bot credentials
+
+The edge forwards scoped `hm_bot_` bearers only on POST requests to
+`/api/v1/hypermesh/bots/{UUID}/agent/heartbeat`, `/claim`, and `/complete`, with
+a valid tenant header and the proxy enabled. It does not manufacture JWT claims
+or authenticate the bot itself. Hypermesh Plane checks the credential hash,
+tenant/bot binding, revocation and assignment on each request. The ordinary rate
+limit and upstream response status remain intact. Bot enrollment, listing,
+assignment, control and task dispatch still require a verified owner session;
+a bot bearer cannot call those operations or host/service routes.

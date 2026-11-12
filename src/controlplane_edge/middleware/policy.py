@@ -52,6 +52,13 @@ def site_token_route(path: str, method: str) -> bool:
     return any(re.fullmatch(pattern, path) for pattern in _SITE_ROUTES.get(method, ()))
 
 
+def bot_agent_route(path: str, method: str) -> bool:
+    """Only the three agent operations authenticated by the owning Plane."""
+    return method == "POST" and re.fullmatch(
+        rf"/api/v1/hypermesh/bots/{_SITE_ID}/agent/(?:heartbeat|claim|complete)", path
+    ) is not None
+
+
 TENANT_CLAIM = "https://spanopticon.dev/tenant_id"
 _RETIRED_TENANT_CLAIM = "https://panopticon.dev/tenant_id"
 
@@ -230,6 +237,14 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
         if (claims is None and bearer and looks_like_site_machine_token(bearer)
                 and self._settings.edge_proxy_enabled
                 and site_token_route(path, request.method)):
+            return await call_next(request)
+
+        if (claims is None and bearer and re.fullmatch(r"hm_bot_[a-f0-9]{64}", bearer)
+                and tenant_id is not None and self._settings.edge_proxy_enabled
+                and bot_agent_route(path, request.method)):
+            # This is forwarding, not authentication. Plane checks the hash,
+            # bot/tenant binding, revocation, assignment and expiry on each call.
+            # Keep JWT claims unset and retain ordinary rate limiting.
             return await call_next(request)
 
         if claims is None and bearer:
