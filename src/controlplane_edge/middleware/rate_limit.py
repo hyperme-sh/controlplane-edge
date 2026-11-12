@@ -9,6 +9,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from controlplane_edge.rate_limiter import TenantUserRateLimiter
+from controlplane_edge.middleware.policy import bot_agent_route
 from controlplane_edge.public_paths import (
     is_issuer_session_end_path,
     is_machine_identity_path,
@@ -52,7 +53,8 @@ class GatewayRateLimitMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         if (
-            is_machine_identity_path(path, request.method)
+            bot_agent_route(path, request.method)
+            or is_machine_identity_path(path, request.method)
             or is_issuer_session_end_path(path, request.method)
             or is_sumsub_webhook_path(path, request.method)
             or is_witness_policy_path(path, request.method)
