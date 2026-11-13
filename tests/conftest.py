@@ -7,6 +7,7 @@ from controlplane_api import config as api_config
 
 @pytest.fixture(autouse=True)
 def _api_key_exchange_secret(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(api_config.settings, "edge_secrets_required", False)
     monkeypatch.setattr(
         api_config.settings,
         "api_key_exchange_jwt_secret",

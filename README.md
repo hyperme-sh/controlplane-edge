@@ -181,6 +181,16 @@ before buffering a media record, preserving the existing 8 MiB record limit,
 tenant capacity, conditional headers, and bounded exchanged token. The storage
 owner enforces method-specific media scopes for reads, writes, and deletion.
 
+### Startup credential validation
+
+Before opening the publisher, gRPC listener or HTTP client, the edge calls the
+shared API settings guard. Exchange secrets and API-keys internal tokens must be
+distinct non-default values of at least 32 characters, including any optional
+`_PREVIOUS` values. Identity accepts current and previous verification values
+while minting with the current one. Invalid settings abort startup with names
+only. Laptop/test environments explicitly opt out using
+`EDGE_SECRETS_REQUIRED=false`; strict validation is the default.
+
 ## Experiment record scopes
 
 The `storage/records/experiments` namespace requires an exact audience and

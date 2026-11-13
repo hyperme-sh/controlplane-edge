@@ -12,6 +12,9 @@ from controlplane_identity.security.tenant_session_jwt import mint_tenant_sessio
 
 def test_entrypoint_starts_without_legacy_or_database_imports():
     code = '''
+import os, secrets
+os.environ['API_KEY_EXCHANGE_JWT_SECRET'] = secrets.token_hex(24)
+os.environ['API_KEYS_INTERNAL_TOKEN'] = secrets.token_hex(24)
 import sys
 class NoLegacy:
     def find_spec(self, fullname, *args):

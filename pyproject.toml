@@ -9,8 +9,8 @@ requires-python = ">=3.13"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 dependencies = [
-    "controlplane-api @ git+https://github.com/hyperme-sh/controlplane-api.git@0813448d067d59a0cc8fa2d144d85ddfde465af4",
-    "controlplane-identity @ git+https://github.com/hyperme-sh/controlplane-identity.git@5aeff3d2c00568f39ca6e8b75c7e63883d3a510b",
+    "controlplane-api @ git+https://github.com/hyperme-sh/controlplane-api.git@316912f30dd90113ab9203eff1bc998bb89b47cf",
+    "controlplane-identity @ git+https://github.com/hyperme-sh/controlplane-identity.git@a2cb7f055dced17f76e64009395ffb7599557a71",
     "controlplane-events @ git+https://github.com/hyperme-sh/controlplane-events.git@8f16587d105f7352891a1d9d77ec8305bbf5cd29",
     "spanopticon-models @ git+https://github.com/hyperme-sh/controlplane-models.git@dd806a74b6ec423be8209e67803106ee47adc23b",
     "controlplane-proto @ git+https://github.com/hyperme-sh/controlplane-proto.git@0cf9d9f3b81273d1fc742f80cf5adc1fbe0d8446",
@@ -50,3 +50,9 @@ allow-direct-references = true
 testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+
+[tool.uv]
+override-dependencies = [
+    "controlplane-api @ git+https://github.com/hyperme-sh/controlplane-api.git@316912f30dd90113ab9203eff1bc998bb89b47cf",
+    "controlplane-identity @ git+https://github.com/hyperme-sh/controlplane-identity.git@a2cb7f055dced17f76e64009395ffb7599557a71",
+]

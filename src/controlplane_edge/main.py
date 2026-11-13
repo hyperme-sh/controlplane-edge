@@ -17,6 +17,8 @@ from controlplane_edge.middleware.api_events import AccessEventPublisher
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from controlplane_api.config import settings as credential_settings
+    credential_settings.require_edge_secrets()
     settings = app.state.edge_settings
     async with AccessEventPublisher(settings) as publisher:
         app.state.access_event_publisher = publisher
