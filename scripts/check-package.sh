@@ -55,14 +55,14 @@ cleanup() {
   result=$?
   set +e
   if [[ -n "${TEST_EVIDENCE_DIR:-}" ]]; then
-    mkdir -p "$TEST_EVIDENCE_DIR" || result=1
+    mkdir -p "$TEST_EVIDENCE_DIR" || { [[ "$result" != 0 ]] || result=1; }
     for report in source wheel sdist; do
       if [[ -f "$scratch/$report.xml" ]]; then
-        cp "$scratch/$report.xml" "$TEST_EVIDENCE_DIR/" || result=1
+        cp "$scratch/$report.xml" "$TEST_EVIDENCE_DIR/" || { [[ "$result" != 0 ]] || result=1; }
       fi
     done
   fi
-  rm -rf -- "$scratch"
+  rm -rf -- "$scratch" || { [[ "$result" != 0 ]] || result=1; }
   exit "$result"
 }
 trap cleanup EXIT
