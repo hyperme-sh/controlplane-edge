@@ -153,6 +153,39 @@ async def storage_body(request: Request) -> bytes:
     return bytes(body)
 
 
+_STATEMENT_PREFIX = "/api/v1/acl/sociacl/statements"
+
+
+def statement_scope(path: str) -> str | None:
+    match = re.fullmatch(_STATEMENT_PREFIX + r"/[A-Za-z0-9_-]{1,128}/(snapshot|append)", path)
+    if match is None:
+        return None
+    return "acl:statements:" + ("read" if match[1] == "snapshot" else "write")
+
+
+async def statement_body(request: Request) -> bytes:
+    if request.headers.getlist("content-encoding") not in ([], ["identity"]):
+        raise StorageBodyError(415)
+    types = request.headers.getlist("content-type")
+    if len(types) != 1 or types[0].split(";", 1)[0].strip().lower() != "application/json":
+        raise StorageBodyError(415)
+    lengths = request.headers.getlist("content-length")
+    if lengths and (len(lengths) != 1 or not re.fullmatch(r"[0-9]{1,9}", lengths[0])):
+        raise StorageBodyError(400)
+    expected = int(lengths[0]) if lengths else None
+    if expected is not None and expected > 70000:
+        raise StorageBodyError(413)
+    body = bytearray()
+    async with asyncio.timeout(1.5):
+        async for chunk in request.stream():
+            if len(body) + len(chunk) > 70000:
+                raise StorageBodyError(413)
+            body.extend(chunk)
+    if expected is not None and len(body) != expected:
+        raise StorageBodyError(400)
+    return bytes(body)
+
+
 class StorageCapacityResponse(Response):
     """Keep upload memory accounted for until response cleanup completes."""
     def __init__(self, response: Response, capacity, borrower, release_tenant=None):
@@ -190,9 +223,48 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
         self._lane_capacity = anyio.CapacityLimiter(16)
         self._first_contact_capacity = anyio.CapacityLimiter(8)
         self._storage_tenant_capacity = {}
+        self._statement_capacity = anyio.CapacityLimiter(8)
+        self._statement_tenant_capacity = {}
 
     async def dispatch(self, request: Request, call_next) -> Response:
         match = match_edge_route(request.url.path, self._settings)
+        if match and match.service_id == "acl" and request.url.path.startswith(_STATEMENT_PREFIX):
+            required = statement_scope(request.url.path)
+            if required is None:
+                return Response(status_code=404)
+            if request.method != "POST":
+                return Response(status_code=405, headers={"Allow": "POST"})
+            claims = getattr(request.state, "jwt_claims", None) or {}
+            scopes = claims.get("scope")
+            tenant = getattr(request.state, "tenant_id", None)
+            if (tenant is None or claims.get("azp") != "controlplane-api-key"
+                    or not isinstance(scopes, str) or required not in scopes.split()):
+                return Response(status_code=403)
+            tenant = str(tenant)
+            capacity = self._statement_tenant_capacity.setdefault(tenant, anyio.CapacityLimiter(2))
+            borrower = object()
+            try:
+                capacity.acquire_on_behalf_of_nowait(borrower)
+            except anyio.WouldBlock:
+                return Response(status_code=429, headers={"Retry-After": "1"})
+
+            def release_tenant():
+                capacity.release_on_behalf_of(borrower)
+                if not capacity.borrowed_tokens:
+                    self._statement_tenant_capacity.pop(tenant, None)
+
+            try:
+                self._statement_capacity.acquire_on_behalf_of_nowait(borrower)
+            except anyio.WouldBlock:
+                release_tenant()
+                return Response(status_code=429, headers={"Retry-After": "1"})
+            try:
+                response = await self._dispatch(request, call_next)
+                return StorageCapacityResponse(response, self._statement_capacity, borrower, release_tenant)
+            except BaseException:
+                self._statement_capacity.release_on_behalf_of(borrower)
+                release_tenant()
+                raise
         if match and match.service_id == 'storage' and request.url.path.startswith('/api/v1/storage/replays'):
             if request.method != 'POST':
                 return Response(status_code=405, headers={'Allow': 'POST'})
@@ -330,6 +402,14 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
             except TimeoutError:
                 return Response(status_code=408)
             body = bytes(payload)
+        elif match.service_id == "acl" and request.url.path.startswith(_STATEMENT_PREFIX):
+            try:
+                body = await statement_body(request)
+            except StorageBodyError as exc:
+                return Response(status_code=exc.status)
+            except TimeoutError:
+                return Response(status_code=408)
+            headers = _forward_request_headers(request)
         elif match.service_id == 'storage':
             try:
                 body = await storage_body(request)
