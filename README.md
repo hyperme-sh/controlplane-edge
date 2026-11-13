@@ -201,3 +201,14 @@ outbox DELETE are refused. Outbox PUT is limited to 64 KiB; generic record and
 media credentials cannot reserve its upload slots. Core remains authoritative
 for the signed tenant, conditional update, revocation and retention behavior.
 Existing generic record, object, media and replay paths retain their contracts.
+
+### Signed statement source
+
+The private ACL statement snapshot/append paths require an exchanged service key
+with `acl:statements:read` or `acl:statements:write`, respectively. The edge
+rejects unsupported paths and methods before reading a body. JSON requests are
+limited to 70,000 bytes and a 1.5-second body deadline, with two outstanding
+requests per tenant and eight globally. Capacity remains reserved until response
+cleanup; the ACL owner separately checks the configured subject/scope binding
+and the atomic append deadline. Oversized, compressed and ambiguous bodies are
+rejected before forwarding.
