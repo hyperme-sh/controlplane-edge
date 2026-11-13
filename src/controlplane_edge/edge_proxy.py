@@ -99,6 +99,21 @@ class StorageBodyError(ValueError):
         self.status = status
 
 
+def experiment_storage_scope(method: str, path: str) -> str | None:
+    prefix = "/api/v1/storage/records/experiments/"
+    if not path.startswith(prefix):
+        return None
+    name = path[len(prefix):]
+    cache = re.fullmatch(r"(s3rch|hypermesh|portal)-cache", name)
+    outbox = re.fullmatch(r"(s3rch|hypermesh|portal)-outbox-[a-f0-9]{64}", name)
+    if cache and method in ("GET", "HEAD"):
+        return f"storage:experiments:{cache[1]}:cache:read"
+    if outbox and method in ("GET", "HEAD", "PUT"):
+        operation = "write" if method == "PUT" else "read"
+        return f"storage:experiments:{outbox[1]}:outbox:{operation}"
+    return None
+
+
 async def storage_body(request: Request) -> bytes:
     maximum = 8192
     if request.url.path.startswith('/api/v1/storage/replays/'):
@@ -113,7 +128,7 @@ async def storage_body(request: Request) -> bytes:
         if request.url.path.startswith('/api/v1/storage/objects/'):
             maximum = 64 * 1024 * 1024
         elif request.url.path.startswith('/api/v1/storage/records/'):
-            maximum = 8 * 1024 * 1024
+            maximum = 65536 if request.url.path.startswith('/api/v1/storage/records/experiments/') else 8 * 1024 * 1024
     values = request.headers.getlist('content-length')
     if len(values) != 1 or not re.fullmatch('[0-9]{1,9}', values[0]):
         # Empty GET/HEAD/DELETE requests need no declared body.
@@ -186,6 +201,13 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
             if (claims.get('azp') != 'controlplane-api-key' or not isinstance(scopes, str)
                     or 'storage:replays:consume' not in scopes.split()):
                 return Response(status_code=403)
+        if match and match.service_id == 'storage' and request.url.path.startswith('/api/v1/storage/records/experiments/'):
+            required = experiment_storage_scope(request.method, request.url.path)
+            claims = getattr(request.state, 'jwt_claims', None) or {}
+            scopes = claims.get('scope')
+            if (required is None or claims.get('azp') != 'controlplane-api-key'
+                    or not isinstance(scopes, str) or required not in scopes.split()):
+                return Response(status_code=403)
         if match and is_contact_lane_path(request.url.path, request.method):
             capacity = self._first_contact_capacity if "/first-contact/" in request.url.path else self._lane_capacity
             borrower = object()
@@ -206,11 +228,12 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
             family = "records" if request.url.path.startswith("/api/v1/storage/records/") else "objects"
             if request.url.path.startswith("/api/v1/storage/records/media/"):
                 family = "media"
+            required = experiment_storage_scope(request.method, request.url.path) if request.url.path.startswith("/api/v1/storage/records/experiments/") else f"storage:{family}:write"
             claims = getattr(request.state, "jwt_claims", None) or {}
             scopes = claims.get("scope")
             if (claims.get("azp") != "controlplane-api-key"
                     or not isinstance(scopes, str)
-                    or f"storage:{family}:write" not in scopes.split()):
+                    or required not in scopes.split()):
                 return Response(status_code=403)
             borrower = object()
             tenant = str(getattr(request.state, "tenant_id", None))

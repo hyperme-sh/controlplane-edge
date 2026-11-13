@@ -180,3 +180,14 @@ Private media metadata uses `/api/v1/storage/records/media/{name}` and the
 before buffering a media record, preserving the existing 8 MiB record limit,
 tenant capacity, conditional headers, and bounded exchanged token. The storage
 owner enforces method-specific media scopes for reads, writes, and deletion.
+
+## Experiment record scopes
+
+The `storage/records/experiments` namespace requires an exact audience and
+operation scope before proxying or consuming an upload. Read-only cache aliases
+use `storage:experiments:{s3rch|hypermesh|portal}:cache:read`. Outboxes use separate
+`storage:experiments:{audience}:outbox:read` and `:write` scopes. Cache writes and
+outbox DELETE are refused. Outbox PUT is limited to 64 KiB; generic record and
+media credentials cannot reserve its upload slots. Core remains authoritative
+for the signed tenant, conditional update, revocation and retention behavior.
+Existing generic record, object, media and replay paths retain their contracts.

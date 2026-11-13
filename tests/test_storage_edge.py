@@ -347,3 +347,43 @@ async def test_replay_requires_empty_body_and_canonical_expiry():
         with pytest.raises(StorageBodyError) as caught:
             await storage_body(body_request(chunks,headers,method='POST',path=path))
         assert caught.value.status == status
+
+
+@respx.mock
+@pytest.mark.parametrize('name,scope,status', [
+    ('hypermesh-outbox-' + 'a' * 64, 'storage:experiments:hypermesh:outbox:write', 201),
+    ('hypermesh-outbox-' + 'a' * 64, 'storage:records:write', 403),
+    ('hypermesh-outbox-' + 'a' * 64, 'storage:media:write', 403),
+    ('hypermesh-outbox-' + 'a' * 64, 'storage:experiments:portal:outbox:write', 403),
+    ('hypermesh-outbox-' + 'a' * 64, 'storage:experiments:hypermesh:cache:read', 403),
+    ('hypermesh-cache', 'storage:experiments:hypermesh:outbox:write', 403),
+])
+def test_experiment_writes_require_exact_audience_and_outbox_scope(monkeypatch, name, scope, status):
+    monkeypatch.setenv('CPEDGE_STORAGE_SERVICE_URL', 'https://storage.owner')
+    monkeypatch.setenv('CPEDGE_API_KEYS_SERVICE_URL', 'https://keys.owner')
+    tenant = uuid.uuid4()
+    validate = AsyncMock(return_value={'valid': True, 'key_id': str(uuid.uuid4()), 'tenant_id': str(tenant), 'scopes': [scope], 'purpose': 'service'})
+    monkeypatch.setattr('controlplane_edge.middleware.policy.validate_api_key_remote', validate)
+    path = '/api/v1/storage/records/experiments/' + name
+    upstream = respx.put('https://storage.owner' + path).mock(return_value=httpx.Response(201))
+    app = FastAPI(); register_gateway_cross_cutting(app)
+    with TestClient(app) as client:
+        response = client.put(path, content=b'{}', headers={'X-Api-Key': 'private.key', 'X-Tenant-ID': str(tenant), 'Content-Type': 'application/octet-stream', 'If-None-Match': '*'})
+    assert response.status_code == status
+    assert upstream.call_count == (1 if status == 201 else 0)
+    if status == 201:
+        claims = try_decode_api_key_session_jwt(upstream.calls[0].request.headers['authorization'].removeprefix('Bearer '))
+        assert claims['scope'] == scope
+        assert upstream.calls[0].request.headers['if-none-match'] == '*'
+
+
+@pytest.mark.asyncio
+async def test_experiment_body_limit_and_cache_scope_are_closed():
+    from controlplane_edge.edge_proxy import experiment_storage_scope
+    path = '/api/v1/storage/records/experiments/hypermesh-outbox-' + 'a' * 64
+    with pytest.raises(StorageBodyError) as caught:
+        await storage_body(body_request([], [(b'content-length', b'65537')], path=path))
+    assert caught.value.status == 413
+    assert experiment_storage_scope('GET', '/api/v1/storage/records/experiments/hypermesh-cache') == 'storage:experiments:hypermesh:cache:read'
+    for method, name in [('DELETE', 'hypermesh-outbox-' + 'a' * 64), ('PUT', 'hypermesh-cache'), ('GET', 'hypermesh-cache/access')]:
+        assert experiment_storage_scope(method, '/api/v1/storage/records/experiments/' + name) is None
