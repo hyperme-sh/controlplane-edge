@@ -227,7 +227,15 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
         self._statement_tenant_capacity = {}
 
     async def dispatch(self, request: Request, call_next) -> Response:
+        # HTTPX removes dot segments before forwarding. Deny them before route
+        # selection so admission and upstream routing cannot disagree.
+        if any(segment in (".", "..") for segment in request.url.path.split("/")):
+            return Response(status_code=400)
         match = match_edge_route(request.url.path, self._settings)
+        # ASGI already decoded the path once. Do not let a second upstream
+        # decoding turn escaped delimiters into a different ACL route.
+        if match and match.service_id == "acl" and "%" in request.url.path:
+            return Response(status_code=400)
         if match and match.service_id == "acl" and request.url.path.startswith(_STATEMENT_PREFIX):
             required = statement_scope(request.url.path)
             if required is None:

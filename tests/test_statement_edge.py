@@ -122,3 +122,42 @@ def test_exchanged_scope_reaches_owner_and_oversized_body_does_not(monkeypatch, 
     from controlplane_identity.security.api_key_exchange_jwt import try_decode_api_key_session_jwt
     claims = try_decode_api_key_session_jwt(sent.headers['authorization'].removeprefix('Bearer '))
     assert claims['scope'] == f'acl:statements:{scope}'
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("path", [
+    "/api/v1/acl/sociacl/unused/../statements/forum/append",
+    "/api/v1/acl/sociacl/./statements/forum/snapshot",
+    "/api/v1/acl/sociacl/%73tatements/forum/append",
+    "/api/v1/acl/sociacl/unused/%2e%2e/statements/forum/append",
+])
+async def test_raw_noncanonical_path_never_reads_or_forwards(path):
+    proxy = edge()
+    proxy._dispatch = AsyncMock()
+    req = request([b"x" * 70001], path=path, scopes="unrelated")
+    assert (await proxy.dispatch(req, None)).status_code == 400
+    proxy._dispatch.assert_not_called()
+    assert proxy._statement_capacity.borrowed_tokens == 0
+    assert proxy._statement_tenant_capacity == {}
+
+
+@respx.mock
+@pytest.mark.asyncio
+async def test_raw_dot_path_cannot_normalize_into_statement_upstream(monkeypatch):
+    monkeypatch.setenv('CPEDGE_ACL_SERVICE_URL', 'https://acl.owner')
+    monkeypatch.setenv('CPEDGE_API_KEYS_SERVICE_URL', 'https://keys.owner')
+    tenant = str(uuid.uuid4())
+    monkeypatch.setattr('controlplane_edge.middleware.policy.validate_api_key_remote',
+        AsyncMock(return_value={'valid': True, 'key_id': str(uuid.uuid4()),
+            'tenant_id': tenant, 'scopes': ['unrelated'], 'purpose': 'service'}))
+    upstream = respx.post('https://acl.owner'+PREFIX+'append').mock(return_value=httpx.Response(200))
+    app = FastAPI()
+    register_gateway_cross_cutting(app)
+    raw_path = '/api/v1/acl/sociacl/unused/../statements/forum/append'
+    async def raw_app(scope, receive, send):
+        await app({**scope, 'path': raw_path, 'raw_path': raw_path.encode()}, receive, send)
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=raw_app), base_url='https://gateway.test') as client:
+        response = await client.post('/raw', content=b'x'*70001,
+            headers={'X-Api-Key': 'private.key', 'X-Tenant-ID': tenant, 'Content-Type': 'application/json'})
+    assert response.status_code == 400
+    assert not upstream.called
