@@ -45,9 +45,14 @@ if (( ${#fixture_wheels[@]} )); then
 fi
 .venv/bin/python scripts/verify_preparation_environment.py "$PWD"
 uv run --frozen "${run_options[@]}" pytest -q tests_tools
+test_selection=(-m 'not integration')
+if [[ "${EDGE_NIGHTLY:-0}" == 1 ]]; then
+  [[ "${GITHUB_ACTIONS:-}" == true && "${GITHUB_EVENT_NAME:-}" == schedule && "${GITHUB_REF:-}" == refs/heads/main ]] || exit 2
+  test_selection=()
+fi
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
-uv run --frozen "${run_options[@]}" pytest --junitxml="$scratch/source.xml"
+uv run --frozen "${run_options[@]}" pytest "${test_selection[@]}" --junitxml="$scratch/source.xml"
 uv build --out-dir "$scratch/dist"
 uv run --frozen "${run_options[@]}" python scripts/verify_wheel.py "$scratch/dist"
 python3 scripts/export_release_contract.py "$scratch"/dist/*.whl --output "$scratch/contract"
@@ -60,11 +65,11 @@ else
 uv pip uninstall --python "$scratch/venv/bin/python" controlplane-core controlplane-api controlplane-tenancy controlplane-identity controlplane-db controlplane-events operator-ban-store spanopticon-models controlplane-proto
 # The installed user-service consumer is a declared dev root. Restore its
 # dependencies too after removing source-linked packages from the fresh env.
-uv pip install --python "$scratch/venv/bin/python" --constraint "$scratch/requirements.txt" "$scratch"/dist/*.whl user-service
+uv pip install --python "$scratch/venv/bin/python" --overrides "$scratch/requirements.txt" "$scratch"/dist/*.whl user-service
 fi
 "$scratch/venv/bin/python" scripts/verify_preparation_environment.py "$PWD"
 cp -R tests "$scratch/"
-(cd "$scratch" && "$scratch/venv/bin/python" -I -m pytest -c /dev/null -o asyncio_mode=auto -o asyncio_default_fixture_loop_scope=function tests --junitxml="$scratch/wheel.xml")
+(cd "$scratch" && "$scratch/venv/bin/python" -I -m pytest -c /dev/null -o asyncio_mode=auto -o asyncio_default_fixture_loop_scope=function tests "${test_selection[@]}" --junitxml="$scratch/wheel.xml")
 # Rebuild from the sdist; a checkout must not supply omitted package files.
 uv run --frozen "${run_options[@]}" python - "$scratch" <<'PY'
 import pathlib, sys, tarfile
@@ -77,9 +82,9 @@ uv run --frozen "${run_options[@]}" python scripts/verify_wheel.py "$scratch/reb
 if (( ${#fixture_wheels[@]} )); then
   uv pip install --no-config --python "$scratch/venv/bin/python" --no-deps --reinstall "$scratch"/rebuilt/*.whl
 else
-  uv pip install --python "$scratch/venv/bin/python" --constraint "$scratch/requirements.txt" --reinstall-package controlplane-edge "$scratch"/rebuilt/*.whl
+  uv pip install --python "$scratch/venv/bin/python" --overrides "$scratch/requirements.txt" --reinstall-package controlplane-edge "$scratch"/rebuilt/*.whl
 fi
-(cd "$scratch" && "$scratch/venv/bin/python" -I -m pytest -c /dev/null -o asyncio_mode=auto -o asyncio_default_fixture_loop_scope=function tests --junitxml="$scratch/sdist.xml")
+(cd "$scratch" && "$scratch/venv/bin/python" -I -m pytest -c /dev/null -o asyncio_mode=auto -o asyncio_default_fixture_loop_scope=function tests "${test_selection[@]}" --junitxml="$scratch/sdist.xml")
 
 # Retain the exact validated bytes for the release channel; never rebuild them.
 if [[ -n "${RELEASE_ARTIFACT_DIR:-}" ]]; then

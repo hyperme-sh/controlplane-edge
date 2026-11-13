@@ -105,6 +105,7 @@ def test_changelog_markdown_renderer() -> None:
     assert "Foo" in md
 
 
+@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_grpc_echo_requires_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
     import controlplane_api.config as api_config
@@ -124,6 +125,7 @@ async def test_grpc_echo_requires_metadata(monkeypatch: pytest.MonkeyPatch) -> N
             assert ei.value.code() == grpc.StatusCode.UNAUTHENTICATED
 
 
+@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_grpc_echo_with_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
     import controlplane_api.config as api_config
