@@ -17,6 +17,33 @@ from controlplane_edge.register_cross_cutting import register_gateway_cross_cutt
 PREFIX = '/api/v1/acl/sociacl/statements/forum/'
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize('operation,granted,status', [
+    ('snapshot', 'acl:statements:read', 403),
+    ('append', 'acl:statements:write', 403),
+    ('append', 'acl:delegations:read', 403),
+    ('snapshot', 'acl:delegations:write', 403),
+    ('other', 'acl:delegations:read', 404),
+])
+async def test_delegation_permissions_do_not_alias_statement_permissions(operation, granted, status):
+    proxy = edge(); proxy._dispatch = AsyncMock()
+    req = request(path='/api/v1/acl/sociacl/delegations/forum/'+operation, scopes=granted)
+    assert (await proxy.dispatch(req, None)).status_code == status
+    proxy._dispatch.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_delegations_share_statement_tenant_capacity():
+    proxy = edge(); proxy._dispatch = AsyncMock(return_value=Response(b'ok'))
+    held = [await proxy.dispatch(request(), None) for _ in range(2)]
+    delegated = request(path='/api/v1/acl/sociacl/delegations/forum/snapshot', scopes='acl:delegations:read')
+    assert (await proxy.dispatch(delegated, None)).status_code == 429
+    async def receive(): return {'type':'http.disconnect'}
+    async def send(message): pass
+    for response in held: await response({'type':'http'}, receive, send)
+    assert proxy._statement_capacity.borrowed_tokens == 0
+
+
 def request(chunks=(), *, tenant='tenant-a', scopes='acl:statements:read', path=PREFIX+'snapshot', method='POST', headers=()):
     parts = iter(chunks)
     async def receive():
@@ -99,21 +126,23 @@ async def test_capacity_is_bounded_partitioned_and_released():
 
 @respx.mock
 @pytest.mark.parametrize('operation,scope', [('snapshot', 'read'), ('append', 'write')])
-def test_exchanged_scope_reaches_owner_and_oversized_body_does_not(monkeypatch, operation, scope):
+@pytest.mark.parametrize('collection', ['statements', 'delegations'])
+def test_exchanged_scope_reaches_owner_and_oversized_body_does_not(monkeypatch, operation, scope, collection):
+    prefix = f"/api/v1/acl/sociacl/{collection}/forum/"
     monkeypatch.setenv('CPEDGE_ACL_SERVICE_URL', 'https://acl.owner')
     monkeypatch.setenv('CPEDGE_API_KEYS_SERVICE_URL', 'https://keys.owner')
     tenant = str(uuid.uuid4())
     validate = AsyncMock(return_value={'valid': True, 'key_id': str(uuid.uuid4()),
-        'tenant_id': tenant, 'scopes': [f'acl:statements:{scope}'], 'purpose': 'service'})
+        'tenant_id': tenant, 'scopes': [f'acl:{collection}:{scope}'], 'purpose': 'service'})
     monkeypatch.setattr('controlplane_edge.middleware.policy.validate_api_key_remote', validate)
-    route = respx.post('https://acl.owner' + PREFIX + operation).mock(return_value=httpx.Response(200, json={'ok': True}))
+    route = respx.post('https://acl.owner' + prefix + operation).mock(return_value=httpx.Response(200, json={'ok': True}))
     app = FastAPI()
     register_gateway_cross_cutting(app)
     headers = {'X-Api-Key': 'private.key', 'X-Tenant-ID': tenant, 'Content-Type': 'application/json'}
     with TestClient(app) as client:
-        assert client.post(PREFIX+operation, content=b'{}', headers=headers).status_code == 200
-        assert client.post(PREFIX+operation, content=b'x'*70001, headers=headers).status_code == 413
-        assert client.post(PREFIX+operation, content=b'{}', headers={**headers, 'Content-Encoding': 'gzip'}).status_code == 415
+        assert client.post(prefix+operation, content=b'{}', headers=headers).status_code == 200
+        assert client.post(prefix+operation, content=b'x'*70001, headers=headers).status_code == 413
+        assert client.post(prefix+operation, content=b'{}', headers={**headers, 'Content-Encoding': 'gzip'}).status_code == 415
     assert route.call_count == 1
     sent = route.calls[0].request
     assert sent.content == b'{}'
@@ -121,12 +150,14 @@ def test_exchanged_scope_reaches_owner_and_oversized_body_does_not(monkeypatch, 
     assert sent.headers['x-tenant-id'] == tenant
     from controlplane_identity.security.api_key_exchange_jwt import try_decode_api_key_session_jwt
     claims = try_decode_api_key_session_jwt(sent.headers['authorization'].removeprefix('Bearer '))
-    assert claims['scope'] == f'acl:statements:{scope}'
+    assert claims['scope'] == f'acl:{collection}:{scope}'
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("path", [
     "/api/v1/acl/sociacl/unused/../statements/forum/append",
+    "/api/v1/acl/sociacl/unused/../delegations/forum/append",
+    "/api/v1/acl/sociacl/%64elegations/forum/snapshot",
     "/api/v1/acl/sociacl/./statements/forum/snapshot",
     "/api/v1/acl/sociacl/%73tatements/forum/append",
     "/api/v1/acl/sociacl/unused/%2e%2e/statements/forum/append",

@@ -154,13 +154,14 @@ async def storage_body(request: Request) -> bytes:
 
 
 _STATEMENT_PREFIX = "/api/v1/acl/sociacl/statements"
+_GRAPH_PREFIXES = (_STATEMENT_PREFIX, "/api/v1/acl/sociacl/delegations")
 
 
 def statement_scope(path: str) -> str | None:
-    match = re.fullmatch(_STATEMENT_PREFIX + r"/[A-Za-z0-9_-]{1,128}/(snapshot|append)", path)
+    match = re.fullmatch(r"/api/v1/acl/sociacl/(statements|delegations)/[A-Za-z0-9_-]{1,128}/(snapshot|append)", path)
     if match is None:
         return None
-    return "acl:statements:" + ("read" if match[1] == "snapshot" else "write")
+    return "acl:" + match[1] + ":" + ("read" if match[2] == "snapshot" else "write")
 
 
 async def statement_body(request: Request) -> bytes:
@@ -236,7 +237,7 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
         # decoding turn escaped delimiters into a different ACL route.
         if match and match.service_id == "acl" and "%" in request.url.path:
             return Response(status_code=400)
-        if match and match.service_id == "acl" and request.url.path.startswith(_STATEMENT_PREFIX):
+        if match and match.service_id == "acl" and request.url.path.startswith(_GRAPH_PREFIXES):
             required = statement_scope(request.url.path)
             if required is None:
                 return Response(status_code=404)
@@ -410,7 +411,7 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
             except TimeoutError:
                 return Response(status_code=408)
             body = bytes(payload)
-        elif match.service_id == "acl" and request.url.path.startswith(_STATEMENT_PREFIX):
+        elif match.service_id == "acl" and request.url.path.startswith(_GRAPH_PREFIXES):
             try:
                 body = await statement_body(request)
             except StorageBodyError as exc:
