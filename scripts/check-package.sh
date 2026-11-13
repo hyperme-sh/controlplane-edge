@@ -51,7 +51,21 @@ if [[ "${EDGE_NIGHTLY:-0}" == 1 ]]; then
   test_selection=()
 fi
 scratch=$(mktemp -d)
-trap 'rm -rf "$scratch"' EXIT
+cleanup() {
+  result=$?
+  set +e
+  if [[ -n "${TEST_EVIDENCE_DIR:-}" ]]; then
+    mkdir -p "$TEST_EVIDENCE_DIR" || result=1
+    for report in source wheel sdist; do
+      if [[ -f "$scratch/$report.xml" ]]; then
+        cp "$scratch/$report.xml" "$TEST_EVIDENCE_DIR/" || result=1
+      fi
+    done
+  fi
+  rm -rf -- "$scratch"
+  exit "$result"
+}
+trap cleanup EXIT
 uv run --frozen "${run_options[@]}" pytest "${test_selection[@]}" --junitxml="$scratch/source.xml"
 uv build --out-dir "$scratch/dist"
 uv run --frozen "${run_options[@]}" python scripts/verify_wheel.py "$scratch/dist"
@@ -96,8 +110,4 @@ if [[ -n "${PREPARATION_EVIDENCE_DIR:-}" ]]; then
   python3 scripts/export_release_contract.py "$scratch"/dist/*.whl --output "$PREPARATION_EVIDENCE_DIR"
 fi
 
-if [[ -n "${TEST_EVIDENCE_DIR:-}" ]]; then
-  mkdir -p "$TEST_EVIDENCE_DIR"
-  cp "$scratch"/*.xml "$TEST_EVIDENCE_DIR/"
-fi
 python3 scripts/verify-test-results.py "$scratch/source.xml" "$scratch/wheel.xml" "$scratch/sdist.xml"
