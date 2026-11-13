@@ -190,3 +190,14 @@ distinct non-default values of at least 32 characters, including any optional
 while minting with the current one. Invalid settings abort startup with names
 only. Laptop/test environments explicitly opt out using
 `EDGE_SECRETS_REQUIRED=false`; strict validation is the default.
+
+## Experiment record scopes
+
+The `storage/records/experiments` namespace requires an exact audience and
+operation scope before proxying or consuming an upload. Read-only cache aliases
+use `storage:experiments:{s3rch|hypermesh|portal}:cache:read`. Outboxes use separate
+`storage:experiments:{audience}:outbox:read` and `:write` scopes. Cache writes and
+outbox DELETE are refused. Outbox PUT is limited to 64 KiB; generic record and
+media credentials cannot reserve its upload slots. Core remains authoritative
+for the signed tenant, conditional update, revocation and retention behavior.
+Existing generic record, object, media and replay paths retain their contracts.
