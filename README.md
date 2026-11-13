@@ -204,6 +204,13 @@ Existing generic record, object, media and replay paths retain their contracts.
 
 ### Signed statement source
 
+The same bounded transport covers private ACL delegation snapshot/append paths
+under `/api/v1/acl/sociacl/delegations/{scope}/`. These require separate
+`acl:delegations:read` or `acl:delegations:write` service-key scopes; statement
+permissions do not authorize delegation operations. Both collections share the
+global and per-tenant worker budgets, body limits, canonical-path restrictions
+and API-key exchange. This does not provision an ACL delegation store or key.
+
 The private ACL statement snapshot/append paths require an exchanged service key
 with `acl:statements:read` or `acl:statements:write`, respectively. The edge
 rejects unsupported paths and methods before reading a body. JSON requests are
