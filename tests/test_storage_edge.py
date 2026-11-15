@@ -425,3 +425,30 @@ def test_group_allocation_has_no_sibling_or_extra_operation(monkeypatch,method,p
     with TestClient(app) as client:
         response=client.request(method,path,json={},headers={'X-Api-Key':'private.key','X-Tenant-ID':str(tenant)})
     assert response.status_code==status
+
+
+@respx.mock
+@pytest.mark.parametrize('method,scope,size,status',[
+    ('PUT','storage:groups:wraps:write',65536,200),('PUT','storage:groups:wraps:write',65537,413),
+    ('GET','storage:groups:wraps:read',0,200),('GET','storage:groups:wraps:read',1,413),
+    ('PUT','storage:media:payload:write',1,403),('GET','storage:groups:wraps:write',0,403),
+    ('DELETE','storage:groups:wraps:write',0,405)])
+def test_private_group_wrap_proxy_scope_bounds_and_credentials(monkeypatch,method,scope,size,status):
+    monkeypatch.setenv('CPEDGE_STORAGE_SERVICE_URL','https://storage.owner')
+    monkeypatch.setenv('CPEDGE_API_KEYS_SERVICE_URL','https://keys.owner')
+    tenant=uuid.uuid4()
+    monkeypatch.setattr('controlplane_edge.middleware.policy.validate_api_key_remote',AsyncMock(return_value={
+        'valid':True,'key_id':str(uuid.uuid4()),'tenant_id':str(tenant),'scopes':[scope],'purpose':'service'}))
+    path='/api/v1/storage/groups/wraps/set_p_'+'a'*128+'_'+'b'*32+'/'+'c'*64
+    upstream=respx.route(method=method,url='https://storage.owner'+path).mock(return_value=httpx.Response(200,content=b'wrap'))
+    app=FastAPI();register_gateway_cross_cutting(app)
+    with TestClient(app) as client:
+        response=client.request(method,path,content=b'x'*size,headers={'X-Api-Key':'private.key','X-Tenant-ID':str(tenant),
+            'X-Group-Owner':'a'*43+'.'+'b'*43,'Content-Type':'application/octet-stream'})
+    assert response.status_code==status
+    assert upstream.call_count==int(status==200)
+    if status==200:
+        request=upstream.calls[0].request
+        assert 'x-api-key' not in request.headers
+        claims=try_decode_api_key_session_jwt(request.headers['authorization'].removeprefix('Bearer '))
+        assert claims['scope']==scope and claims['https://spanopticon.dev/tenant_id']==str(tenant)
