@@ -16,6 +16,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response, StreamingResponse
 
 from controlplane_edge.aggregation_settings import OpenAPIAggregationSettings
+from controlplane_edge.group_allocation_scope import refusal as group_allocation_refusal
 from controlplane_edge.edge_routes import (
     EDGE_ROUTES,
     locked_monolith_checkout_path,
@@ -274,6 +275,10 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
                 self._statement_capacity.release_on_behalf_of(borrower)
                 release_tenant()
                 raise
+        if match and match.service_id == 'storage' and request.url.path.startswith('/api/v1/storage/group-allocations/'):
+            status = group_allocation_refusal(request.method,request.url.path,getattr(request.state,'jwt_claims',None))
+            if status is not None:
+                return Response(status_code=status,headers={'Allow':'POST'} if status==405 else {})
         if match and match.service_id == 'storage' and request.url.path.startswith('/api/v1/storage/replays'):
             if request.method != 'POST':
                 return Response(status_code=405, headers={'Allow': 'POST'})

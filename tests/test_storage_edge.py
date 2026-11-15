@@ -387,3 +387,41 @@ async def test_experiment_body_limit_and_cache_scope_are_closed():
     assert experiment_storage_scope('GET', '/api/v1/storage/records/experiments/hypermesh-cache') == 'storage:experiments:hypermesh:cache:read'
     for method, name in [('DELETE', 'hypermesh-outbox-' + 'a' * 64), ('PUT', 'hypermesh-cache'), ('GET', 'hypermesh-cache/access')]:
         assert experiment_storage_scope(method, '/api/v1/storage/records/experiments/' + name) is None
+
+
+@respx.mock
+@pytest.mark.parametrize('scope,status', [('storage:group-allocations:issue',200),
+    ('storage:allocations:issue',403),('storage:records:write',403),('storage:media:write',403)])
+def test_group_allocation_proxy_preserves_tenant_and_requires_separate_scope(monkeypatch,scope,status):
+    monkeypatch.setenv('CPEDGE_STORAGE_SERVICE_URL','https://storage.owner')
+    monkeypatch.setenv('CPEDGE_API_KEYS_SERVICE_URL','https://keys.owner')
+    tenant=uuid.uuid4()
+    validate=AsyncMock(return_value={'valid':True,'key_id':str(uuid.uuid4()),'tenant_id':str(tenant),'scopes':[scope],'purpose':'service'})
+    monkeypatch.setattr('controlplane_edge.middleware.policy.validate_api_key_remote',validate)
+    path='/api/v1/storage/group-allocations/issue'
+    upstream=respx.post('https://storage.owner'+path).mock(return_value=httpx.Response(200,json={'signed':'grant'}))
+    app=FastAPI();register_gateway_cross_cutting(app)
+    with TestClient(app) as client:
+        response=client.post(path,json={'request':'proof'},headers={'X-Api-Key':'private.key','X-Tenant-ID':str(tenant)})
+    assert response.status_code==status
+    assert upstream.call_count==int(status==200)
+    if status==200:
+        request=upstream.calls[0].request
+        assert 'x-api-key' not in request.headers
+        claims=try_decode_api_key_session_jwt(request.headers['authorization'].removeprefix('Bearer '))
+        assert claims['scope']==scope and claims['https://spanopticon.dev/tenant_id']==str(tenant)
+
+
+@respx.mock
+@pytest.mark.parametrize('method,path,status', [('GET','/api/v1/storage/group-allocations/issue',405),
+    ('POST','/api/v1/storage/group-allocations/issue/extra',404),('POST','/api/v1/storage/group-allocations/bootstrap',404)])
+def test_group_allocation_has_no_sibling_or_extra_operation(monkeypatch,method,path,status):
+    monkeypatch.setenv('CPEDGE_STORAGE_SERVICE_URL','https://storage.owner')
+    monkeypatch.setenv('CPEDGE_API_KEYS_SERVICE_URL','https://keys.owner')
+    tenant=uuid.uuid4()
+    monkeypatch.setattr('controlplane_edge.middleware.policy.validate_api_key_remote',AsyncMock(return_value={
+        'valid':True,'key_id':str(uuid.uuid4()),'tenant_id':str(tenant),'scopes':['storage:group-allocations:issue'],'purpose':'service'}))
+    app=FastAPI();register_gateway_cross_cutting(app)
+    with TestClient(app) as client:
+        response=client.request(method,path,json={},headers={'X-Api-Key':'private.key','X-Tenant-ID':str(tenant)})
+    assert response.status_code==status
