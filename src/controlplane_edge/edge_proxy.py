@@ -16,6 +16,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response, StreamingResponse
 
 from controlplane_edge.aggregation_settings import OpenAPIAggregationSettings
+from controlplane_edge.group_wrap_scope import refusal as group_wrap_refusal
 from controlplane_edge.group_allocation_scope import refusal as group_allocation_refusal
 from controlplane_edge.edge_routes import (
     EDGE_ROUTES,
@@ -117,6 +118,8 @@ def experiment_storage_scope(method: str, path: str) -> str | None:
 
 async def storage_body(request: Request) -> bytes:
     maximum = 8192
+    if request.url.path.startswith("/api/v1/storage/groups/wraps/"):
+        maximum = 65536 if request.method == "PUT" else 0
     if request.url.path.startswith('/api/v1/storage/replays/'):
         expiry = request.headers.getlist('x-replay-expires-at')
         if (request.headers.getlist('content-length') != ['0']
@@ -275,6 +278,10 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
                 self._statement_capacity.release_on_behalf_of(borrower)
                 release_tenant()
                 raise
+        if match and match.service_id == 'storage' and request.url.path.startswith('/api/v1/storage/groups/wraps'):
+            status=group_wrap_refusal(request.method,request.url.path,getattr(request.state,'jwt_claims',None))
+            if status is not None:
+                return Response(status_code=status,headers={'Allow':'GET, PUT'} if status==405 else {})
         if match and match.service_id == 'storage' and request.url.path.startswith('/api/v1/storage/group-allocations/'):
             status = group_allocation_refusal(request.method,request.url.path,getattr(request.state,'jwt_claims',None))
             if status is not None:
@@ -307,14 +314,17 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
             except BaseException:
                 capacity.release_on_behalf_of(borrower)
                 raise
-        if (match and match.service_id == 'storage' and request.method == 'PUT'
-                and request.url.path.startswith(('/api/v1/storage/objects/', '/api/v1/storage/records/'))):
+        if (match and match.service_id == 'storage' and
+                ((request.method == 'PUT' and request.url.path.startswith(('/api/v1/storage/objects/', '/api/v1/storage/records/')))
+                 or request.url.path.startswith('/api/v1/storage/groups/wraps/'))):
             # Object and record uploads share bounded capacity; administrative
             # bodies remain limited to 8 KiB.
             family = "records" if request.url.path.startswith("/api/v1/storage/records/") else "objects"
             if request.url.path.startswith("/api/v1/storage/records/media/"):
                 family = "media"
             required = experiment_storage_scope(request.method, request.url.path) if request.url.path.startswith("/api/v1/storage/records/experiments/") else f"storage:{family}:write"
+            if request.url.path.startswith('/api/v1/storage/groups/wraps/'):
+                required='storage:groups:wraps:'+('read' if request.method=='GET' else 'write')
             claims = getattr(request.state, "jwt_claims", None) or {}
             scopes = claims.get("scope")
             if (claims.get("azp") != "controlplane-api-key"
