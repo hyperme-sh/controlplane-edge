@@ -219,3 +219,11 @@ requests per tenant and eight globally. Capacity remains reserved until response
 cleanup; the ACL owner separately checks the configured subject/scope binding
 and the atomic append deadline. Oversized, compressed and ambiguous bodies are
 rejected before forwarding.
+
+## Publication preparation
+
+Package and image qualification use fresh home, cache and project environments
+without inherited credentials. PR checks preserve the recorded dependency
+fixtures and authorization coverage; main checks public source dependencies.
+Build outputs stay within the job, with no Actions uploads. Existing GHCR
+`runtime:test` publication remains moving; integration/e2e remains nightly.
