@@ -18,6 +18,7 @@ from controlplane_edge.edge_settings import GatewayCrossCuttingSettings
 
 RELAY = '/auth/sea-device-link/v1'
 ACL = '/api/v1/acl/sociacl/device-transfer'
+BODY_TIMEOUT = 3
 SCOPES = {'sourceOrigin', 'destinationOrigin', 'application', 'tenant', 'audience'}
 ACTIONS = {'sender': {'admit', 'join', 'send', 'completed', 'cancel'},
            'receiver': {'create', 'offer', 'receive', 'complete', 'completed', 'cancel'}}
@@ -77,6 +78,7 @@ class DeviceTransferMiddleware:
         self.settings = OpenAPIAggregationSettings()
         self.capacity = anyio.CapacityLimiter(8)
         self.buckets = {}
+        self.active_clients = {}
         for name in ('uvicorn.access', 'httpx'):
             logger = logging.getLogger(name)
             if not any(isinstance(f, PairingLogFilter) for f in logger.filters):
@@ -93,12 +95,13 @@ class DeviceTransferMiddleware:
             self.buckets = {key: val for key, val in self.buckets.items() if val[0] == minute}
             client = (scope.get('client') or ('unknown', 0))[0]
             count = self.buckets.get(client, (minute, 0))[1]
-            if count >= 120 or (client not in self.buckets and len(self.buckets) >= 1024):
+            if self.active_clients.get(client, 0) >= 2 or count >= 120 or (client not in self.buckets and len(self.buckets) >= 1024):
                 status = 429
             else:
                 self.buckets[client] = (minute, count + 1)
                 self.capacity.acquire_nowait()
                 acquired = True
+                self.active_clients[client] = self.active_clients.get(client, 0) + 1
                 async with asyncio.timeout(12):
                     status, body, extra = await self.forward(request)
                     headers.update(extra)
@@ -111,6 +114,9 @@ class DeviceTransferMiddleware:
         finally:
             if acquired:
                 self.capacity.release()
+                self.active_clients[client] -= 1
+                if not self.active_clients[client]:
+                    del self.active_clients[client]
         await Response(body, status_code=status, headers=headers)(scope, receive, send)
 
     async def forward(self, request):
@@ -139,10 +145,11 @@ class DeviceTransferMiddleware:
         if lengths and int(lengths[0]) > maximum:
             return 413, b'', cors
         data = bytearray()
-        async for chunk in request.stream():
-            if len(data) + len(chunk) > maximum:
-                return 413, b'', cors
-            data.extend(chunk)
+        async with asyncio.timeout(BODY_TIMEOUT):
+            async for chunk in request.stream():
+                if len(data) + len(chunk) > maximum:
+                    return 413, b'', cors
+                data.extend(chunk)
         if lengths and len(data) != int(lengths[0]):
             return 400, b'', cors
         value = json.loads(data)

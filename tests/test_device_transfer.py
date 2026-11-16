@@ -104,3 +104,73 @@ def test_proxy_disabled_never_contacts_owner(client, monkeypatch):
         assert disabled.post(PATH,json={'scope':SCOPE},headers=HEADERS).status_code == 404
         assert disabled.post(ACL+'/state',json={'scope':SCOPE},headers=HEADERS).status_code == 404
     assert upstream.call_count == 0
+
+
+def test_slow_client_cannot_take_all_slots_and_cancellation_releases(client):
+    import asyncio
+    from controlplane_edge.device_transfer import DeviceTransferMiddleware
+
+    async def check():
+        middleware = DeviceTransferMiddleware(None)
+        entered = [asyncio.Event(), asyncio.Event()]
+        never = asyncio.Event()
+
+        async def call(address, receive):
+            messages = []
+            async def send(message):
+                messages.append(message)
+            scope = {'type': 'http', 'method': 'POST', 'path': PATH,
+                     'raw_path': PATH.encode(), 'query_string': b'',
+                     'scheme': 'https', 'server': ('edge.example', 443),
+                     'client': (address, 1234),
+                     'headers': [(b'origin', SCOPE['sourceOrigin'].encode()),
+                                 (b'content-type', b'application/json'),
+                                 (b'x-forwarded-for', b'forged')]}
+            await middleware(scope, receive, send)
+            return messages[0]['status']
+
+        async def slow(index):
+            entered[index].set()
+            await never.wait()
+
+        async def complete():
+            return {'type': 'http.request', 'body': b'{}', 'more_body': False}
+
+        tasks = [asyncio.create_task(call('attacker', lambda i=i: slow(i))) for i in range(2)]
+        try:
+            await asyncio.wait_for(asyncio.gather(*(e.wait() for e in entered)), 1)
+            assert await call('attacker', complete) == 429
+            assert await call('other-client', complete) == 403
+        finally:
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+        assert not middleware.active_clients
+        assert middleware.capacity.borrowed_tokens == 0
+        assert await call('attacker', complete) == 403
+    asyncio.run(check())
+
+
+def test_slow_body_deadline_releases_capacity(client, monkeypatch):
+    import asyncio
+    import controlplane_edge.device_transfer as transfer
+    monkeypatch.setattr(transfer, 'BODY_TIMEOUT', 0.01)
+
+    async def check():
+        middleware = transfer.DeviceTransferMiddleware(None)
+        async def receive():
+            await asyncio.Event().wait()
+        messages = []
+        async def send(message):
+            messages.append(message)
+        scope = {'type': 'http', 'method': 'POST', 'path': PATH,
+                 'raw_path': PATH.encode(), 'query_string': b'',
+                 'scheme': 'https', 'server': ('edge.example', 443),
+                 'client': ('slow-client', 1234),
+                 'headers': [(b'origin', SCOPE['sourceOrigin'].encode()),
+                             (b'content-type', b'application/json')]}
+        await asyncio.wait_for(middleware(scope, receive, send), 1)
+        assert messages[0]['status'] == 503
+        assert not middleware.active_clients
+        assert middleware.capacity.borrowed_tokens == 0
+    asyncio.run(check())
