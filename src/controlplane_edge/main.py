@@ -39,6 +39,8 @@ def create_app() -> FastAPI:
     register_graphql_routes(app)
     register_gateway_cross_cutting(app)
     install_http_metrics(app, service="controlplane-edge")
+    from controlplane_edge.nightly import install as install_nightly
+    install_nightly(app)
     return app
 
 

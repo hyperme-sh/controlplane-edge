@@ -227,3 +227,16 @@ without inherited credentials. PR checks preserve the recorded dependency
 fixtures and authorization coverage; main checks public source dependencies.
 Build outputs stay within the job, with no Actions uploads. Existing GHCR
 `runtime:test` publication remains moving; integration/e2e remains nightly.
+
+`CPEDGE_NIGHTLY_RUN_CONFIG` enables independent owner `edge` admission for
+Auth `/auth/me`, tenant switching, and the existing exact device-transfer routes.
+It uses the shared identity transport and the public TEST API origin, with
+independent owner/controller keys and declared scopes. All protected work returns
+before completion; missing or unknown owner replies retain pending authority.
+The controller endpoint is `POST /api/v1/internal/nightly-run`. Only an admitted
+request forwards `X-Nightly-Run-Grant`; the pairing proxy retains its existing
+capability, scope, origin and input restrictions. Signed Auth registry and ACL
+controller commands have exact bounded proxy paths, with authentication performed
+by their owning service. They cannot dispatch general browser operations.
+Development decode-only authentication refuses run-bound or managed subjects.
+Configuration remains absent by default and grants no paid-router authority.

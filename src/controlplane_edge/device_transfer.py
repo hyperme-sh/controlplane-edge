@@ -167,6 +167,10 @@ class DeviceTransferMiddleware:
         if candidate not in self.scopes:
             return 403, b'', cors
         outgoing = {'Content-Type': 'application/json', 'Accept': 'application/json', 'Origin': origin}
+        from controlplane_edge.nightly import forwarded_grant
+        grant = forwarded_grant(request)
+        if grant is not None:
+            outgoing['X-Nightly-Run-Grant'] = grant
         role = request.headers.get('x-pairing-role') if owner == 'auth' else 'sender'
         if owner == 'auth':
             if role not in ACTIONS or action not in ACTIONS[role]:

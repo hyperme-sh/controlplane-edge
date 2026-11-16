@@ -43,6 +43,11 @@ async def resolve_bearer_claims(token: str) -> dict[str, Any] | None:
             token,
             options={"verify_signature": False, "verify_aud": False, "verify_exp": False},
         )
+        # Development decoding must never create browser fixture authority.
+        from controlplane_identity.nightly import require_original_run, current_binding
+        if current_binding() is not None or 'nightly_run' in claims:
+            return None
+        require_original_run(claims)
         if claims.get("azp") == "hypermesh-host-setup" or claims.get("purpose") == "host_setup":
             return None
         return claims
@@ -81,6 +86,10 @@ def resolve_bearer_claims_sync(token: str) -> dict[str, Any] | None:
             token,
             options={"verify_signature": False, "verify_aud": False, "verify_exp": False},
         )
+        from controlplane_identity.nightly import require_original_run, current_binding
+        if current_binding() is not None or 'nightly_run' in claims:
+            return None
+        require_original_run(claims)
         if claims.get("azp") == "hypermesh-host-setup" or claims.get("purpose") == "host_setup":
             return None
         return claims
