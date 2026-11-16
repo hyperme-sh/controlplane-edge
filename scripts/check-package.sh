@@ -41,9 +41,9 @@ esac
 if (( $# > 1 )); then echo 'Unexpected arguments' >&2; exit 2; fi
 uv sync --frozen --python 3.13 "${sync_options[@]}"
 if (( ${#fixture_wheels[@]} )); then
-  uv pip install --no-config --python .venv/bin/python --no-deps --reinstall "${fixture_wheels[@]}"
+  uv pip install --no-config --python "${UV_PROJECT_ENVIRONMENT:-$PWD/.venv}/bin/python" --no-deps --reinstall "${fixture_wheels[@]}"
 fi
-.venv/bin/python scripts/verify_preparation_environment.py "$PWD"
+"${UV_PROJECT_ENVIRONMENT:-$PWD/.venv}/bin/python" scripts/verify_preparation_environment.py "$PWD"
 uv run --frozen "${run_options[@]}" pytest -q tests_tools
 test_selection=(-m 'not integration')
 if [[ "${EDGE_NIGHTLY:-0}" == 1 ]]; then

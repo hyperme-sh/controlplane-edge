@@ -56,8 +56,9 @@ The user is the sole developer. Never add or enable GitHub required reviewers, b
 
 The preparation-only PR lane may run existing package consumers on disposable
 hosted Ubuntu using exact dependency-wheel fixtures and no private credentials.
-Keep its permissions read-only and retain Actions artifacts only. Do not tag,
-publish releases or merge preparation PRs as part of qualification.
+Keep preparation permissions read-only and build outputs within the CI job;
+do not upload Actions artifacts. Authorized PR work may merge after green CI
+and clean reviews. Manual version tags and releases require explicit approval.
 
 ## Private CI runner policy
 
