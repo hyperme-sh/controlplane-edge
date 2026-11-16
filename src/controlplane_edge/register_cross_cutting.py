@@ -42,7 +42,7 @@ def maybe_instrument_otel(app: FastAPI) -> None:
     exporter = OTLPSpanExporter()
     provider.add_span_processor(BatchSpanProcessor(exporter))
     trace.set_tracer_provider(provider)
-    FastAPIInstrumentor.instrument_app(app)
+    FastAPIInstrumentor.instrument_app(app, excluded_urls=r"/auth/sea-device-link/v1(?:/|$),/api/v1/acl/sociacl/device-transfer(?:/|$)")
     try:
         from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 
@@ -96,5 +96,9 @@ def register_gateway_cross_cutting(app: FastAPI) -> None:
             allow_methods=["*"],
             allow_headers=["*"],
         )
+
+    # Pairing has its own exact-origin CORS, bounded transport and owner authentication.
+    from controlplane_edge.device_transfer import DeviceTransferMiddleware
+    app.add_middleware(DeviceTransferMiddleware)
 
     logger.info("Gateway cross-cutting middleware registered (auth, rate limit, CORS, optional events)")
