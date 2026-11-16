@@ -14,6 +14,7 @@ import httpx
 from starlette.requests import Request
 from starlette.responses import Response
 from controlplane_edge.aggregation_settings import OpenAPIAggregationSettings
+from controlplane_edge.edge_settings import GatewayCrossCuttingSettings
 
 RELAY = '/auth/sea-device-link/v1'
 ACL = '/api/v1/acl/sociacl/device-transfer'
@@ -66,6 +67,7 @@ class PairingLogFilter(logging.Filter):
 class DeviceTransferMiddleware:
     def __init__(self, app):
         self.app = app
+        self.enabled = GatewayCrossCuttingSettings().edge_proxy_enabled
         self.scopes = load_scopes()
         self.settings = OpenAPIAggregationSettings()
         self.capacity = anyio.CapacityLimiter(8)
@@ -108,7 +110,7 @@ class DeviceTransferMiddleware:
 
     async def forward(self, request):
         selected = route(request.url.path)
-        if selected is None or not self.scopes:
+        if not self.enabled or selected is None or not self.scopes:
             return 404, b'', {}
         if request.url.query or request.scope.get('raw_path', b'').decode('ascii', errors='replace') != request.url.path:
             return 400, b'', {}

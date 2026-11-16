@@ -88,3 +88,13 @@ def test_s3rch_sender_without_optional_relay_tenant_header(client):
     assert client.post(path,json={'scope':SCOPE,'payload':{}},headers=headers).status_code == 200
     assert upstream.calls.last.request.headers['x-tenant-id'] == SCOPE['tenant']
     assert client.post(ACL+'/state',json={'scope':SCOPE},headers=headers).status_code == 401
+
+@respx.mock
+def test_proxy_disabled_never_contacts_owner(client, monkeypatch):
+    monkeypatch.setenv('CPEDGE_EDGE_PROXY','false')
+    app=FastAPI();register_gateway_cross_cutting(app)
+    upstream=respx.post('http://auth.test'+PATH).respond(200,json={})
+    with TestClient(app) as disabled:
+        assert disabled.post(PATH,json={'scope':SCOPE},headers=HEADERS).status_code == 404
+        assert disabled.post(ACL+'/state',json={'scope':SCOPE},headers=HEADERS).status_code == 404
+    assert upstream.call_count == 0
