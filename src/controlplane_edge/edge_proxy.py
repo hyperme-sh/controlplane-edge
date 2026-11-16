@@ -71,10 +71,15 @@ def _forward_request_headers(request: Request) -> dict[str, str]:
     bearer = getattr(request.state, "bearer_token", None)
     for key, value in request.headers.items():
         lk = key.lower()
-        if (lk in _HOP_BY_HOP or lk in {"authorization", "x-tenant-id"}
+        if (lk in _HOP_BY_HOP or lk in {"authorization", "x-tenant-id", "x-nightly-run-grant"}
                 or (lk == "x-api-key" and bearer)):
             continue
         out[key] = value
+
+    from controlplane_edge.nightly import forwarded_grant
+    grant = forwarded_grant(request)
+    if grant is not None:
+        out['X-Nightly-Run-Grant'] = grant
 
     tenant = getattr(request.state, "tenant_id", None)
     if tenant is not None:
@@ -391,7 +396,18 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
         if request.url.query:
             target = f"{target}?{request.url.query}"
 
-        if is_sumsub_webhook_path(request.url.path, request.method):
+        from controlplane_edge.nightly import COMMANDS
+        if (request.method, request.url.path) in COMMANDS:
+            payload = bytearray()
+            async with asyncio.timeout(12):
+                async for chunk in request.stream():
+                    payload.extend(chunk)
+                    if len(payload) > 16384:
+                        return Response(status_code=413)
+            body = bytes(payload)
+            name = 'x-nightly-owner-signature' if match.service_id == 'auth' else 'x-nightly-controller-signature'
+            headers = {'Content-Type':'application/json', name:request.headers.get(name,'')}
+        elif is_sumsub_webhook_path(request.url.path, request.method):
             headers = {}
             for name in ("x-payload-digest-alg", "x-payload-digest"):
                 values = request.headers.getlist(name)

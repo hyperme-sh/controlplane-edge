@@ -91,6 +91,14 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
         install_lane_log_filter()
 
     async def dispatch(self, request: Request, call_next) -> Response:
+        from controlplane_edge.nightly import COMMANDS
+        import os
+        if os.environ.get('CPEDGE_NIGHTLY_RUN_CONFIG') is not None and (request.method, request.url.path) in COMMANDS:
+            name = 'x-nightly-owner-signature' if request.url.path.startswith('/auth/') else 'x-nightly-controller-signature'
+            values = request.headers.getlist(name)
+            if len(values) != 1 or re.fullmatch('[a-f0-9]{64}', values[0]) is None:
+                return JSONResponse(status_code=403, content={'detail':'Owner command refused'})
+            return await call_next(request)
         if request.url.path.startswith("/api/v1/internal/") or "/internal/account-lifecycle" in request.url.path:
             return JSONResponse(status_code=404, content={"detail": "Not found"})
         if request.method == "OPTIONS":
@@ -211,6 +219,15 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
             # Bound session/exchange JWTs carry tenant. A raw Keycloak (or
             # other) JWT must not bind X-Tenant-ID — switch-tenant first.
             tenant_id = None
+            from controlplane_identity.nightly import current_binding, require_original_run
+            binding = current_binding()
+            if binding is not None and request.method == 'GET' and path == '/api/v1/organizations':
+                try:
+                    require_original_run(claims)
+                    if tid_raw != binding['scope']['tenant']:raise ValueError('Foreign selection')
+                    tenant_id = uuid.UUID(binding['scope']['tenant'])
+                except Exception:
+                    return JSONResponse(status_code=403,content={'detail':'Original tenant required'})
 
         request.state.jwt_claims = claims
         request.state.bearer_token = bearer

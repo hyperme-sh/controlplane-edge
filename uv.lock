@@ -16,7 +16,7 @@ resolution-markers = [
 [manifest]
 overrides = [
     { name = "controlplane-api", git = "https://github.com/hyperme-sh/controlplane-api.git?rev=316912f30dd90113ab9203eff1bc998bb89b47cf" },
-    { name = "controlplane-identity", git = "https://github.com/hyperme-sh/controlplane-identity.git?rev=a2cb7f055dced17f76e64009395ffb7599557a71" },
+    { name = "controlplane-identity", git = "https://github.com/hyperme-sh/controlplane-identity.git?rev=14355f230e15a5acf3b1283e87d5f65aceff35ba" },
 ]
 
 [[package]]
@@ -960,7 +960,7 @@ dev = [
 requires-dist = [
     { name = "controlplane-api", git = "https://github.com/hyperme-sh/controlplane-api.git?rev=316912f30dd90113ab9203eff1bc998bb89b47cf" },
     { name = "controlplane-events", git = "https://github.com/hyperme-sh/controlplane-events.git?rev=8f16587d105f7352891a1d9d77ec8305bbf5cd29" },
-    { name = "controlplane-identity", git = "https://github.com/hyperme-sh/controlplane-identity.git?rev=a2cb7f055dced17f76e64009395ffb7599557a71" },
+    { name = "controlplane-identity", git = "https://github.com/hyperme-sh/controlplane-identity.git?rev=14355f230e15a5acf3b1283e87d5f65aceff35ba" },
     { name = "controlplane-proto", git = "https://github.com/hyperme-sh/controlplane-proto.git?rev=0cf9d9f3b81273d1fc742f80cf5adc1fbe0d8446" },
     { name = "grpcio", specifier = ">=1.80.0" },
     { name = "httpx", specifier = ">=0.28.0" },
@@ -1001,7 +1001,7 @@ dependencies = [
 [[package]]
 name = "controlplane-identity"
 version = "0.15.0"
-source = { git = "https://github.com/hyperme-sh/controlplane-identity.git?rev=a2cb7f055dced17f76e64009395ffb7599557a71#a2cb7f055dced17f76e64009395ffb7599557a71" }
+source = { git = "https://github.com/hyperme-sh/controlplane-identity.git?rev=14355f230e15a5acf3b1283e87d5f65aceff35ba#14355f230e15a5acf3b1283e87d5f65aceff35ba" }
 dependencies = [
     { name = "eth-abi" },
     { name = "eth-account" },
