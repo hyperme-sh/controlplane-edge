@@ -1,0 +1,10 @@
+{
+  "distribution": "opentelemetry-util-http",
+  "version": "0.66b2",
+  "url": "https://raw.githubusercontent.com/open-telemetry/opentelemetry-python-contrib/a34b6fa56948bebb539cfece22adf5d022cc3c19/LICENSE",
+  "upstream_tag": "v0.66b2",
+  "upstream_commit": "a34b6fa56948bebb539cfece22adf5d022cc3c19",
+  "files": {
+    "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+  }
+}
