@@ -19,6 +19,7 @@ from controlplane_edge.edge_settings import GatewayCrossCuttingSettings
 RELAY = '/auth/sea-device-link/v1'
 ACL = '/api/v1/acl/sociacl/device-transfer'
 BODY_TIMEOUT = 3
+SEND_TIMEOUT = 3
 SCOPES = {'sourceOrigin', 'destinationOrigin', 'application', 'tenant', 'audience'}
 ACTIONS = {'sender': {'admit', 'join', 'send', 'completed', 'cancel'},
            'receiver': {'create', 'offer', 'receive', 'complete', 'completed', 'cancel'}}
@@ -91,33 +92,39 @@ class DeviceTransferMiddleware:
         status, body, headers = 503, b'', dict(PRIVATE)
         acquired = False
         try:
-            minute = int(time.monotonic() // 60)
-            self.buckets = {key: val for key, val in self.buckets.items() if val[0] == minute}
-            client = (scope.get('client') or ('unknown', 0))[0]
-            count = self.buckets.get(client, (minute, 0))[1]
-            if self.active_clients.get(client, 0) >= 2 or count >= 120 or (client not in self.buckets and len(self.buckets) >= 1024):
+            try:
+                minute = int(time.monotonic() // 60)
+                self.buckets = {key: val for key, val in self.buckets.items() if val[0] == minute}
+                client = (scope.get('client') or ('unknown', 0))[0]
+                count = self.buckets.get(client, (minute, 0))[1]
+                if self.active_clients.get(client, 0) >= 2 or count >= 120 or (client not in self.buckets and len(self.buckets) >= 1024):
+                    status = 429
+                else:
+                    self.buckets[client] = (minute, count + 1)
+                    self.capacity.acquire_nowait()
+                    acquired = True
+                    self.active_clients[client] = self.active_clients.get(client, 0) + 1
+                    async with asyncio.timeout(12):
+                        status, body, extra = await self.forward(request)
+                        headers.update(extra)
+            except anyio.WouldBlock:
                 status = 429
-            else:
-                self.buckets[client] = (minute, count + 1)
-                self.capacity.acquire_nowait()
-                acquired = True
-                self.active_clients[client] = self.active_clients.get(client, 0) + 1
-                async with asyncio.timeout(12):
-                    status, body, extra = await self.forward(request)
-                    headers.update(extra)
-        except anyio.WouldBlock:
-            status = 429
-        except (ValueError, TypeError, KeyError, RecursionError):
-            status = 400
-        except (TimeoutError, httpx.HTTPError):
-            status = 503
+            except (ValueError, TypeError, KeyError, RecursionError):
+                status = 400
+            except (TimeoutError, httpx.HTTPError):
+                status = 503
+            try:
+                async with asyncio.timeout(SEND_TIMEOUT):
+                    await Response(body, status_code=status, headers=headers)(scope, receive, send)
+            except TimeoutError:
+                # A stalled reader must not retain a buffered owner response.
+                return
         finally:
             if acquired:
                 self.capacity.release()
                 self.active_clients[client] -= 1
                 if not self.active_clients[client]:
                     del self.active_clients[client]
-        await Response(body, status_code=status, headers=headers)(scope, receive, send)
 
     async def forward(self, request):
         selected = route(request.url.path)

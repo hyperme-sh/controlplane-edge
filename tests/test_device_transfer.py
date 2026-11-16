@@ -174,3 +174,42 @@ def test_slow_body_deadline_releases_capacity(client, monkeypatch):
         assert not middleware.active_clients
         assert middleware.capacity.borrowed_tokens == 0
     asyncio.run(check())
+
+
+@pytest.mark.parametrize('cancel', [False, True])
+def test_slow_reader_holds_slots_until_timeout_or_cancellation(client, monkeypatch, cancel):
+    import asyncio
+    import controlplane_edge.device_transfer as transfer
+    monkeypatch.setattr(transfer, 'SEND_TIMEOUT', 1 if cancel else 0.02)
+
+    async def check():
+        middleware = transfer.DeviceTransferMiddleware(None)
+        entered = asyncio.Event()
+        async def forward(request):
+            return 200, b'owner response', {}
+        middleware.forward = forward
+        async def receive():
+            raise AssertionError('No body needed by stub owner')
+        async def send(message):
+            if message['type'] == 'http.response.body':
+                entered.set()
+                await asyncio.Event().wait()
+        scope = {'type': 'http', 'method': 'POST', 'path': PATH,
+                 'headers': [], 'client': ('slow-reader', 1234)}
+        task = asyncio.create_task(middleware(scope, receive, send))
+        try:
+            await asyncio.wait_for(entered.wait(), 1)
+            assert middleware.active_clients == {'slow-reader': 1}
+            assert middleware.capacity.borrowed_tokens == 1
+            if cancel:
+                task.cancel()
+                with pytest.raises(asyncio.CancelledError):
+                    await task
+            else:
+                await asyncio.wait_for(task, 1)
+            assert not middleware.active_clients
+            assert middleware.capacity.borrowed_tokens == 0
+        finally:
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+    asyncio.run(check())
