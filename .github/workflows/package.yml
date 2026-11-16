@@ -45,6 +45,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           QUALIFIED_IMAGE_REF: edge:ci-${{ github.run_id }}-${{ github.run_attempt }}
         run: bash scripts/publish-test-runtime.sh
+      - name: Review retained registry versions after publication
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          REQUIRE_REGISTRY_INVENTORY=1 python3 scripts/inventory_registry.py "$RELEASE_ARTIFACT_DIR/registry-output"
+          python3 -c 'import json,sys; rows=dict(line.rstrip().split("=",1) for line in open(sys.argv[1])); print("\n".join(r["digest"] for r in json.loads(rows["matrix"])["include"]))' "$RELEASE_ARTIFACT_DIR/registry-output" > "$RELEASE_ARTIFACT_DIR/digests"
+          while IFS= read -r digest; do
+            [[ -z "$digest" ]] || HISTORICAL_REPOSITORY=hyperme-sh/controlplane-edge/runtime bash scripts/check-older-image.sh "$digest"
+          done < "$RELEASE_ARTIFACT_DIR/digests"
       - name: Remove job-owned local runtime image
         if: always()
         run: docker image rm "edge:ci-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >/dev/null 2>&1 || true

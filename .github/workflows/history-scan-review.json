@@ -1,0 +1,1042 @@
+[
+  {
+    "file": "368dc569b7e2ba192c6d8d04dcabba555d13eb9e.txt",
+    "sha256": "03f719fdb60ac5c2eb49333659880989f45f77c958dd8aa12dbb4f9ab762f28f",
+    "rule": "generic-api-key",
+    "start": 7,
+    "end": 7,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "fc1385f1cb42aa8b090ba667df29bc606bef1c63",
+    "source_path": "src/controlplane_edge/api_keys_client.py"
+  },
+  {
+    "file": "368dc569b7e2ba192c6d8d04dcabba555d13eb9e.txt",
+    "sha256": "03f719fdb60ac5c2eb49333659880989f45f77c958dd8aa12dbb4f9ab762f28f",
+    "rule": "generic-api-key",
+    "start": 8,
+    "end": 8,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "85ff265030fa30e2acb735a65aca6d3fcdf065c8",
+    "source_path": "src/controlplane_edge/auth_utils.py"
+  },
+  {
+    "file": "368dc569b7e2ba192c6d8d04dcabba555d13eb9e.txt",
+    "sha256": "03f719fdb60ac5c2eb49333659880989f45f77c958dd8aa12dbb4f9ab762f28f",
+    "rule": "generic-api-key",
+    "start": 9,
+    "end": 9,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "a74b9fde311a8e093085c3038f260f62c9e7a009",
+    "source_path": "src/controlplane_edge/closure_auth.py"
+  },
+  {
+    "file": "368dc569b7e2ba192c6d8d04dcabba555d13eb9e.txt",
+    "sha256": "03f719fdb60ac5c2eb49333659880989f45f77c958dd8aa12dbb4f9ab762f28f",
+    "rule": "generic-api-key",
+    "start": 20,
+    "end": 20,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "f85527a4cc490ffc8d691aad21fb96d81f05078d",
+    "source_path": "src/controlplane_edge/host_setup_auth.py"
+  },
+  {
+    "file": "368dc569b7e2ba192c6d8d04dcabba555d13eb9e.txt",
+    "sha256": "03f719fdb60ac5c2eb49333659880989f45f77c958dd8aa12dbb4f9ab762f28f",
+    "rule": "generic-api-key",
+    "start": 23,
+    "end": 23,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "58e7e2bb5954ceb6bc39307aeb9083077f19a76c",
+    "source_path": "src/controlplane_edge/middleware/api_events.py"
+  },
+  {
+    "file": "368dc569b7e2ba192c6d8d04dcabba555d13eb9e.txt",
+    "sha256": "03f719fdb60ac5c2eb49333659880989f45f77c958dd8aa12dbb4f9ab762f28f",
+    "rule": "generic-api-key",
+    "start": 24,
+    "end": 24,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "333dfb671595482e20fdfae0b9e716b1e84d9bb7",
+    "source_path": "src/controlplane_edge/middleware/api_key_bruteforce.py"
+  },
+  {
+    "file": "368dc569b7e2ba192c6d8d04dcabba555d13eb9e.txt",
+    "sha256": "03f719fdb60ac5c2eb49333659880989f45f77c958dd8aa12dbb4f9ab762f28f",
+    "rule": "generic-api-key",
+    "start": 27,
+    "end": 27,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "10b5ad71016c366cb7caf4f8bc0e6775be4e4e24",
+    "source_path": "src/controlplane_edge/openapi_aggregate.py"
+  },
+  {
+    "file": "368dc569b7e2ba192c6d8d04dcabba555d13eb9e.txt",
+    "sha256": "03f719fdb60ac5c2eb49333659880989f45f77c958dd8aa12dbb4f9ab762f28f",
+    "rule": "generic-api-key",
+    "start": 28,
+    "end": 28,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "c5fd01a352e990cad73c88145b996547646d777a",
+    "source_path": "src/controlplane_edge/openapi_merge.py"
+  },
+  {
+    "file": "3a84d93eb12da7f9ed0763a8fd73add56dd047be-68.txt",
+    "sha256": "8c5144f807b3cc66e9cfaeda08befcc8a272c90092a961c26f911bffaa3158f4",
+    "rule": "generic-api-key",
+    "start": 241,
+    "end": 241,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "8405ab8edeba907e7b9aa24566c3816391948f58",
+    "source_path": "controlplane_db/alembic/versions/20250330_0002_keycloak_sub_nullable_password.py"
+  },
+  {
+    "file": "3a84d93eb12da7f9ed0763a8fd73add56dd047be-68.txt",
+    "sha256": "8c5144f807b3cc66e9cfaeda08befcc8a272c90092a961c26f911bffaa3158f4",
+    "rule": "generic-api-key",
+    "start": 250,
+    "end": 250,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "8405ab8edeba907e7b9aa24566c3816391948f58",
+    "source_path": "controlplane_db/alembic/versions/20250330_0011_api_keys.py"
+  },
+  {
+    "file": "3a84d93eb12da7f9ed0763a8fd73add56dd047be-68.txt",
+    "sha256": "8c5144f807b3cc66e9cfaeda08befcc8a272c90092a961c26f911bffaa3158f4",
+    "rule": "generic-api-key",
+    "start": 254,
+    "end": 254,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "8405ab8edeba907e7b9aa24566c3816391948f58",
+    "source_path": "controlplane_db/alembic/versions/20260907_0015_site_machine_tokens.py"
+  },
+  {
+    "file": "3a84d93eb12da7f9ed0763a8fd73add56dd047be-68.txt",
+    "sha256": "8c5144f807b3cc66e9cfaeda08befcc8a272c90092a961c26f911bffaa3158f4",
+    "rule": "generic-api-key",
+    "start": 276,
+    "end": 276,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "8405ab8edeba907e7b9aa24566c3816391948f58",
+    "source_path": "controlplane_db/alembic/versions/20260925_0037_api_key_last_used.py"
+  },
+  {
+    "file": "43471373028015f5695f7df163d8260b6c157353.txt",
+    "sha256": "5b7839a122ecf2831e9573cf47e650d99330ada41101e5ba65a994b3de5810ab",
+    "rule": "generic-api-key",
+    "start": 7,
+    "end": 7,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "fc1385f1cb42aa8b090ba667df29bc606bef1c63",
+    "source_path": "src/controlplane_edge/api_keys_client.py"
+  },
+  {
+    "file": "43471373028015f5695f7df163d8260b6c157353.txt",
+    "sha256": "5b7839a122ecf2831e9573cf47e650d99330ada41101e5ba65a994b3de5810ab",
+    "rule": "generic-api-key",
+    "start": 8,
+    "end": 8,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "85ff265030fa30e2acb735a65aca6d3fcdf065c8",
+    "source_path": "src/controlplane_edge/auth_utils.py"
+  },
+  {
+    "file": "43471373028015f5695f7df163d8260b6c157353.txt",
+    "sha256": "5b7839a122ecf2831e9573cf47e650d99330ada41101e5ba65a994b3de5810ab",
+    "rule": "generic-api-key",
+    "start": 9,
+    "end": 9,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "a74b9fde311a8e093085c3038f260f62c9e7a009",
+    "source_path": "src/controlplane_edge/closure_auth.py"
+  },
+  {
+    "file": "43471373028015f5695f7df163d8260b6c157353.txt",
+    "sha256": "5b7839a122ecf2831e9573cf47e650d99330ada41101e5ba65a994b3de5810ab",
+    "rule": "generic-api-key",
+    "start": 20,
+    "end": 20,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "f85527a4cc490ffc8d691aad21fb96d81f05078d",
+    "source_path": "src/controlplane_edge/host_setup_auth.py"
+  },
+  {
+    "file": "43471373028015f5695f7df163d8260b6c157353.txt",
+    "sha256": "5b7839a122ecf2831e9573cf47e650d99330ada41101e5ba65a994b3de5810ab",
+    "rule": "generic-api-key",
+    "start": 23,
+    "end": 23,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "58e7e2bb5954ceb6bc39307aeb9083077f19a76c",
+    "source_path": "src/controlplane_edge/middleware/api_events.py"
+  },
+  {
+    "file": "43471373028015f5695f7df163d8260b6c157353.txt",
+    "sha256": "5b7839a122ecf2831e9573cf47e650d99330ada41101e5ba65a994b3de5810ab",
+    "rule": "generic-api-key",
+    "start": 24,
+    "end": 24,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "333dfb671595482e20fdfae0b9e716b1e84d9bb7",
+    "source_path": "src/controlplane_edge/middleware/api_key_bruteforce.py"
+  },
+  {
+    "file": "43471373028015f5695f7df163d8260b6c157353.txt",
+    "sha256": "5b7839a122ecf2831e9573cf47e650d99330ada41101e5ba65a994b3de5810ab",
+    "rule": "generic-api-key",
+    "start": 27,
+    "end": 27,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "10b5ad71016c366cb7caf4f8bc0e6775be4e4e24",
+    "source_path": "src/controlplane_edge/openapi_aggregate.py"
+  },
+  {
+    "file": "43471373028015f5695f7df163d8260b6c157353.txt",
+    "sha256": "5b7839a122ecf2831e9573cf47e650d99330ada41101e5ba65a994b3de5810ab",
+    "rule": "generic-api-key",
+    "start": 28,
+    "end": 28,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "ba552fb30a82fe6c35a0d28f9cfcc790caeeb9f8",
+    "source_path": "src/controlplane_edge/openapi_merge.py"
+  },
+  {
+    "file": "454203c46cf6a2fe0c9aa3ed84b71f4d873b53d4.txt",
+    "sha256": "4dcda6c910312d2ebbd897a08fde796682c4b385b4d8872c5c71966050e11c02",
+    "rule": "generic-api-key",
+    "start": 7,
+    "end": 7,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "fc1385f1cb42aa8b090ba667df29bc606bef1c63",
+    "source_path": "src/controlplane_edge/api_keys_client.py"
+  },
+  {
+    "file": "454203c46cf6a2fe0c9aa3ed84b71f4d873b53d4.txt",
+    "sha256": "4dcda6c910312d2ebbd897a08fde796682c4b385b4d8872c5c71966050e11c02",
+    "rule": "generic-api-key",
+    "start": 8,
+    "end": 8,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "85ff265030fa30e2acb735a65aca6d3fcdf065c8",
+    "source_path": "src/controlplane_edge/auth_utils.py"
+  },
+  {
+    "file": "454203c46cf6a2fe0c9aa3ed84b71f4d873b53d4.txt",
+    "sha256": "4dcda6c910312d2ebbd897a08fde796682c4b385b4d8872c5c71966050e11c02",
+    "rule": "generic-api-key",
+    "start": 9,
+    "end": 9,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "a74b9fde311a8e093085c3038f260f62c9e7a009",
+    "source_path": "src/controlplane_edge/closure_auth.py"
+  },
+  {
+    "file": "454203c46cf6a2fe0c9aa3ed84b71f4d873b53d4.txt",
+    "sha256": "4dcda6c910312d2ebbd897a08fde796682c4b385b4d8872c5c71966050e11c02",
+    "rule": "generic-api-key",
+    "start": 20,
+    "end": 20,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "f85527a4cc490ffc8d691aad21fb96d81f05078d",
+    "source_path": "src/controlplane_edge/host_setup_auth.py"
+  },
+  {
+    "file": "454203c46cf6a2fe0c9aa3ed84b71f4d873b53d4.txt",
+    "sha256": "4dcda6c910312d2ebbd897a08fde796682c4b385b4d8872c5c71966050e11c02",
+    "rule": "generic-api-key",
+    "start": 23,
+    "end": 23,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "58e7e2bb5954ceb6bc39307aeb9083077f19a76c",
+    "source_path": "src/controlplane_edge/middleware/api_events.py"
+  },
+  {
+    "file": "454203c46cf6a2fe0c9aa3ed84b71f4d873b53d4.txt",
+    "sha256": "4dcda6c910312d2ebbd897a08fde796682c4b385b4d8872c5c71966050e11c02",
+    "rule": "generic-api-key",
+    "start": 24,
+    "end": 24,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "333dfb671595482e20fdfae0b9e716b1e84d9bb7",
+    "source_path": "src/controlplane_edge/middleware/api_key_bruteforce.py"
+  },
+  {
+    "file": "454203c46cf6a2fe0c9aa3ed84b71f4d873b53d4.txt",
+    "sha256": "4dcda6c910312d2ebbd897a08fde796682c4b385b4d8872c5c71966050e11c02",
+    "rule": "generic-api-key",
+    "start": 27,
+    "end": 27,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "10b5ad71016c366cb7caf4f8bc0e6775be4e4e24",
+    "source_path": "src/controlplane_edge/openapi_aggregate.py"
+  },
+  {
+    "file": "454203c46cf6a2fe0c9aa3ed84b71f4d873b53d4.txt",
+    "sha256": "4dcda6c910312d2ebbd897a08fde796682c4b385b4d8872c5c71966050e11c02",
+    "rule": "generic-api-key",
+    "start": 28,
+    "end": 28,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "c5fd01a352e990cad73c88145b996547646d777a",
+    "source_path": "src/controlplane_edge/openapi_merge.py"
+  },
+  {
+    "file": "4518115912d5ceeba78888cf8f1989953f34c76e-68.txt",
+    "sha256": "8c5144f807b3cc66e9cfaeda08befcc8a272c90092a961c26f911bffaa3158f4",
+    "rule": "generic-api-key",
+    "start": 241,
+    "end": 241,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "8405ab8edeba907e7b9aa24566c3816391948f58",
+    "source_path": "controlplane_db/alembic/versions/20250330_0002_keycloak_sub_nullable_password.py"
+  },
+  {
+    "file": "4518115912d5ceeba78888cf8f1989953f34c76e-68.txt",
+    "sha256": "8c5144f807b3cc66e9cfaeda08befcc8a272c90092a961c26f911bffaa3158f4",
+    "rule": "generic-api-key",
+    "start": 250,
+    "end": 250,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "8405ab8edeba907e7b9aa24566c3816391948f58",
+    "source_path": "controlplane_db/alembic/versions/20250330_0011_api_keys.py"
+  },
+  {
+    "file": "4518115912d5ceeba78888cf8f1989953f34c76e-68.txt",
+    "sha256": "8c5144f807b3cc66e9cfaeda08befcc8a272c90092a961c26f911bffaa3158f4",
+    "rule": "generic-api-key",
+    "start": 254,
+    "end": 254,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "8405ab8edeba907e7b9aa24566c3816391948f58",
+    "source_path": "controlplane_db/alembic/versions/20260907_0015_site_machine_tokens.py"
+  },
+  {
+    "file": "4518115912d5ceeba78888cf8f1989953f34c76e-68.txt",
+    "sha256": "8c5144f807b3cc66e9cfaeda08befcc8a272c90092a961c26f911bffaa3158f4",
+    "rule": "generic-api-key",
+    "start": 276,
+    "end": 276,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "8405ab8edeba907e7b9aa24566c3816391948f58",
+    "source_path": "controlplane_db/alembic/versions/20260925_0037_api_key_last_used.py"
+  },
+  {
+    "file": "8405ab8edeba907e7b9aa24566c3816391948f58-68.txt",
+    "sha256": "8c5144f807b3cc66e9cfaeda08befcc8a272c90092a961c26f911bffaa3158f4",
+    "rule": "generic-api-key",
+    "start": 241,
+    "end": 241,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "8405ab8edeba907e7b9aa24566c3816391948f58",
+    "source_path": "controlplane_db/alembic/versions/20250330_0002_keycloak_sub_nullable_password.py"
+  },
+  {
+    "file": "8405ab8edeba907e7b9aa24566c3816391948f58-68.txt",
+    "sha256": "8c5144f807b3cc66e9cfaeda08befcc8a272c90092a961c26f911bffaa3158f4",
+    "rule": "generic-api-key",
+    "start": 250,
+    "end": 250,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "8405ab8edeba907e7b9aa24566c3816391948f58",
+    "source_path": "controlplane_db/alembic/versions/20250330_0011_api_keys.py"
+  },
+  {
+    "file": "8405ab8edeba907e7b9aa24566c3816391948f58-68.txt",
+    "sha256": "8c5144f807b3cc66e9cfaeda08befcc8a272c90092a961c26f911bffaa3158f4",
+    "rule": "generic-api-key",
+    "start": 254,
+    "end": 254,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "8405ab8edeba907e7b9aa24566c3816391948f58",
+    "source_path": "controlplane_db/alembic/versions/20260907_0015_site_machine_tokens.py"
+  },
+  {
+    "file": "8405ab8edeba907e7b9aa24566c3816391948f58-68.txt",
+    "sha256": "8c5144f807b3cc66e9cfaeda08befcc8a272c90092a961c26f911bffaa3158f4",
+    "rule": "generic-api-key",
+    "start": 276,
+    "end": 276,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "8405ab8edeba907e7b9aa24566c3816391948f58",
+    "source_path": "controlplane_db/alembic/versions/20260925_0037_api_key_last_used.py"
+  },
+  {
+    "file": "926754dfc56d0c4b6c9bda175ebed3f24a7bd10d.txt",
+    "sha256": "db8600c12fa56ab40d3307a8db98f46f671c15fb9d4b72f6515a50e3b5af05f4",
+    "rule": "generic-api-key",
+    "start": 7,
+    "end": 7,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "fc1385f1cb42aa8b090ba667df29bc606bef1c63",
+    "source_path": "src/controlplane_edge/api_keys_client.py"
+  },
+  {
+    "file": "926754dfc56d0c4b6c9bda175ebed3f24a7bd10d.txt",
+    "sha256": "db8600c12fa56ab40d3307a8db98f46f671c15fb9d4b72f6515a50e3b5af05f4",
+    "rule": "generic-api-key",
+    "start": 8,
+    "end": 8,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "85ff265030fa30e2acb735a65aca6d3fcdf065c8",
+    "source_path": "src/controlplane_edge/auth_utils.py"
+  },
+  {
+    "file": "926754dfc56d0c4b6c9bda175ebed3f24a7bd10d.txt",
+    "sha256": "db8600c12fa56ab40d3307a8db98f46f671c15fb9d4b72f6515a50e3b5af05f4",
+    "rule": "generic-api-key",
+    "start": 9,
+    "end": 9,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "a74b9fde311a8e093085c3038f260f62c9e7a009",
+    "source_path": "src/controlplane_edge/closure_auth.py"
+  },
+  {
+    "file": "926754dfc56d0c4b6c9bda175ebed3f24a7bd10d.txt",
+    "sha256": "db8600c12fa56ab40d3307a8db98f46f671c15fb9d4b72f6515a50e3b5af05f4",
+    "rule": "generic-api-key",
+    "start": 20,
+    "end": 20,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "f85527a4cc490ffc8d691aad21fb96d81f05078d",
+    "source_path": "src/controlplane_edge/host_setup_auth.py"
+  },
+  {
+    "file": "926754dfc56d0c4b6c9bda175ebed3f24a7bd10d.txt",
+    "sha256": "db8600c12fa56ab40d3307a8db98f46f671c15fb9d4b72f6515a50e3b5af05f4",
+    "rule": "generic-api-key",
+    "start": 23,
+    "end": 23,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "58e7e2bb5954ceb6bc39307aeb9083077f19a76c",
+    "source_path": "src/controlplane_edge/middleware/api_events.py"
+  },
+  {
+    "file": "926754dfc56d0c4b6c9bda175ebed3f24a7bd10d.txt",
+    "sha256": "db8600c12fa56ab40d3307a8db98f46f671c15fb9d4b72f6515a50e3b5af05f4",
+    "rule": "generic-api-key",
+    "start": 24,
+    "end": 24,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "333dfb671595482e20fdfae0b9e716b1e84d9bb7",
+    "source_path": "src/controlplane_edge/middleware/api_key_bruteforce.py"
+  },
+  {
+    "file": "926754dfc56d0c4b6c9bda175ebed3f24a7bd10d.txt",
+    "sha256": "db8600c12fa56ab40d3307a8db98f46f671c15fb9d4b72f6515a50e3b5af05f4",
+    "rule": "generic-api-key",
+    "start": 27,
+    "end": 27,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "10b5ad71016c366cb7caf4f8bc0e6775be4e4e24",
+    "source_path": "src/controlplane_edge/openapi_aggregate.py"
+  },
+  {
+    "file": "926754dfc56d0c4b6c9bda175ebed3f24a7bd10d.txt",
+    "sha256": "db8600c12fa56ab40d3307a8db98f46f671c15fb9d4b72f6515a50e3b5af05f4",
+    "rule": "generic-api-key",
+    "start": 28,
+    "end": 28,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "2d3042eded185442f36b6ebd28b960e945ecd230",
+    "source_path": "src/controlplane_edge/openapi_merge.py"
+  },
+  {
+    "file": "90ebf198af1c4d91666650f50638d1942e15db62.txt",
+    "sha256": "b04ba302f1b0c039f19678fe0d0425d135e570bdbfaa59dfe3cbe02674987944",
+    "rule": "generic-api-key",
+    "start": 7,
+    "end": 7,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "fc1385f1cb42aa8b090ba667df29bc606bef1c63",
+    "source_path": "src/controlplane_edge/api_keys_client.py"
+  },
+  {
+    "file": "90ebf198af1c4d91666650f50638d1942e15db62.txt",
+    "sha256": "b04ba302f1b0c039f19678fe0d0425d135e570bdbfaa59dfe3cbe02674987944",
+    "rule": "generic-api-key",
+    "start": 8,
+    "end": 8,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "85ff265030fa30e2acb735a65aca6d3fcdf065c8",
+    "source_path": "src/controlplane_edge/auth_utils.py"
+  },
+  {
+    "file": "90ebf198af1c4d91666650f50638d1942e15db62.txt",
+    "sha256": "b04ba302f1b0c039f19678fe0d0425d135e570bdbfaa59dfe3cbe02674987944",
+    "rule": "generic-api-key",
+    "start": 9,
+    "end": 9,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "a74b9fde311a8e093085c3038f260f62c9e7a009",
+    "source_path": "src/controlplane_edge/closure_auth.py"
+  },
+  {
+    "file": "90ebf198af1c4d91666650f50638d1942e15db62.txt",
+    "sha256": "b04ba302f1b0c039f19678fe0d0425d135e570bdbfaa59dfe3cbe02674987944",
+    "rule": "generic-api-key",
+    "start": 20,
+    "end": 20,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "f85527a4cc490ffc8d691aad21fb96d81f05078d",
+    "source_path": "src/controlplane_edge/host_setup_auth.py"
+  },
+  {
+    "file": "90ebf198af1c4d91666650f50638d1942e15db62.txt",
+    "sha256": "b04ba302f1b0c039f19678fe0d0425d135e570bdbfaa59dfe3cbe02674987944",
+    "rule": "generic-api-key",
+    "start": 23,
+    "end": 23,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "58e7e2bb5954ceb6bc39307aeb9083077f19a76c",
+    "source_path": "src/controlplane_edge/middleware/api_events.py"
+  },
+  {
+    "file": "90ebf198af1c4d91666650f50638d1942e15db62.txt",
+    "sha256": "b04ba302f1b0c039f19678fe0d0425d135e570bdbfaa59dfe3cbe02674987944",
+    "rule": "generic-api-key",
+    "start": 24,
+    "end": 24,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "333dfb671595482e20fdfae0b9e716b1e84d9bb7",
+    "source_path": "src/controlplane_edge/middleware/api_key_bruteforce.py"
+  },
+  {
+    "file": "90ebf198af1c4d91666650f50638d1942e15db62.txt",
+    "sha256": "b04ba302f1b0c039f19678fe0d0425d135e570bdbfaa59dfe3cbe02674987944",
+    "rule": "generic-api-key",
+    "start": 27,
+    "end": 27,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "10b5ad71016c366cb7caf4f8bc0e6775be4e4e24",
+    "source_path": "src/controlplane_edge/openapi_aggregate.py"
+  },
+  {
+    "file": "90ebf198af1c4d91666650f50638d1942e15db62.txt",
+    "sha256": "b04ba302f1b0c039f19678fe0d0425d135e570bdbfaa59dfe3cbe02674987944",
+    "rule": "generic-api-key",
+    "start": 28,
+    "end": 28,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "2d3042eded185442f36b6ebd28b960e945ecd230",
+    "source_path": "src/controlplane_edge/openapi_merge.py"
+  },
+  {
+    "file": "ad2e128b9d77c09e7d904124eb568a3c727a3ef5.txt",
+    "sha256": "4666c99a5189fd127cbda12e7262bef789fe1bed59a3bf713419385e1a9c86bc",
+    "rule": "generic-api-key",
+    "start": 7,
+    "end": 7,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "fc1385f1cb42aa8b090ba667df29bc606bef1c63",
+    "source_path": "src/controlplane_edge/api_keys_client.py"
+  },
+  {
+    "file": "ad2e128b9d77c09e7d904124eb568a3c727a3ef5.txt",
+    "sha256": "4666c99a5189fd127cbda12e7262bef789fe1bed59a3bf713419385e1a9c86bc",
+    "rule": "generic-api-key",
+    "start": 8,
+    "end": 8,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "85ff265030fa30e2acb735a65aca6d3fcdf065c8",
+    "source_path": "src/controlplane_edge/auth_utils.py"
+  },
+  {
+    "file": "ad2e128b9d77c09e7d904124eb568a3c727a3ef5.txt",
+    "sha256": "4666c99a5189fd127cbda12e7262bef789fe1bed59a3bf713419385e1a9c86bc",
+    "rule": "generic-api-key",
+    "start": 9,
+    "end": 9,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "a74b9fde311a8e093085c3038f260f62c9e7a009",
+    "source_path": "src/controlplane_edge/closure_auth.py"
+  },
+  {
+    "file": "ad2e128b9d77c09e7d904124eb568a3c727a3ef5.txt",
+    "sha256": "4666c99a5189fd127cbda12e7262bef789fe1bed59a3bf713419385e1a9c86bc",
+    "rule": "generic-api-key",
+    "start": 20,
+    "end": 20,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "f85527a4cc490ffc8d691aad21fb96d81f05078d",
+    "source_path": "src/controlplane_edge/host_setup_auth.py"
+  },
+  {
+    "file": "ad2e128b9d77c09e7d904124eb568a3c727a3ef5.txt",
+    "sha256": "4666c99a5189fd127cbda12e7262bef789fe1bed59a3bf713419385e1a9c86bc",
+    "rule": "generic-api-key",
+    "start": 23,
+    "end": 23,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "58e7e2bb5954ceb6bc39307aeb9083077f19a76c",
+    "source_path": "src/controlplane_edge/middleware/api_events.py"
+  },
+  {
+    "file": "ad2e128b9d77c09e7d904124eb568a3c727a3ef5.txt",
+    "sha256": "4666c99a5189fd127cbda12e7262bef789fe1bed59a3bf713419385e1a9c86bc",
+    "rule": "generic-api-key",
+    "start": 24,
+    "end": 24,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "333dfb671595482e20fdfae0b9e716b1e84d9bb7",
+    "source_path": "src/controlplane_edge/middleware/api_key_bruteforce.py"
+  },
+  {
+    "file": "ad2e128b9d77c09e7d904124eb568a3c727a3ef5.txt",
+    "sha256": "4666c99a5189fd127cbda12e7262bef789fe1bed59a3bf713419385e1a9c86bc",
+    "rule": "generic-api-key",
+    "start": 27,
+    "end": 27,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "10b5ad71016c366cb7caf4f8bc0e6775be4e4e24",
+    "source_path": "src/controlplane_edge/openapi_aggregate.py"
+  },
+  {
+    "file": "ad2e128b9d77c09e7d904124eb568a3c727a3ef5.txt",
+    "sha256": "4666c99a5189fd127cbda12e7262bef789fe1bed59a3bf713419385e1a9c86bc",
+    "rule": "generic-api-key",
+    "start": 28,
+    "end": 28,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "c5fd01a352e990cad73c88145b996547646d777a",
+    "source_path": "src/controlplane_edge/openapi_merge.py"
+  },
+  {
+    "file": "bf5d7254643eb68962f5bc5c88709505aa009e5c.txt",
+    "sha256": "ecd11c7f51c72cd2fb59eb3591816213f9b0a50caad9516b24bc3778054450c6",
+    "rule": "generic-api-key",
+    "start": 7,
+    "end": 7,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "a02b7550952381309a7f21d5a261a6740153451c",
+    "source_path": "src/controlplane_edge/api_keys_client.py"
+  },
+  {
+    "file": "bf5d7254643eb68962f5bc5c88709505aa009e5c.txt",
+    "sha256": "ecd11c7f51c72cd2fb59eb3591816213f9b0a50caad9516b24bc3778054450c6",
+    "rule": "generic-api-key",
+    "start": 8,
+    "end": 8,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "1b3391156868a4ca5e7373f939a18f911bbc2bdd",
+    "source_path": "src/controlplane_edge/auth_utils.py"
+  },
+  {
+    "file": "bf5d7254643eb68962f5bc5c88709505aa009e5c.txt",
+    "sha256": "ecd11c7f51c72cd2fb59eb3591816213f9b0a50caad9516b24bc3778054450c6",
+    "rule": "generic-api-key",
+    "start": 9,
+    "end": 9,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "ce66dcd93023326bf6b9ce8b45e6f9de701d2342",
+    "source_path": "src/controlplane_edge/closure_auth.py"
+  },
+  {
+    "file": "bf5d7254643eb68962f5bc5c88709505aa009e5c.txt",
+    "sha256": "ecd11c7f51c72cd2fb59eb3591816213f9b0a50caad9516b24bc3778054450c6",
+    "rule": "generic-api-key",
+    "start": 20,
+    "end": 20,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "bc3f877bce307261a3a0156833ce7e5d946bd0bc",
+    "source_path": "src/controlplane_edge/host_setup_auth.py"
+  },
+  {
+    "file": "bf5d7254643eb68962f5bc5c88709505aa009e5c.txt",
+    "sha256": "ecd11c7f51c72cd2fb59eb3591816213f9b0a50caad9516b24bc3778054450c6",
+    "rule": "generic-api-key",
+    "start": 23,
+    "end": 23,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "1e7f62770a4746802e5f6851c3562ecdce3c99e5",
+    "source_path": "src/controlplane_edge/middleware/api_events.py"
+  },
+  {
+    "file": "bf5d7254643eb68962f5bc5c88709505aa009e5c.txt",
+    "sha256": "ecd11c7f51c72cd2fb59eb3591816213f9b0a50caad9516b24bc3778054450c6",
+    "rule": "generic-api-key",
+    "start": 24,
+    "end": 24,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "333dfb671595482e20fdfae0b9e716b1e84d9bb7",
+    "source_path": "src/controlplane_edge/middleware/api_key_bruteforce.py"
+  },
+  {
+    "file": "bf5d7254643eb68962f5bc5c88709505aa009e5c.txt",
+    "sha256": "ecd11c7f51c72cd2fb59eb3591816213f9b0a50caad9516b24bc3778054450c6",
+    "rule": "generic-api-key",
+    "start": 27,
+    "end": 27,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "10b5ad71016c366cb7caf4f8bc0e6775be4e4e24",
+    "source_path": "src/controlplane_edge/openapi_aggregate.py"
+  },
+  {
+    "file": "bf5d7254643eb68962f5bc5c88709505aa009e5c.txt",
+    "sha256": "ecd11c7f51c72cd2fb59eb3591816213f9b0a50caad9516b24bc3778054450c6",
+    "rule": "generic-api-key",
+    "start": 28,
+    "end": 28,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "ba552fb30a82fe6c35a0d28f9cfcc790caeeb9f8",
+    "source_path": "src/controlplane_edge/openapi_merge.py"
+  },
+  {
+    "file": "c6a04b2ea631a60e7724cafd92b4ee9186a8096d-21.txt",
+    "sha256": "1145dd2392d2fa7d41d8ac260762418d74a3af4bc9b9c3f92989959ab15b259c",
+    "rule": "generic-api-key",
+    "start": 242,
+    "end": 242,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "8405ab8edeba907e7b9aa24566c3816391948f58",
+    "source_path": "controlplane_db/alembic/versions/20250330_0002_keycloak_sub_nullable_password.py"
+  },
+  {
+    "file": "c6a04b2ea631a60e7724cafd92b4ee9186a8096d-21.txt",
+    "sha256": "1145dd2392d2fa7d41d8ac260762418d74a3af4bc9b9c3f92989959ab15b259c",
+    "rule": "generic-api-key",
+    "start": 251,
+    "end": 251,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "8405ab8edeba907e7b9aa24566c3816391948f58",
+    "source_path": "controlplane_db/alembic/versions/20250330_0011_api_keys.py"
+  },
+  {
+    "file": "c6a04b2ea631a60e7724cafd92b4ee9186a8096d-21.txt",
+    "sha256": "1145dd2392d2fa7d41d8ac260762418d74a3af4bc9b9c3f92989959ab15b259c",
+    "rule": "generic-api-key",
+    "start": 255,
+    "end": 255,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "8405ab8edeba907e7b9aa24566c3816391948f58",
+    "source_path": "controlplane_db/alembic/versions/20260907_0015_site_machine_tokens.py"
+  },
+  {
+    "file": "c6a04b2ea631a60e7724cafd92b4ee9186a8096d-21.txt",
+    "sha256": "1145dd2392d2fa7d41d8ac260762418d74a3af4bc9b9c3f92989959ab15b259c",
+    "rule": "generic-api-key",
+    "start": 277,
+    "end": 277,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "8405ab8edeba907e7b9aa24566c3816391948f58",
+    "source_path": "controlplane_db/alembic/versions/20260925_0037_api_key_last_used.py"
+  },
+  {
+    "file": "ce25cde48048c248ae46a42f7176355691aebf46.txt",
+    "sha256": "86445a7647b185d5592a2bf73e3f026919ea4ecb1504f5fda00bd6a509b30c1a",
+    "rule": "generic-api-key",
+    "start": 7,
+    "end": 7,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "fc1385f1cb42aa8b090ba667df29bc606bef1c63",
+    "source_path": "src/controlplane_edge/api_keys_client.py"
+  },
+  {
+    "file": "ce25cde48048c248ae46a42f7176355691aebf46.txt",
+    "sha256": "86445a7647b185d5592a2bf73e3f026919ea4ecb1504f5fda00bd6a509b30c1a",
+    "rule": "generic-api-key",
+    "start": 8,
+    "end": 8,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "85ff265030fa30e2acb735a65aca6d3fcdf065c8",
+    "source_path": "src/controlplane_edge/auth_utils.py"
+  },
+  {
+    "file": "ce25cde48048c248ae46a42f7176355691aebf46.txt",
+    "sha256": "86445a7647b185d5592a2bf73e3f026919ea4ecb1504f5fda00bd6a509b30c1a",
+    "rule": "generic-api-key",
+    "start": 9,
+    "end": 9,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "a74b9fde311a8e093085c3038f260f62c9e7a009",
+    "source_path": "src/controlplane_edge/closure_auth.py"
+  },
+  {
+    "file": "ce25cde48048c248ae46a42f7176355691aebf46.txt",
+    "sha256": "86445a7647b185d5592a2bf73e3f026919ea4ecb1504f5fda00bd6a509b30c1a",
+    "rule": "generic-api-key",
+    "start": 20,
+    "end": 20,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "f85527a4cc490ffc8d691aad21fb96d81f05078d",
+    "source_path": "src/controlplane_edge/host_setup_auth.py"
+  },
+  {
+    "file": "ce25cde48048c248ae46a42f7176355691aebf46.txt",
+    "sha256": "86445a7647b185d5592a2bf73e3f026919ea4ecb1504f5fda00bd6a509b30c1a",
+    "rule": "generic-api-key",
+    "start": 23,
+    "end": 23,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "58e7e2bb5954ceb6bc39307aeb9083077f19a76c",
+    "source_path": "src/controlplane_edge/middleware/api_events.py"
+  },
+  {
+    "file": "ce25cde48048c248ae46a42f7176355691aebf46.txt",
+    "sha256": "86445a7647b185d5592a2bf73e3f026919ea4ecb1504f5fda00bd6a509b30c1a",
+    "rule": "generic-api-key",
+    "start": 24,
+    "end": 24,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "333dfb671595482e20fdfae0b9e716b1e84d9bb7",
+    "source_path": "src/controlplane_edge/middleware/api_key_bruteforce.py"
+  },
+  {
+    "file": "ce25cde48048c248ae46a42f7176355691aebf46.txt",
+    "sha256": "86445a7647b185d5592a2bf73e3f026919ea4ecb1504f5fda00bd6a509b30c1a",
+    "rule": "generic-api-key",
+    "start": 27,
+    "end": 27,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "10b5ad71016c366cb7caf4f8bc0e6775be4e4e24",
+    "source_path": "src/controlplane_edge/openapi_aggregate.py"
+  },
+  {
+    "file": "ce25cde48048c248ae46a42f7176355691aebf46.txt",
+    "sha256": "86445a7647b185d5592a2bf73e3f026919ea4ecb1504f5fda00bd6a509b30c1a",
+    "rule": "generic-api-key",
+    "start": 28,
+    "end": 28,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "c5fd01a352e990cad73c88145b996547646d777a",
+    "source_path": "src/controlplane_edge/openapi_merge.py"
+  },
+  {
+    "file": "e5b1d8c56a93bb6ec5779650a57663cd89f62124.txt",
+    "sha256": "28a9b0f112437fb77c3955bafe9237ba7467055dac8e2ba744cc7b4c78ce4972",
+    "rule": "generic-api-key",
+    "start": 7,
+    "end": 7,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "fc1385f1cb42aa8b090ba667df29bc606bef1c63",
+    "source_path": "src/controlplane_edge/api_keys_client.py"
+  },
+  {
+    "file": "e5b1d8c56a93bb6ec5779650a57663cd89f62124.txt",
+    "sha256": "28a9b0f112437fb77c3955bafe9237ba7467055dac8e2ba744cc7b4c78ce4972",
+    "rule": "generic-api-key",
+    "start": 8,
+    "end": 8,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "85ff265030fa30e2acb735a65aca6d3fcdf065c8",
+    "source_path": "src/controlplane_edge/auth_utils.py"
+  },
+  {
+    "file": "e5b1d8c56a93bb6ec5779650a57663cd89f62124.txt",
+    "sha256": "28a9b0f112437fb77c3955bafe9237ba7467055dac8e2ba744cc7b4c78ce4972",
+    "rule": "generic-api-key",
+    "start": 9,
+    "end": 9,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "a74b9fde311a8e093085c3038f260f62c9e7a009",
+    "source_path": "src/controlplane_edge/closure_auth.py"
+  },
+  {
+    "file": "e5b1d8c56a93bb6ec5779650a57663cd89f62124.txt",
+    "sha256": "28a9b0f112437fb77c3955bafe9237ba7467055dac8e2ba744cc7b4c78ce4972",
+    "rule": "generic-api-key",
+    "start": 20,
+    "end": 20,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "f85527a4cc490ffc8d691aad21fb96d81f05078d",
+    "source_path": "src/controlplane_edge/host_setup_auth.py"
+  },
+  {
+    "file": "e5b1d8c56a93bb6ec5779650a57663cd89f62124.txt",
+    "sha256": "28a9b0f112437fb77c3955bafe9237ba7467055dac8e2ba744cc7b4c78ce4972",
+    "rule": "generic-api-key",
+    "start": 23,
+    "end": 23,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "58e7e2bb5954ceb6bc39307aeb9083077f19a76c",
+    "source_path": "src/controlplane_edge/middleware/api_events.py"
+  },
+  {
+    "file": "e5b1d8c56a93bb6ec5779650a57663cd89f62124.txt",
+    "sha256": "28a9b0f112437fb77c3955bafe9237ba7467055dac8e2ba744cc7b4c78ce4972",
+    "rule": "generic-api-key",
+    "start": 24,
+    "end": 24,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "333dfb671595482e20fdfae0b9e716b1e84d9bb7",
+    "source_path": "src/controlplane_edge/middleware/api_key_bruteforce.py"
+  },
+  {
+    "file": "e5b1d8c56a93bb6ec5779650a57663cd89f62124.txt",
+    "sha256": "28a9b0f112437fb77c3955bafe9237ba7467055dac8e2ba744cc7b4c78ce4972",
+    "rule": "generic-api-key",
+    "start": 27,
+    "end": 27,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "10b5ad71016c366cb7caf4f8bc0e6775be4e4e24",
+    "source_path": "src/controlplane_edge/openapi_aggregate.py"
+  },
+  {
+    "file": "e5b1d8c56a93bb6ec5779650a57663cd89f62124.txt",
+    "sha256": "28a9b0f112437fb77c3955bafe9237ba7467055dac8e2ba744cc7b4c78ce4972",
+    "rule": "generic-api-key",
+    "start": 28,
+    "end": 28,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "ba552fb30a82fe6c35a0d28f9cfcc790caeeb9f8",
+    "source_path": "src/controlplane_edge/openapi_merge.py"
+  },
+  {
+    "file": "e5908dc36d4ed1cfa15937458fd242f6994c4925.txt",
+    "sha256": "f0f60c0db478ba80e28ef619d5a937c34b0442a63cd4052dc236a739acf547aa",
+    "rule": "generic-api-key",
+    "start": 7,
+    "end": 7,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "fc1385f1cb42aa8b090ba667df29bc606bef1c63",
+    "source_path": "src/controlplane_edge/api_keys_client.py"
+  },
+  {
+    "file": "e5908dc36d4ed1cfa15937458fd242f6994c4925.txt",
+    "sha256": "f0f60c0db478ba80e28ef619d5a937c34b0442a63cd4052dc236a739acf547aa",
+    "rule": "generic-api-key",
+    "start": 8,
+    "end": 8,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "85ff265030fa30e2acb735a65aca6d3fcdf065c8",
+    "source_path": "src/controlplane_edge/auth_utils.py"
+  },
+  {
+    "file": "e5908dc36d4ed1cfa15937458fd242f6994c4925.txt",
+    "sha256": "f0f60c0db478ba80e28ef619d5a937c34b0442a63cd4052dc236a739acf547aa",
+    "rule": "generic-api-key",
+    "start": 9,
+    "end": 9,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "a74b9fde311a8e093085c3038f260f62c9e7a009",
+    "source_path": "src/controlplane_edge/closure_auth.py"
+  },
+  {
+    "file": "e5908dc36d4ed1cfa15937458fd242f6994c4925.txt",
+    "sha256": "f0f60c0db478ba80e28ef619d5a937c34b0442a63cd4052dc236a739acf547aa",
+    "rule": "generic-api-key",
+    "start": 20,
+    "end": 20,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "f85527a4cc490ffc8d691aad21fb96d81f05078d",
+    "source_path": "src/controlplane_edge/host_setup_auth.py"
+  },
+  {
+    "file": "e5908dc36d4ed1cfa15937458fd242f6994c4925.txt",
+    "sha256": "f0f60c0db478ba80e28ef619d5a937c34b0442a63cd4052dc236a739acf547aa",
+    "rule": "generic-api-key",
+    "start": 23,
+    "end": 23,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "58e7e2bb5954ceb6bc39307aeb9083077f19a76c",
+    "source_path": "src/controlplane_edge/middleware/api_events.py"
+  },
+  {
+    "file": "e5908dc36d4ed1cfa15937458fd242f6994c4925.txt",
+    "sha256": "f0f60c0db478ba80e28ef619d5a937c34b0442a63cd4052dc236a739acf547aa",
+    "rule": "generic-api-key",
+    "start": 24,
+    "end": 24,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "333dfb671595482e20fdfae0b9e716b1e84d9bb7",
+    "source_path": "src/controlplane_edge/middleware/api_key_bruteforce.py"
+  },
+  {
+    "file": "e5908dc36d4ed1cfa15937458fd242f6994c4925.txt",
+    "sha256": "f0f60c0db478ba80e28ef619d5a937c34b0442a63cd4052dc236a739acf547aa",
+    "rule": "generic-api-key",
+    "start": 27,
+    "end": 27,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "10b5ad71016c366cb7caf4f8bc0e6775be4e4e24",
+    "source_path": "src/controlplane_edge/openapi_aggregate.py"
+  },
+  {
+    "file": "e5908dc36d4ed1cfa15937458fd242f6994c4925.txt",
+    "sha256": "f0f60c0db478ba80e28ef619d5a937c34b0442a63cd4052dc236a739acf547aa",
+    "rule": "generic-api-key",
+    "start": 28,
+    "end": 28,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "2d3042eded185442f36b6ebd28b960e945ecd230",
+    "source_path": "src/controlplane_edge/openapi_merge.py"
+  },
+  {
+    "file": "eb1857bb8166a4ee5c4d87951b1ebd12f47ed480.txt",
+    "sha256": "609a0093711e60de527225b07dcb313e7ab855f42ff723b67e360c3ef9f79eed",
+    "rule": "generic-api-key",
+    "start": 7,
+    "end": 7,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "a02b7550952381309a7f21d5a261a6740153451c",
+    "source_path": "src/controlplane_edge/api_keys_client.py"
+  },
+  {
+    "file": "eb1857bb8166a4ee5c4d87951b1ebd12f47ed480.txt",
+    "sha256": "609a0093711e60de527225b07dcb313e7ab855f42ff723b67e360c3ef9f79eed",
+    "rule": "generic-api-key",
+    "start": 8,
+    "end": 8,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "1b3391156868a4ca5e7373f939a18f911bbc2bdd",
+    "source_path": "src/controlplane_edge/auth_utils.py"
+  },
+  {
+    "file": "eb1857bb8166a4ee5c4d87951b1ebd12f47ed480.txt",
+    "sha256": "609a0093711e60de527225b07dcb313e7ab855f42ff723b67e360c3ef9f79eed",
+    "rule": "generic-api-key",
+    "start": 9,
+    "end": 9,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "ce66dcd93023326bf6b9ce8b45e6f9de701d2342",
+    "source_path": "src/controlplane_edge/closure_auth.py"
+  },
+  {
+    "file": "eb1857bb8166a4ee5c4d87951b1ebd12f47ed480.txt",
+    "sha256": "609a0093711e60de527225b07dcb313e7ab855f42ff723b67e360c3ef9f79eed",
+    "rule": "generic-api-key",
+    "start": 20,
+    "end": 20,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "bc3f877bce307261a3a0156833ce7e5d946bd0bc",
+    "source_path": "src/controlplane_edge/host_setup_auth.py"
+  },
+  {
+    "file": "eb1857bb8166a4ee5c4d87951b1ebd12f47ed480.txt",
+    "sha256": "609a0093711e60de527225b07dcb313e7ab855f42ff723b67e360c3ef9f79eed",
+    "rule": "generic-api-key",
+    "start": 23,
+    "end": 23,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "1e7f62770a4746802e5f6851c3562ecdce3c99e5",
+    "source_path": "src/controlplane_edge/middleware/api_events.py"
+  },
+  {
+    "file": "eb1857bb8166a4ee5c4d87951b1ebd12f47ed480.txt",
+    "sha256": "609a0093711e60de527225b07dcb313e7ab855f42ff723b67e360c3ef9f79eed",
+    "rule": "generic-api-key",
+    "start": 24,
+    "end": 24,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "333dfb671595482e20fdfae0b9e716b1e84d9bb7",
+    "source_path": "src/controlplane_edge/middleware/api_key_bruteforce.py"
+  },
+  {
+    "file": "eb1857bb8166a4ee5c4d87951b1ebd12f47ed480.txt",
+    "sha256": "609a0093711e60de527225b07dcb313e7ab855f42ff723b67e360c3ef9f79eed",
+    "rule": "generic-api-key",
+    "start": 27,
+    "end": 27,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "10b5ad71016c366cb7caf4f8bc0e6775be4e4e24",
+    "source_path": "src/controlplane_edge/openapi_aggregate.py"
+  },
+  {
+    "file": "eb1857bb8166a4ee5c4d87951b1ebd12f47ed480.txt",
+    "sha256": "609a0093711e60de527225b07dcb313e7ab855f42ff723b67e360c3ef9f79eed",
+    "rule": "generic-api-key",
+    "start": 28,
+    "end": 28,
+    "classification": "Verified package or migration source SHA256",
+    "source_object": "ba552fb30a82fe6c35a0d28f9cfcc790caeeb9f8",
+    "source_path": "src/controlplane_edge/openapi_merge.py"
+  }
+]
