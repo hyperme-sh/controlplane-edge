@@ -55,3 +55,26 @@ async def test_dev_decode_cannot_accept_managed_fixture(edge_app,monkeypatch):
     token=_fake_bearer(sub=SUB,tenant=TENANT)
     assert await resolve_bearer_claims(token) is None
     assert resolve_bearer_claims_sync(token) is None
+
+
+@pytest.mark.asyncio
+async def test_admitted_telemetry_waits_for_native_acknowledgement():
+    import asyncio
+    from controlplane_edge.middleware.api_events import AccessEventPublisher
+    from controlplane_edge.edge_settings import GatewayCrossCuttingSettings
+    settings=GatewayCrossCuttingSettings(events_url='https://events.unit',events_token='isolated-token')
+    publisher=AccessEventPublisher(settings)
+    entered=asyncio.Event();finish=asyncio.Event()
+    async def transport(request):
+        entered.set();await finish.wait()
+        assert request.headers['Idempotency-Key']==json.loads(request.content)['event_id']
+        return httpx.Response(202)
+    async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as client:
+        publisher.client=client
+        task=asyncio.create_task(publisher.submit_admitted('GET','/api/v1/organizations',uuid.UUID(TENANT)))
+        await entered.wait()
+        assert not task.done() and publisher.queue.empty()
+        finish.set();await task
+    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda r:httpx.Response(503))) as client:
+        publisher.client=client
+        with pytest.raises(httpx.HTTPStatusError):await publisher.submit_admitted('GET','/api/v1/organizations',uuid.UUID(TENANT))

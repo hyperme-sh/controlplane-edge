@@ -78,6 +78,7 @@ EDGE_ROUTES: tuple[EdgeRoute, ...] = (
     EdgeRoute("/api/v1/me/account-closure", "user", "user_service_url"),
     EdgeRoute("/api/v1/operator/account-closures", "user", "user_service_url"),
     EdgeRoute("/api/v1/operator", "user", "user_service_url"),
+    EdgeRoute("/api/v1/user/internal/nightly-run", "user", "user_service_url"),
     EdgeRoute("/api/v1/users", "user", "user_service_url"),
     EdgeRoute("/api/v1/groups", "user", "user_service_url"),
     EdgeRoute("/api/v1/organizations", "user", "user_service_url"),

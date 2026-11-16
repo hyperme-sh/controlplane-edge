@@ -42,9 +42,8 @@ class AccessEventPublisher:
                     await self.worker
                 await self.client.aclose()
 
-    def submit(self, method: str, path: str, tenant_id: uuid.UUID):
-        if not self.worker or tenant_id is None:
-            return
+    @staticmethod
+    def delivery(method: str, path: str, tenant_id: uuid.UUID):
         event_id = str(uuid.uuid4())
         envelope = {
             'schema_version': 1, 'event_type': 'gateway_api_access_v1',
@@ -52,8 +51,21 @@ class AccessEventPublisher:
             'occurred_at': datetime.now(timezone.utc).isoformat(), 'correlation_id': event_id,
             'payload': {'method': method[:32], 'path': path[:4096], 'trace_id': event_id},
         }
+        return {'event_id': event_id, 'envelope': envelope}
+
+    async def submit_admitted(self, method, path, tenant_id):
+        # The outer run admission must cover the actual downstream acknowledgement.
+        if self.client is None:raise RuntimeError('Access event publisher unavailable')
+        delivery = self.delivery(method, path, tenant_id)
+        response = await self.client.post(self.settings.events_url.rstrip('/') + '/events', json=delivery,
+            headers={'Authorization': 'Bearer ' + self.settings.events_token.get_secret_value(),
+                     'Idempotency-Key': delivery['event_id']})
+        response.raise_for_status()
+
+    def submit(self, method: str, path: str, tenant_id: uuid.UUID):
+        if not self.worker or tenant_id is None:return
         try:
-            self.queue.put_nowait({'event_id': event_id, 'envelope': envelope})
+            self.queue.put_nowait(self.delivery(method, path, tenant_id))
         except asyncio.QueueFull:
             logger.warning('Access events queue full; telemetry dropped')
 
@@ -88,5 +100,8 @@ class GatewayApiAccessEventMiddleware(BaseHTTPMiddleware):
                 publisher = getattr(request.app.state, 'access_event_publisher', None)
                 tenant = getattr(request.state, 'tenant_id', None)
                 if publisher and tenant:
-                    publisher.submit(request.method, path, tenant)
+                    from controlplane_identity.nightly import current_binding
+                    if current_binding() is not None:
+                        await publisher.submit_admitted(request.method, path, tenant)
+                    else:publisher.submit(request.method, path, tenant)
         return response
