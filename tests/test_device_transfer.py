@@ -79,3 +79,12 @@ def test_access_log_removes_path_and_query():
     record=logging.LogRecord('uvicorn.access',20,'',0,'%s %s %s %s %s',('client','POST',PATH+'?secret=private','1.1',200),None)
     assert PairingLogFilter().filter(record)
     assert record.getMessage() == 'Device transfer request [redacted]'
+
+@respx.mock
+def test_s3rch_sender_without_optional_relay_tenant_header(client):
+    path=RELAY+'/sessions/'+'a'*43+'/admit'
+    upstream=respx.post('http://auth.test'+path).respond(200,json={'v':1,'result':{}})
+    headers={**HEADERS,'X-Pairing-Role':'sender','Authorization':'Bearer existing.person'}
+    assert client.post(path,json={'scope':SCOPE,'payload':{}},headers=headers).status_code == 200
+    assert upstream.calls.last.request.headers['x-tenant-id'] == SCOPE['tenant']
+    assert client.post(ACL+'/state',json={'scope':SCOPE},headers=headers).status_code == 401

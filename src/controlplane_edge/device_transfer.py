@@ -97,7 +97,7 @@ class DeviceTransferMiddleware:
                     headers.update(extra)
         except anyio.WouldBlock:
             status = 429
-        except (ValueError, TypeError, KeyError):
+        except (ValueError, TypeError, KeyError, RecursionError):
             status = 400
         except (TimeoutError, httpx.HTTPError):
             status = 503
@@ -159,7 +159,7 @@ class DeviceTransferMiddleware:
             return 403, b'', cors
         if role != 'receiver':
             token = request.headers.get('authorization', '')
-            if request.headers.getlist('authorization') != [token] or not re.fullmatch(r'Bearer [A-Za-z0-9._~-]{1,8192}', token) or request.headers.getlist('x-tenant-id') != [candidate['tenant']]:
+            if request.headers.getlist('authorization') != [token] or not re.fullmatch(r'Bearer [A-Za-z0-9._~-]{1,8192}', token) or request.headers.getlist('x-tenant-id') not in ([candidate['tenant']], []) or (owner == 'acl' and not request.headers.getlist('x-tenant-id')):
                 return 401, b'', cors
             outgoing.update({'Authorization': token, 'X-Tenant-ID': candidate['tenant']})
         # Each owner authenticates person/scope or receiver capability. No API-key
