@@ -19,7 +19,8 @@ CONFIG=dict(version=1,owner='edge',origin='https://api.test.hyperme.sh',authOrig
 
 
 @pytest.mark.asyncio
-async def test_native_proxy_forwards_only_admitted_grant(edge_app,monkeypatch):
+@pytest.mark.parametrize('path',['/auth/me','/auth/startup/identity'])
+async def test_native_proxy_forwards_only_admitted_grant(edge_app,monkeypatch,path):
     monkeypatch.setattr(nightly,'_subjects',frozenset())
     monkeypatch.setattr(settings,'api_key_exchange_jwt_secret','native-edge-unit-secret-32-characters-minimum')
     with nightly.admitted_run(BINDING):
@@ -38,14 +39,14 @@ async def test_native_proxy_forwards_only_admitted_grant(edge_app,monkeypatch):
         assert request.headers['X-Tenant-ID']==TENANT
         return httpx.Response(200,json={'sub':SUB})
     with respx.mock(assert_all_called=False) as mock:
-        owner=mock.get('http://auth.edge.test/auth/me').mock(side_effect=upstream)
+        owner=mock.get('http://auth.edge.test'+path).mock(side_effect=upstream)
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=edge_app),base_url=CONFIG['origin']) as client:
             headers={'Authorization':'Bearer '+token,'X-Nightly-Run-Grant':'d'*64}
-            assert (await client.get('/auth/me',headers=headers)).status_code==200
+            assert (await client.get(path,headers=headers)).status_code==200
             assert calls==['admit','complete']
             assert (await client.post('/auth/enrollment/grant',headers=headers)).status_code==409
             active[0]=False
-            assert (await client.get('/auth/me',headers=headers)).status_code==409
+            assert (await client.get(path,headers=headers)).status_code==409
             assert owner.call_count==1
 
 
