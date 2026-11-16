@@ -62,7 +62,7 @@ async def test_admitted_telemetry_waits_for_native_acknowledgement():
     import asyncio
     from controlplane_edge.middleware.api_events import AccessEventPublisher
     from controlplane_edge.edge_settings import GatewayCrossCuttingSettings
-    settings=GatewayCrossCuttingSettings(events_url='https://events.unit',events_token='isolated-token')
+    settings=GatewayCrossCuttingSettings(CPEDGE_EVENTS_URL='https://events.unit',CPEDGE_EVENTS_TOKEN='isolated-token')
     publisher=AccessEventPublisher(settings)
     entered=asyncio.Event();finish=asyncio.Event()
     async def transport(request):
@@ -72,7 +72,7 @@ async def test_admitted_telemetry_waits_for_native_acknowledgement():
     async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as client:
         publisher.client=client
         task=asyncio.create_task(publisher.submit_admitted('GET','/api/v1/organizations',uuid.UUID(TENANT)))
-        await entered.wait()
+        await asyncio.wait_for(entered.wait(),timeout=2)
         assert not task.done() and publisher.queue.empty()
         finish.set();await task
     async with httpx.AsyncClient(transport=httpx.MockTransport(lambda r:httpx.Response(503))) as client:
