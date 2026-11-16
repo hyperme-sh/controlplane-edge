@@ -21,3 +21,7 @@ as unavailable, never empty. Inventory and inspection must succeed after automat
 main publication. No visibility settings or historical bytes are changed.
 
 Integration/e2e remains nightly. No Actions uploads or source bundles are added.
+
+The historical ledger binds 178 older provider-module, payment-schema and routing
+findings to exact object/member hashes. Their disposition retains history without
+clearing those bytes for republication. CI rejects changed findings or hashes.
