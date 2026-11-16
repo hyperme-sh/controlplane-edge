@@ -219,6 +219,15 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
             # Bound session/exchange JWTs carry tenant. A raw Keycloak (or
             # other) JWT must not bind X-Tenant-ID — switch-tenant first.
             tenant_id = None
+            from controlplane_identity.nightly import current_binding, require_original_run
+            binding = current_binding()
+            if binding is not None and request.method == 'GET' and path == '/api/v1/organizations':
+                try:
+                    require_original_run(claims)
+                    if tid_raw != binding['scope']['tenant']:raise ValueError('Foreign selection')
+                    tenant_id = uuid.UUID(binding['scope']['tenant'])
+                except Exception:
+                    return JSONResponse(status_code=403,content={'detail':'Original tenant required'})
 
         request.state.jwt_claims = claims
         request.state.bearer_token = bearer

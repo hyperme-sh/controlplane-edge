@@ -78,3 +78,32 @@ async def test_admitted_telemetry_waits_for_native_acknowledgement():
     async with httpx.AsyncClient(transport=httpx.MockTransport(lambda r:httpx.Response(503))) as client:
         publisher.client=client
         with pytest.raises(httpx.HTTPStatusError):await publisher.submit_admitted('GET','/api/v1/organizations',uuid.UUID(TENANT))
+
+
+@pytest.mark.asyncio
+async def test_native_org_proxy_retains_only_root_declared_tenant_for_provider_token(edge_app,monkeypatch):
+    from controlplane_identity.nightly import require_original_run
+    # Substitute only verified provider output; native edge policy/proxy remains real.
+    async def verified(token):
+        claims={'sub':SUB,'nightly_run':{k:BINDING[k] for k in ('run','generation')}}
+        require_original_run(claims);return claims
+    monkeypatch.setattr('controlplane_edge.middleware.policy.resolve_bearer_claims',verified)
+    calls=[]
+    def registry(request):
+        value=json.loads(request.content);calls.append(value['action'])
+        if value['action']=='admit':return httpx.Response(200,json=BINDING)
+        return httpx.Response(200,json={k:BINDING[k] for k in ('version','owner','run','generation','operation')}|{'completed':True})
+    edge_app.add_middleware(EdgeRunMiddleware,authority=Authority(CONFIG,'edge',httpx.MockTransport(registry)))
+    def upstream(request):
+        assert request.headers['X-Tenant-ID']==TENANT
+        assert request.headers['X-Nightly-Run-Grant']=='d'*64
+        return httpx.Response(200,json={'items':[],'total':0})
+    with respx.mock(assert_all_called=False) as mock:
+        target=mock.get('http://user.edge.test/api/v1/organizations').mock(side_effect=upstream)
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(edge_app),base_url=CONFIG['origin']) as client:
+            headers={'Authorization':'Bearer provider-substitution','X-Nightly-Run-Grant':'d'*64,'X-Tenant-ID':TENANT}
+            response=await client.get('/api/v1/organizations',headers=headers)
+            assert response.status_code==200,response.text
+            assert calls==['admit','complete']
+            assert (await client.get('/api/v1/organizations',headers=headers|{'X-Tenant-ID':str(uuid.uuid4())})).status_code==409
+            assert target.call_count==1 and calls==['admit','complete','admit']
