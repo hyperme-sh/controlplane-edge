@@ -38,6 +38,10 @@ def prepare(distribution, output):
     shutil.copyfile(wheel, output / wheel.name)
     shutil.copyfile(root / "deploy/Dockerfile.runtime", output / "Dockerfile")
     (output / "requirements.txt").write_text(public)
+    for name in ('LICENSE', 'NOTICE'):
+        shutil.copyfile(root / name, output / name)
+    shutil.copytree(root / '.github/workflows/third-party-notices', output / 'licenses')
+    shutil.copyfile(root / 'scripts/prepare_notices.py', output / 'prepare_notices.py')
     inventory = {p.relative_to(output).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
                  for p in sorted(output.rglob("*")) if p.is_file()}
     (output / "inventory.json").write_text(json.dumps(inventory, sort_keys=True, indent=2) + "\n")

@@ -7,7 +7,7 @@ name = "controlplane-edge"
 version = "0.2.0"
 requires-python = ">=3.13"
 license = "Apache-2.0"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "NOTICE"]
 dependencies = [
     "controlplane-api @ git+https://github.com/hyperme-sh/controlplane-api.git@316912f30dd90113ab9203eff1bc998bb89b47cf",
     "controlplane-identity @ git+https://github.com/hyperme-sh/controlplane-identity.git@a2cb7f055dced17f76e64009395ffb7599557a71",
@@ -41,7 +41,7 @@ dev = [
 packages = ["src/controlplane_edge"]
 
 [tool.hatch.build.targets.sdist]
-include = ["/LICENSE", "/tests_artifacts", "/tests_tools", "/src", "/tests", "/scripts", "/pyproject.toml", "/uv.lock", "/README.md"]
+include = ["/LICENSE", "/NOTICE", "/tests_artifacts", "/tests_tools", "/src", "/tests", "/scripts", "/pyproject.toml", "/uv.lock", "/README.md"]
 
 [tool.hatch.metadata]
 allow-direct-references = true

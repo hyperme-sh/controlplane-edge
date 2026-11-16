@@ -15,6 +15,7 @@ trap cleanup EXIT
 python3 scripts/prepare-runtime-context.py "$RELEASE_ARTIFACT_DIR" "$scratch/context"
 wheel=$(sha256sum "$scratch"/context/*.whl | cut -d ' ' -f 1)
 docker build --build-arg "GIT_SHA=$GITHUB_SHA" --build-arg "WHEEL_SHA256=$wheel" -t "$QUALIFIED_IMAGE_REF" "$scratch/context"
+bash scripts/audit-container.sh "$QUALIFIED_IMAGE_REF"
 image=$(docker image inspect "$QUALIFIED_IMAGE_REF" --format '{{.Id}}')
 test "$(docker image inspect "$image" --format '{{.Config.User}}')" = '65532:65532'
 container=$(docker run -d --network none -e EDGE_SECRETS_REQUIRED=false --read-only --tmpfs /tmp:rw,noexec,nosuid "$image")
