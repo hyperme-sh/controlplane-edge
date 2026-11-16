@@ -78,7 +78,13 @@ def test_rate_limit_ignores_spoofed_address(client):
 def test_access_log_removes_path_and_query():
     record=logging.LogRecord('uvicorn.access',20,'',0,'%s %s %s %s %s',('client','POST',PATH+'?secret=private','1.1',200),None)
     assert PairingLogFilter().filter(record)
-    assert record.getMessage() == 'Device transfer request [redacted]'
+    from uvicorn.logging import AccessFormatter
+    formatted=AccessFormatter('%(request_line)s %(status_code)s',use_colors=False).format(record)
+    assert '/device-transfer/[redacted]' in formatted
+    assert 'private' not in formatted and 'a'*43 not in formatted
+    upstream=logging.LogRecord('httpx',20,'',0,'HTTP Request: %s',('https://edge.example'+PATH,),None)
+    assert PairingLogFilter().filter(upstream)
+    assert upstream.getMessage() == 'Device transfer request [redacted]'
 
 @respx.mock
 def test_s3rch_sender_without_optional_relay_tenant_header(client):

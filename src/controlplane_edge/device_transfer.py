@@ -60,7 +60,12 @@ def load_scopes():
 class PairingLogFilter(logging.Filter):
     def filter(self, record):
         if any(p in record.getMessage() for p in (RELAY, ACL)):
-            record.msg, record.args = 'Device transfer request [redacted]', ()
+            if record.name == 'uvicorn.access' and isinstance(record.args, tuple) and len(record.args) == 5:
+                args = list(record.args)
+                args[2] = '/device-transfer/[redacted]'
+                record.args = tuple(args)
+            else:
+                record.msg, record.args = 'Device transfer request [redacted]', ()
         return True
 
 
