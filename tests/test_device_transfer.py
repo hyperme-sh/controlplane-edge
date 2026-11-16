@@ -1,0 +1,81 @@
+import json
+import logging
+import httpx
+import pytest
+import respx
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from controlplane_edge.register_cross_cutting import register_gateway_cross_cutting
+from controlplane_edge.device_transfer import RELAY, ACL, PairingLogFilter
+
+SCOPE = dict(sourceOrigin='https://portal.example', destinationOrigin='https://portal.example', application='hyperme.sh', tenant='00000000-0000-0000-0000-000000000001', audience='test')
+PATH = RELAY + '/sessions/' + 'a' * 43 + '/create'
+HEADERS = {'Origin': SCOPE['sourceOrigin'], 'X-Pairing-Role': 'receiver', 'X-Pairing-Capability': 'b' * 43}
+
+@pytest.fixture
+def client(tmp_path, monkeypatch):
+    path = tmp_path / 'scopes.json'
+    path.write_text(json.dumps({'version': 1, 'scopes': [SCOPE]}))
+    monkeypatch.setenv('CPEDGE_DEVICE_TRANSFER_SCOPES_FILE', str(path))
+    monkeypatch.setenv('CPEDGE_AUTH_SERVICE_URL', 'http://auth.test')
+    monkeypatch.setenv('CPEDGE_ACL_SERVICE_URL', 'http://acl.test')
+    app = FastAPI(); register_gateway_cross_cutting(app)
+    with TestClient(app) as c: yield c
+
+@respx.mock
+def test_receiver_bootstrap_is_bounded_and_drops_credentials(client):
+    upstream = respx.post('http://auth.test' + PATH).respond(200, json={'v': 1, 'result': {}})
+    response = client.post(PATH, json={'scope': SCOPE, 'payload': {}}, headers={**HEADERS, 'Authorization': 'Bearer ignored', 'Cookie': 'private', 'X-Api-Key': 'private', 'X-Tenant-ID': 'untrusted', 'X-Forwarded-For': 'fake'})
+    assert response.status_code == 200
+    sent = upstream.calls.last.request.headers
+    for key in ('authorization', 'cookie', 'x-api-key', 'x-tenant-id', 'x-forwarded-for'): assert key not in sent
+    assert sent['x-pairing-capability'] == 'b' * 43
+    assert response.headers['cache-control'] == 'private, no-store'
+    assert response.headers['access-control-allow-origin'] == SCOPE['sourceOrigin']
+    assert client.post(PATH, content=b'x' * 710001, headers={**HEADERS, 'Content-Type': 'application/json'}).status_code == 413
+    assert upstream.call_count == 1
+
+@respx.mock
+@pytest.mark.parametrize('path,owner', [(ACL+'/state', 'acl'), (RELAY+'/sessions/'+'a'*43+'/admit', 'auth')])
+def test_person_owner_gets_only_expected_tenant_bearer(client,path,owner):
+    upstream = respx.post('http://'+owner+'.test'+path).respond(403, json={'detail': 'owner refusal'})
+    headers={**HEADERS, 'X-Pairing-Role': 'sender', 'Authorization': 'Bearer person.jwt', 'X-Tenant-ID': SCOPE['tenant']}
+    assert client.post(path, json={'scope': SCOPE}, headers=headers).status_code == 403
+    assert upstream.calls.last.request.headers['authorization'] == 'Bearer person.jwt'
+    assert upstream.calls.last.request.headers['x-tenant-id'] == SCOPE['tenant']
+    for changed in ({'X-Tenant-ID':'other'}, {'Authorization':'ApiKey secret'}):
+        assert client.post(path,json={'scope': SCOPE},headers={**headers,**changed}).status_code == 401
+    assert upstream.call_count == 1
+
+@pytest.mark.parametrize('changes', [{'audience':'other'}, {'tenant':'other'}, {'application':'s3r.ch'}, {'destinationOrigin':'https://other.example'}])
+def test_scope_refusal(client,changes):
+    assert client.post(PATH,json={'scope':{**SCOPE,**changes}},headers=HEADERS).status_code == 403
+
+def test_exact_routes_origin_methods_and_disabled_config(client, monkeypatch):
+    for path in (PATH+'/', PATH+'/admin', RELAY+'/credentials', ACL+'/grant'):
+        assert client.post(path,json={'scope':SCOPE},headers=HEADERS).status_code == 404
+    assert client.post(PATH,json={'scope':SCOPE},headers={**HEADERS,'Origin':'https://evil.example'}).status_code == 403
+    assert client.get(PATH,headers=HEADERS).status_code == 405
+    assert client.post('/auth/token',json={},headers=HEADERS).status_code == 401
+    assert client.options(PATH,headers={'Origin':'https://evil.example','Access-Control-Request-Method':'POST'}).status_code == 403
+    monkeypatch.delenv('CPEDGE_DEVICE_TRANSFER_SCOPES_FILE')
+    app=FastAPI();register_gateway_cross_cutting(app)
+    with TestClient(app) as disabled: assert disabled.post(PATH,json={'scope':SCOPE},headers=HEADERS).status_code == 404
+
+@respx.mock
+def test_no_redirect_cookie_or_unbounded_response(client):
+    upstream=respx.post('http://auth.test'+PATH).respond(302,headers={'Location':'https://evil.example','Set-Cookie':'private'})
+    response=client.post(PATH,json={'scope':SCOPE},headers=HEADERS)
+    assert response.status_code == 502 and 'set-cookie' not in response.headers
+    upstream.respond(200,content=b'x'*710001,headers={'Content-Type':'application/json'})
+    assert client.post(PATH,json={'scope':SCOPE},headers=HEADERS).status_code == 502
+
+def test_rate_limit_ignores_spoofed_address(client):
+    for i in range(120):
+        assert client.post(PATH,json={},headers={**HEADERS,'X-Forwarded-For':str(i)}).status_code == 403
+    assert client.post(PATH,json={},headers=HEADERS).status_code == 429
+
+def test_access_log_removes_path_and_query():
+    record=logging.LogRecord('uvicorn.access',20,'',0,'%s %s %s %s %s',('client','POST',PATH+'?secret=private','1.1',200),None)
+    assert PairingLogFilter().filter(record)
+    assert record.getMessage() == 'Device transfer request [redacted]'
