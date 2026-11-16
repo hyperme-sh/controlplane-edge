@@ -74,7 +74,7 @@ uv export --frozen "${export_options[@]}" --no-emit-project --format requirement
 uv venv --python 3.13 "$scratch/venv"
 uv pip sync --python "$scratch/venv/bin/python" "$scratch/requirements.txt"
 if (( ${#fixture_wheels[@]} )); then
-  uv pip install --no-config --python "$scratch/venv/bin/python" --no-deps "${fixture_wheels[@]}" "$scratch"/dist/*.whl
+  bash scripts/install-qualified.sh "$scratch/venv/bin/python" "$scratch"/dist/*.whl
 else
 uv pip uninstall --python "$scratch/venv/bin/python" controlplane-core controlplane-api controlplane-tenancy controlplane-identity controlplane-db controlplane-events operator-ban-store spanopticon-models controlplane-proto
 # The installed user-service consumer is a declared dev root. Restore its
