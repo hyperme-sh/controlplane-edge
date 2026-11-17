@@ -18,12 +18,23 @@ docker build --build-arg "GIT_SHA=$GITHUB_SHA" --build-arg "WHEEL_SHA256=$wheel"
 bash scripts/audit-container.sh "$QUALIFIED_IMAGE_REF"
 image=$(docker image inspect "$QUALIFIED_IMAGE_REF" --format '{{.Id}}')
 test "$(docker image inspect "$image" --format '{{.Config.User}}')" = '65532:65532'
+docker image inspect "$image" --format 'Qualified Edge runtime {{.Os}}/{{.Architecture}} ({{.Size}} bytes)'
 container=$(docker run -d --network none -e EDGE_SECRETS_REQUIRED=false --read-only --tmpfs /tmp:rw,noexec,nosuid "$image")
 for attempt in $(seq 1 60); do
   if docker exec "$container" python -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/api/v1/health/", timeout=2)' >/dev/null 2>&1; then break; fi
   if [[ "$attempt" = 60 ]]; then docker logs "$container"; exit 1; fi
   sleep 1
 done
+docker exec "$container" python -I -c '
+import ssl
+from pathlib import Path
+
+import grpc
+
+assert Path("/etc/alpine-release").is_file()
+assert grpc.ssl_channel_credentials()
+assert ssl.create_default_context().get_ca_certs(), "System CA store is empty"
+'
 docker exec "$container" python -c '
 import urllib.error, urllib.request
 try:
