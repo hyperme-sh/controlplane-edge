@@ -123,8 +123,10 @@ Main qualification builds the stateless service image from the exact tested Edge
 wheel. Its private runtime dependencies are the same digest-verified exact-source
 wheel fixtures used by package qualification; public dependencies come from the
 frozen runtime lock with required hashes. No Git credential enters the container
-build. The final image runs as a non-root user with no database or migration
-startup and is exercised with networking disabled and a read-only filesystem.
+build. Both stages use Alpine so the installed native extensions match the final
+runtime. The final image runs as a non-root user with no database or migration
+startup. CI checks gRPC and the system CA store with networking disabled and a
+read-only filesystem.
 
 Successful current-main pushes advance `ghcr.io/hyperme-sh/controlplane-edge/runtime:test`.
 PR checks build and exercise a local image without publishing. Manual workflow
