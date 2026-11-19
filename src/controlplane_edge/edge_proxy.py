@@ -306,6 +306,16 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
             if (required is None or claims.get('azp') != 'controlplane-api-key'
                     or not isinstance(scopes, str) or required not in scopes.split()):
                 return Response(status_code=403)
+        vault_prefix = '/api/v1/storage/records/vault/'
+        if match and match.service_id == 'storage' and request.url.path.startswith(vault_prefix):
+            if request.method not in ('GET', 'PUT') or not re.fullmatch(r'[0-9a-f]{64}', request.url.path[len(vault_prefix):]):
+                return Response(status_code=404)
+            required = 'storage:vault:read' if request.method == 'GET' else 'storage:vault:write'
+            claims = getattr(request.state, 'jwt_claims', None) or {}
+            scopes = claims.get('scope')
+            if (claims.get('azp') != 'controlplane-api-key'
+                    or not isinstance(scopes, str) or required not in scopes.split()):
+                return Response(status_code=403)
         if match and is_contact_lane_path(request.url.path, request.method):
             capacity = self._first_contact_capacity if "/first-contact/" in request.url.path else self._lane_capacity
             borrower = object()
@@ -327,6 +337,8 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
             family = "records" if request.url.path.startswith("/api/v1/storage/records/") else "objects"
             if request.url.path.startswith("/api/v1/storage/records/media/"):
                 family = "media"
+            elif request.url.path.startswith(vault_prefix):
+                family = "vault"
             required = experiment_storage_scope(request.method, request.url.path) if request.url.path.startswith("/api/v1/storage/records/experiments/") else f"storage:{family}:write"
             if request.url.path.startswith('/api/v1/storage/groups/wraps/'):
                 required='storage:groups:wraps:'+('read' if request.method=='GET' else 'write')
