@@ -335,6 +335,7 @@ def test_unlisted_hypermesh_agent_path_stays_non_public(agent_app: FastAPI) -> N
 
 @pytest.mark.parametrize("suffix", ["check", "heartbeat", "tunnel", "certification/plan",
                                     "certification/result", "certification/activation",
+                                    "native-certification/plan", "native-certification/result",
                                     "qualification/plan", "qualification/result", "qualification/next"])
 @respx.mock
 def test_onboarding_device_routes_reach_service_verification(agent_app, suffix):

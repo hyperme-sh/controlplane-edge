@@ -32,6 +32,8 @@ PUBLIC_HYPERMESH_AGENT_EXACT: frozenset[tuple[str, str]] = frozenset(
         ("POST", "/api/v1/hypermesh/agent/onboarding/heartbeat"),
         ("POST", "/api/v1/hypermesh/agent/onboarding/tunnel"),
         ("POST", "/api/v1/hypermesh/agent/onboarding/certification/plan"),
+        ("POST", "/api/v1/hypermesh/agent/onboarding/native-certification/plan"),
+        ("POST", "/api/v1/hypermesh/agent/onboarding/native-certification/result"),
         ("POST", "/api/v1/hypermesh/agent/onboarding/certification/result"),
         ("POST", "/api/v1/hypermesh/agent/onboarding/certification/activation"),
         ("POST", "/api/v1/hypermesh/agent/onboarding/certification/resume"),
