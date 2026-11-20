@@ -98,6 +98,36 @@ def test_hypermesh_agent_allowlist_does_not_widen_browse_or_prefix() -> None:
     assert is_public_path("/api/v1/hypermesh/renter/chat/completions", "POST") is False
 
 
+@pytest.mark.parametrize(("method", "path"), [
+    ("POST", "/api/v1/hypermesh/agent/certification/sustained-result"),
+    ("GET", "/api/v1/hypermesh/agent/software"),
+    ("POST", "/api/v1/hypermesh/agent/software/result"),
+])
+@respx.mock
+def test_sustained_and_software_agent_routes_forward_to_device_authority(agent_app, method, path):
+    assert is_public_path(path, method)
+    assert not is_public_path(path + "/extra", method)
+    assert not is_public_path(path, "GET" if method == "POST" else "POST")
+    owner = respx.request(method, f"http://hm.agent.test{path}").mock(
+        return_value=httpx.Response(401, json={"detail": "Device credential required"}),
+    )
+    headers = {"Authorization": "Bearer hm_msi_fixture", "X-Tenant-ID": str(TENANT_ID)}
+    with TestClient(agent_app) as client:
+        result = client.request(method, path, headers=headers)
+
+    assert result.status_code == 401
+    assert result.json() == {"detail": "Device credential required"}
+    assert owner.calls.last.request.headers["authorization"] == headers["Authorization"]
+    assert owner.calls.last.request.headers["x-tenant-id"] == headers["X-Tenant-ID"]
+
+
+def test_software_owner_routes_and_lab_soak_stay_protected(agent_app):
+    with TestClient(agent_app) as client:
+        assert client.post(f"/api/v1/hypermesh/devices/{JOB_ID}/software").status_code == 401
+        assert client.get(f"/api/v1/hypermesh/devices/{JOB_ID}/software/{JOB_ID}").status_code == 401
+        assert client.post("/api/v1/hypermesh/lab/soaks/sustained-decode").status_code == 401
+
+
 @respx.mock
 def test_unauthenticated_enroll_is_proxied(agent_app: FastAPI) -> None:
     """Live test-plane 401 was gateway JWT, not hypermesh-service enroll_token."""
