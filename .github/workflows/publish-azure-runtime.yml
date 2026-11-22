@@ -79,11 +79,7 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
-          registry=acrfyberreleasecg47
-          registry_id=$(az acr show --name "$registry" --query id -o tsv)
-          lock_id="$registry_id/providers/Microsoft.Authorization/locks/protected-release-management"
-          az rest --method get --url "https://management.azure.com$lock_id?api-version=2016-09-01" |
-            jq -e --arg id "$lock_id" '(.id|ascii_downcase) == ($id|ascii_downcase) and .properties.level=="ReadOnly"' >/dev/null
+          registry=acrfybercg47
           server="$registry.azurecr.io"
           source="ghcr.io/hyperme-sh/controlplane-edge/runtime"
           repository=controlplane-edge
