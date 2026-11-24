@@ -24,6 +24,8 @@ Request handling:
 
 `CPEDGE_VERIFICATION_SERVICE_URL` adds the `/api/v1/verification` prefix to the proxy and to OpenAPI discovery. The exact POST routes under `/api/v1/verification/webhooks/sumsub/sandbox/` for `applicant-deleted` and `review-events` forward the raw body and signature headers under the anonymous rate limit. Verification authenticates the sandbox delivery. Internal erasure URLs are not routed. `EDGE_VERSIONS_ACCESS` controls `GET /versions`: `authenticated` (the default), `public`, or `off` (`404`, and upstream version probes are skipped). Set `off` on a production edge.
 
+Deployment configuration can declare signed Payment deliveries in the `signed` array of `EDGE_OPERATOR_ROUTES_FILE` or `EDGE_OPERATOR_ROUTES_JSON`. Each entry supplies an exact `POST` path, a signature header ending in `-signature`, and a maximum body size up to 1 MiB. The edge forwards the original bytes and one signature under the anonymous rate limit with a five-second read timeout. Payment verifies the signature for its endpoint.
+
 ## Practical use
 
 Install Python 3.13 and [uv](https://docs.astral.sh/uv/) 0.11.26. Runtime and development dependencies are public git pins under `github.com/hyperme-sh`; `uv sync --frozen` does not need a private credential.

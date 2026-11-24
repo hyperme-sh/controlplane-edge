@@ -261,6 +261,52 @@ def test_stripe_webhook_is_public_and_proxied(edge_app: FastAPI, operator_paymen
     assert r.json() == {"received": True}
 
 
+@pytest.mark.parametrize(("suffix", "limit"), [("stripe/webhook", 1 << 20), ("connect/events", 65536)])
+@respx.mock
+def test_configured_signed_webhook_is_bounded_and_has_no_caller_credentials(
+    edge_app: FastAPI, monkeypatch: pytest.MonkeyPatch, suffix: str, limit: int,
+) -> None:
+    path = "/api/v1/payments/" + suffix
+    monkeypatch.delenv("EDGE_OPERATOR_ROUTES_FILE", raising=False)
+    monkeypatch.setenv("EDGE_OPERATOR_ROUTES_JSON", json.dumps({"signed": [{
+        "method": "POST", "path": path, "signature_header": "stripe-signature", "max_body_bytes": limit,
+    }]}))
+    upstream = respx.post("http://pay.edge.test" + path).mock(return_value=httpx.Response(204))
+    signature = "t=1,v1=" + "1" * 64
+    raw = b'{ "type" : "test", "data": {} }\n'
+    signed = [("Stripe-Signature", signature)]
+    caller = [
+        ("Authorization", "Bearer opaque"), ("X-Api-Key", "opaque-key"),
+        ("X-Tenant-ID", str(uuid.uuid4())), ("Cookie", "session=opaque"),
+    ]
+    seen = []
+
+    def allow(tenant_id, user_sub):
+        seen.append((tenant_id, user_sub))
+        return len(seen) <= 5
+
+    monkeypatch.setattr(edge_app.state.gateway_rate_limiter, "allow", allow)
+    with TestClient(edge_app) as client:
+        assert client.post(path, content=raw, headers=signed + caller).status_code == 204
+        request = upstream.calls.last.request
+        assert request.content == raw
+        assert request.headers["stripe-signature"] == signature
+        assert request.headers["content-type"] == "application/json"
+        assert all(name not in request.headers for name, _ in caller)
+
+        assert client.post(path, content=raw).status_code == 401
+        assert client.post(path, content=raw, headers=signed + signed).status_code == 401
+        encoded = signed + [("Content-Encoding", "gzip")]
+        assert client.post(path, content=raw, headers=encoded).status_code == 415
+        assert client.post(path, content=b"x" * (limit + 1), headers=signed).status_code == 413
+        assert client.post(path, content=raw, headers=signed).status_code == 429
+        assert client.get(path).status_code == 401
+        assert client.post(path + "/", content=raw, headers=signed).status_code == 401
+        assert client.post(path + "/other", content=raw, headers=signed).status_code == 401
+    assert seen == [(uuid.UUID(int=0), "testclient")] * 6
+    assert upstream.call_count == 1
+
+
 def test_users_require_auth_when_not_public(edge_app: FastAPI, operator_payment_routes) -> None:
     assert is_public_path("/api/v1/users", "GET") is False
     assert is_public_path("/auth/login", "POST") is True

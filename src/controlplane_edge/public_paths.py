@@ -66,14 +66,16 @@ def is_sumsub_webhook_path(path: str, method: str) -> bool:
     }
 
 
-def is_public_path(path: str, method: str = "GET") -> bool:
+def is_public_path(path: str, method: str = "GET", *, include_signed: bool = True) -> bool:
     """Docs, health, OpenAPI aggregation, static assets; GraphQL GET (playground) optional."""
 
     if path in ("/",):
         return False
     if is_witness_policy_path(path, method) or is_sumsub_webhook_path(path, method) or is_contact_lane_path(path, method):
         return True
-    from controlplane_edge.operator_routes import configured_route
+    from controlplane_edge.operator_routes import configured_route, signed_delivery
+    if include_signed and signed_delivery(path, method) is not None:
+        return True
     if configured_route("public", path, method):
         return True
     path = path.rstrip("/") or "/"

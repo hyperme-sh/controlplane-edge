@@ -18,6 +18,7 @@ from controlplane_edge.auth_utils import resolve_bearer_claims
 from controlplane_edge.closure_auth import closure_claims, closure_route
 from controlplane_edge.edge_settings import GatewayCrossCuttingSettings
 from controlplane_edge.host_setup_auth import resolve_setup_claims
+from controlplane_edge.operator_routes import signed_delivery
 from controlplane_edge.public_paths import is_public_path, is_contact_lane_path
 
 SITE_TOKEN_HEAD = "hm_site_"
@@ -105,8 +106,10 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         path = request.url.path
-        if is_contact_lane_path(path, request.method):
-            # Lane possession is a transport capability, not an account lookup.
+        delivery = signed_delivery(path, request.method)
+        request.state.signed_payment_delivery = delivery
+        if is_contact_lane_path(path, request.method) or delivery is not None:
+            # The service owner verifies these requests independently of caller credentials.
             request.state.jwt_claims = None
             request.state.tenant_id = None
             request.state.user_sub = None
@@ -158,7 +161,7 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
 
         if claims is None and api_key_header and self._settings.api_keys_service_url:
             if tenant_id is None:
-                if not is_public_path(path, request.method):
+                if not is_public_path(path, request.method, include_signed=False):
                     return JSONResponse(
                         status_code=400,
                         content={
@@ -181,7 +184,7 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
                 if data is None:
                     if tracker is not None:
                         tracker.record_failure(client_ip)
-                    if not is_public_path(path, request.method):
+                    if not is_public_path(path, request.method, include_signed=False):
                         return JSONResponse(
                             status_code=401,
                             content={"detail": "Invalid API key"},
@@ -248,7 +251,7 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
         ):
             return await call_next(request)
 
-        if is_public_path(path, request.method):
+        if is_public_path(path, request.method, include_signed=False):
             return await call_next(request)
 
         if (claims is None and bearer and looks_like_site_machine_token(bearer)
