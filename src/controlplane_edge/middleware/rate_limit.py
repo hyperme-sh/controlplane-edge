@@ -32,17 +32,19 @@ class GatewayRateLimitMiddleware(BaseHTTPMiddleware):
         if request.method == "OPTIONS":
             return await call_next(request)
         path = request.url.path
+        signed_webhook = (getattr(request.state, "signed_payment_delivery", None) is not None
+                          or is_sumsub_webhook_path(path, request.method))
         # /versions fans out to every upstream. It stays on this limiter even
         # when EDGE_VERSIONS_ACCESS=public lets it skip the session JWT.
         # Machine-proof exchanges and the issuer-session fence accept
         # unauthenticated input that reaches a service, so they stay on the
         # anonymous (client address) bucket.
         if (
-            is_public_path(path, request.method)
+            is_public_path(path, request.method, include_signed=False)
             and not is_versions_path(path, request.method)
             and not is_machine_identity_path(path, request.method)
             and not is_issuer_session_end_path(path, request.method)
-            and not is_sumsub_webhook_path(path, request.method)
+            and not signed_webhook
             and not is_witness_policy_path(path, request.method)
             and not is_contact_lane_path(path, request.method)
         ):
@@ -56,7 +58,7 @@ class GatewayRateLimitMiddleware(BaseHTTPMiddleware):
             bot_agent_route(path, request.method)
             or is_machine_identity_path(path, request.method)
             or is_issuer_session_end_path(path, request.method)
-            or is_sumsub_webhook_path(path, request.method)
+            or signed_webhook
             or is_witness_policy_path(path, request.method)
             or is_contact_lane_path(path, request.method)
         ):

@@ -409,6 +409,7 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
             target = f"{target}?{request.url.query}"
 
         from controlplane_edge.nightly import COMMANDS
+        delivery = getattr(request.state, "signed_payment_delivery", None)
         if (request.method, request.url.path) in COMMANDS:
             payload = bytearray()
             async with asyncio.timeout(12):
@@ -419,11 +420,17 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
             body = bytes(payload)
             name = 'x-nightly-owner-signature' if match.service_id == 'auth' else 'x-nightly-controller-signature'
             headers = {'Content-Type':'application/json', name:request.headers.get(name,'')}
-        elif is_sumsub_webhook_path(request.url.path, request.method):
+        elif delivery is not None or is_sumsub_webhook_path(request.url.path, request.method):
             headers = {}
-            for name in ("x-payload-digest-alg", "x-payload-digest"):
+            signature_headers = ("x-payload-digest-alg", "x-payload-digest")
+            limit = 65536
+            if delivery is not None:
+                headers["Content-Type"] = "application/json"
+                signature_headers = (delivery.signature_header,)
+                limit = delivery.max_body_bytes
+            for name in signature_headers:
                 values = request.headers.getlist(name)
-                if len(values) != 1:
+                if len(values) != 1 or (delivery is not None and not values[0].strip()):
                     return Response(status_code=401)
                 headers[name] = values[0]
             if request.headers.getlist("content-encoding") not in ([], ["identity"]):
@@ -432,7 +439,7 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
             try:
                 async with asyncio.timeout(5):
                     async for chunk in request.stream():
-                        if len(payload) + len(chunk) > 65536:
+                        if len(payload) + len(chunk) > limit:
                             return Response(status_code=413)
                         payload.extend(chunk)
             except TimeoutError:
