@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "versions": {
-    "pyproject.toml": "0.2.0"
+    "pyproject.toml": "0.2.1"
   },
   "restorations": [],
   "owned_dependency_versions": {
@@ -15,7 +15,7 @@
     "hypermesh-service": "0.2.0",
     "acl-service": "0.1.0",
     "verification-service": "0.1.0",
-    "controlplane-edge": "0.2.0",
+    "controlplane-edge": "0.2.1",
     "controlplane-db": "0.1.0",
     "controlplane-portal": "0.1.0",
     "auth-service": "0.2.0",
