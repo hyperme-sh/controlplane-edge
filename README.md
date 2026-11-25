@@ -1,6 +1,6 @@
 # Controlplane edge
 
-`controlplane-edge` 0.2.0 is the HTTP edge for the Hypermesh control plane. It authenticates callers, binds each request to a tenant, and reverse-proxies existing service prefixes. It also publishes one aggregated OpenAPI document, a GraphQL API, and an optional ContractEcho gRPC service. Generated gRPC modules come from the pinned `controlplane-proto` package. Product prefix declarations live in `src/controlplane_edge/product_routes.json`.
+`controlplane-edge` 0.2.1 is the HTTP edge for the Hypermesh control plane. It authenticates callers, binds each request to a tenant, and reverse-proxies existing service prefixes. It also publishes one aggregated OpenAPI document, a GraphQL API, and an optional ContractEcho gRPC service. Generated gRPC modules come from the pinned `controlplane-proto` package. Product prefix declarations live in `src/controlplane_edge/product_routes.json`.
 
 ## Why
 
@@ -102,7 +102,7 @@ Pull requests run `.github/workflows/preparation.yml`. Pushes to `main` run `.gi
 
 ## Release and versioning
 
-Package `controlplane-edge` is **0.2.0** on release line **0.2** (`release-policy.json`, `pyproject.toml`). Version 0.2 rejects any token that still carries `https://panopticon.dev/tenant_id`, including tokens that also carry the current claim. Reconfigure issuers and require fresh tokens before upgrading. Main validation keeps tested artifacts and does not create tags or GitHub releases. Stable publication uses a `vMAJOR.MINOR.PATCH` tag and is described in [docs/releasing.md](docs/releasing.md).
+Package `controlplane-edge` is **0.2.1** on release line **0.2** (`release-policy.json`, `pyproject.toml`). Version 0.2 rejects any token that still carries `https://panopticon.dev/tenant_id`, including tokens that also carry the current claim. Reconfigure issuers and require fresh tokens before upgrading. Main validation keeps tested artifacts and does not create tags or GitHub releases. Stable publication uses a `vMAJOR.MINOR.PATCH` tag and is described in [docs/releasing.md](docs/releasing.md).
 
 ## License
 
