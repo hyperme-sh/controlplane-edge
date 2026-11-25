@@ -63,11 +63,27 @@ jobs:
                 .conclusion == "success")
               '
           }
-          admission=$(verify_run "$ADMISSION_RUN" push "$VERSION" .github/workflows/release-admission.yml)
+          admission=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$ADMISSION_RUN" | jq -e \
+            --arg sha "$tag_sha" --arg version "$VERSION" '
+              select(.path == ".github/workflows/release-admission.yml" and .conclusion == "success" and
+                .head_repository.full_name == .repository.full_name and
+                ((.event == "push" and .head_sha == $sha and .head_branch == $version) or
+                 (.event == "workflow_dispatch" and .head_branch == "main")))')
           admission_attempt=$(jq -er .run_attempt <<<"$admission")
-          gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$ADMISSION_RUN/attempts/$admission_attempt/jobs?per_page=100" |
-            jq -es 'any(.[].jobs[]; .conclusion == "success" and
-              (.name | endswith(" / Initial release admission") or endswith(" / Release compatibility")))' >/dev/null
+          admission_jobs=$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$ADMISSION_RUN/attempts/$admission_attempt/jobs?per_page=100" |
+            jq -es '[.[].jobs[] | select(.conclusion == "success")]')
+          if [[ "$(jq -er .event <<<"$admission")" == push ]] &&
+            jq -e 'any(.[]; .name | endswith(" / Initial release admission") or endswith(" / Release compatibility"))' \
+              <<<"$admission_jobs" >/dev/null; then
+            :
+          else
+            job=$(jq -er '.[] | select(.name == "Admit the exact Edge runtime wheel") | .id' <<<"$admission_jobs")
+            [[ "$job" =~ ^[1-9][0-9]*$ ]]
+            gh run view "$ADMISSION_RUN" --repo "$GITHUB_REPOSITORY" --attempt "$admission_attempt" --job "$job" --log |
+              sed -nE 's/^.*(\{"admitted_version":.*\})\r?$/\1/p' |
+              jq -es --arg version "$VERSION" --arg revision "$tag_sha" '
+                . == [{admitted_version:$version,revision:$revision}]' >/dev/null
+          fi
           qualified=$(verify_run "$QUALIFICATION_RUN" push main .github/workflows/package.yml)
           qualification_attempt=$(jq -er .run_attempt <<<"$qualified")
           gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$QUALIFICATION_RUN/attempts/$qualification_attempt/jobs?per_page=100" |

@@ -9,4 +9,4 @@ Public container publication and the remaining Apache repositories are tracked i
 
 Pull-request and `main` checks still build and test the source, including any clean-source or secret scan already in those jobs, and then discard temporary distribution files. They do not retain or publish package artifacts.
 
-Tag-time version admission, when used, stays in `.github/workflows/release-admission.yml`. That workflow does not publish. The former package release-channel workflow has been removed.
+The `0.2` runtime admission checks the exact version tag and builds its declared wheel for comparison. The stable GHCR publisher uses that admission and the matching qualified main runtime. Azure copies the same digest from the successful stable publisher run. Existing releases with a `runtime.json` asset remain valid sources for the Azure publisher.

@@ -129,3 +129,51 @@ def run_case(tmp_path, unprotected):
         assert not summary.exists()
     else:
         assert "Protected acrfybercg47.azurecr.io/controlplane-edge:v1.2.3" in summary.read_text()
+
+
+PUBLISH_RUN_MOCK = r'''
+import json
+import os
+import sys
+
+args = sys.argv[1:]
+repository = "hyperme-sh/controlplane-edge"
+source = "a" * 40
+if args == ["api", f"repos/{repository}/commits/v0.2.1", "--jq", ".sha"]:
+    print(source)
+elif args == ["api", f"repos/{repository}/actions/runs/100"]:
+    print(json.dumps({"path": ".github/workflows/publish-stable-runtime.yml" if os.environ["FAILURE"] != "workflow" else "other.yml",
+                      "event": "workflow_dispatch", "head_branch": "main", "conclusion": "success",
+                      "head_repository": {"full_name": repository}, "repository": {"full_name": repository},
+                      "run_attempt": 1}))
+elif args == ["api", "--paginate", f"repos/{repository}/actions/runs/100/attempts/1/jobs?per_page=100"]:
+    print(json.dumps({"jobs": [{"name": "publish", "conclusion": "success", "id": 101}]}))
+else:
+    assert args == ["run", "view", "100", "--repo", repository, "--attempt", "1", "--job", "101", "--log"], args
+    print("publish\tPromote\t2026-11-25T16:00:00Z " + json.dumps({"schema_version": 1, "version": "v0.2.1",
+          "revision": "b" * 40 if os.environ["FAILURE"] == "revision" else source,
+          "repository": f"ghcr.io/{repository}/runtime", "digest": "sha256:" + "c" * 64}, separators=(",", ":")))
+'''
+
+
+class StableOCIInputContract(unittest.TestCase):
+    def test_exact_stable_job_can_supply_azure_runtime_metadata(self):
+        step = WORKFLOW.read_text().split("- name: Bind the stable release to its original image and source", 1)[1]
+        script = dedent(step.split("run: |\n", 1)[1].split("\n      - name:", 1)[0])
+        for failure in ("", "workflow", "revision"):
+            with self.subTest(failure=failure), TemporaryDirectory() as directory:
+                root = Path(directory)
+                cli = root / "gh"
+                cli.write_text(f"#!{sys.executable}\n{PUBLISH_RUN_MOCK}")
+                cli.chmod(0o700)
+                output = root / "output"
+                env = {"PATH": f"{root}{os.pathsep}{os.environ['PATH']}", "RUNNER_TEMP": directory,
+                       "GITHUB_REPOSITORY": "hyperme-sh/controlplane-edge", "GITHUB_OUTPUT": str(output),
+                       "VERSION_TAG": "v0.2.1", "STABLE_RUN": "100", "FAILURE": failure}
+                result = subprocess.run(["bash", "-c", script], env=env, capture_output=True, text=True, timeout=10)
+                if failure:
+                    self.assertNotEqual(result.returncode, 0, result.stderr)
+                    self.assertFalse(output.exists())
+                else:
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(output.read_text(), "digest=sha256:" + "c" * 64 + "\n")
