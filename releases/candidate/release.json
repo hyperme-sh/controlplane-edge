@@ -4,13 +4,13 @@
   "purpose": "stable-release",
   "components": {
     "controlplane-edge": {
-      "version": "0.2.0",
+      "version": "0.2.1",
       "contract": "contract.json",
-      "contract_sha256": "b04ba302f1b0c039f19678fe0d0425d135e570bdbfaa59dfe3cbe02674987944",
+      "contract_sha256": "9066d82ca07aac82445eae1363cd5e06f8764fddb7254af2f019eec31e772ea8",
       "artifact": {
         "kind": "package",
-        "uri": "urn:sha256:05de631ffd9cbf62fe385f7a62ec4ddf656d31b0181f3593c56005face3a80bc",
-        "sha256": "05de631ffd9cbf62fe385f7a62ec4ddf656d31b0181f3593c56005face3a80bc"
+        "uri": "urn:sha256:47aaf50fe16cb47137248f34b1873e8abd5b02b89e7740c3feb328ec0bba52ee",
+        "sha256": "47aaf50fe16cb47137248f34b1873e8abd5b02b89e7740c3feb328ec0bba52ee"
       }
     }
   }

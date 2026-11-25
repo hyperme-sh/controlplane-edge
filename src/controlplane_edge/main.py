@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     if os.environ.get("METRICS_OUTBOX_PROBE") == "1":
         raise ValueError("Edge has no local outbox; configure database probes on the events owner")
-    app = FastAPI(title="Controlplane edge", version="0.2.0", lifespan=lifespan)
+    app = FastAPI(title="Controlplane edge", version="0.2.1", lifespan=lifespan)
     app.include_router(health_router, prefix="/api/v1")
     app.include_router(version_router)
     register_aggregation_routes(app)
