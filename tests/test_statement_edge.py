@@ -192,3 +192,23 @@ async def test_raw_dot_path_cannot_normalize_into_statement_upstream(monkeypatch
             headers={'X-Api-Key': 'private.key', 'X-Tenant-ID': tenant, 'Content-Type': 'application/json'})
     assert response.status_code == 400
     assert not upstream.called
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('operation,scope,expected', [
+    ('config', 'acl:contacts:read', 200),
+    ('read', 'acl:contacts:read', 200),
+    ('write', 'acl:contacts:write', 200),
+    ('write', 'acl:contacts:read', 403),
+    ('read', 'acl:contacts:write', 403),
+    ('read', 'acl:statements:read', 403),
+    ('other', 'acl:contacts:read', 404),
+])
+async def test_contacts_requires_the_exact_operation_scope(operation, scope, expected):
+    proxy = edge()
+    proxy._dispatch = AsyncMock(return_value=Response(b'ok'))
+    response = await proxy.dispatch(
+        request(path='/api/v1/acl/sociacl/contacts/' + operation, scopes=scope), None
+    )
+    assert response.status_code == expected
+    assert proxy._dispatch.await_count == int(expected == 200)
