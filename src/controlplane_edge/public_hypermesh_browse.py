@@ -32,6 +32,8 @@ def is_public_hypermesh_browse(path: str, method: str = "GET") -> bool:
 
     if method.upper() != "GET":
         return False
+    if path == "/api/v1/hypermesh/network-health":
+        return True
     norm = path.rstrip("/") or "/"
     if norm in PUBLIC_HYPERMESH_BROWSE_PATHS:
         return True
@@ -155,4 +157,19 @@ async def get_public_hypermesh_pricing_transparency() -> dict:
     raise HTTPException(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         detail="Hypermesh pricing transparency is served by hypermesh-service",
+    )
+
+
+@router.get(
+    "/network-health",
+    summary="Read public Hypermesh network health",
+    description="Network-wide availability and observation freshness. Served by hypermesh-service.",
+    operation_id="getPublicHypermeshNetworkHealth",
+    openapi_extra={"security": []},
+    responses={200: {"description": "Network availability and observation freshness"}},
+)
+async def get_public_hypermesh_network_health() -> dict:
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="Hypermesh network health is served by hypermesh-service",
     )

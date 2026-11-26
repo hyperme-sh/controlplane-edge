@@ -78,9 +78,9 @@ def is_public_path(path: str, method: str = "GET", *, include_signed: bool = Tru
         return True
     if configured_route("public", path, method):
         return True
-    path = path.rstrip("/") or "/"
     if is_public_hypermesh_browse(path, method):
         return True
+    path = path.rstrip("/") or "/"
     # AIuditor verifies the bound machine proof; this is not a browser JWT.
     if method.upper() == "POST" and path == "/api/v1/aiuditor/machine/renew":
         return True

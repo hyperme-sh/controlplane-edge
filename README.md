@@ -75,7 +75,7 @@ This process is the control-plane HTTP front for lease, host, and renter traffic
 
 | Caller | Traffic | Where it goes |
 | --- | --- | --- |
-| Public site and renters browsing | Anonymous `GET` of `/api/v1/hypermesh/catalog`, `/classes`, `/nodes`, `/ready`, `/pricing/transparency`, `/public/host-installation`, and `/public/host-releases/{test\|prod}` plus the published metadata and installer names | `hypermesh-service` (`CPEDGE_HYPERMESH_SERVICE_URL`) |
+| Public site and renters browsing | Anonymous `GET` of `/api/v1/hypermesh/catalog`, `/classes`, `/nodes`, `/ready`, `/network-health`, `/pricing/transparency`, `/public/host-installation`, and `/public/host-releases/{test\|prod}` plus the published metadata and installer names | `hypermesh-service` (`CPEDGE_HYPERMESH_SERVICE_URL`) |
 | Hosts | Exact enroll, heartbeat, onboarding, certification, identity bind and token, tunnel, scorecard, job, and update calls. The body carries a one-time enroll token, or the request carries the device bearer. | `hypermesh-service`. `POST /api/v1/aiuditor/machine/renew` goes to AIuditor. |
 | Renters paying for a lease | `POST /api/v1/payments/usdc/lease-payments` with a bearer or API key and a tenant binding | payment-service |
 | Portal and operators | Users, groups, organizations, account closure, marketplace, ACL, and `/api/v1/ai/inference`, `/complete`, and `/usage` | The service that owns that prefix |
