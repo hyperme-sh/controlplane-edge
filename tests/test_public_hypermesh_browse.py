@@ -271,3 +271,33 @@ def test_public_installer_redirect_survives_gateway(browse_app, artifact):
     assert response.status_code == 307
     assert response.headers["location"] == destination
     assert response.headers["cache-control"] == "no-store"
+
+
+@respx.mock
+def test_network_health_is_an_exact_anonymous_get(browse_app: FastAPI) -> None:
+    path = "/api/v1/hypermesh/network-health"
+    body = {"availability": "unknown", "freshness": "unknown", "observed_at": None}
+    upstream = respx.get("http://hm.browse.test" + path).mock(
+        return_value=httpx.Response(200, json=body, headers={"x-hypermesh-revision": "plane-build"})
+    )
+    with TestClient(browse_app) as client:
+        response = client.get(path)
+        assert response.status_code == 200
+        assert response.json() == body
+        assert response.headers["x-hypermesh-revision"] == "plane-build"
+        forwarded = upstream.calls.last.request
+        assert "authorization" not in forwarded.headers
+        assert "x-api-key" not in forwarded.headers
+        assert "x-tenant-id" not in forwarded.headers
+        for method in ("POST", "PUT", "DELETE", "PATCH", "HEAD"):
+            assert client.request(method, path).status_code == 401
+        for protected in (
+            path + "/",
+            path + "/detail",
+            path + "-detail",
+            "/api/v1/hypermesh/networks/hyperme.sh/health",
+            "/api/v1/hypermesh/networks/hyperme.sh/leases/11111111-1111-1111-1111-111111111111/health",
+        ):
+            assert client.get(protected).status_code == 401
+        assert client.get("/openapi.json").json()["paths"][path]["get"]["security"] == []
+    assert upstream.call_count == 1
