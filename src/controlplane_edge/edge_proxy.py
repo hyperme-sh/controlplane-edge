@@ -163,17 +163,22 @@ async def storage_body(request: Request) -> bytes:
 
 
 _STATEMENT_PREFIX = "/api/v1/acl/sociacl/statements"
-_GRAPH_PREFIXES = (_STATEMENT_PREFIX, "/api/v1/acl/sociacl/delegations")
+_CONTACTS_PREFIX = "/api/v1/acl/sociacl/contacts"
+_GRAPH_PREFIXES = (_STATEMENT_PREFIX, "/api/v1/acl/sociacl/delegations", _CONTACTS_PREFIX)
 
 
 def statement_scope(path: str) -> str | None:
+    if path in {_CONTACTS_PREFIX + "/config", _CONTACTS_PREFIX + "/read"}:
+        return "acl:contacts:read"
+    if path == _CONTACTS_PREFIX + "/write":
+        return "acl:contacts:write"
     match = re.fullmatch(r"/api/v1/acl/sociacl/(statements|delegations)/[A-Za-z0-9_-]{1,128}/(snapshot|append)", path)
     if match is None:
         return None
     return "acl:" + match[1] + ":" + ("read" if match[2] == "snapshot" else "write")
 
 
-async def statement_body(request: Request) -> bytes:
+async def statement_body(request: Request, *, limit: int = 70000) -> bytes:
     if request.headers.getlist("content-encoding") not in ([], ["identity"]):
         raise StorageBodyError(415)
     types = request.headers.getlist("content-type")
@@ -183,12 +188,12 @@ async def statement_body(request: Request) -> bytes:
     if lengths and (len(lengths) != 1 or not re.fullmatch(r"[0-9]{1,9}", lengths[0])):
         raise StorageBodyError(400)
     expected = int(lengths[0]) if lengths else None
-    if expected is not None and expected > 70000:
+    if expected is not None and expected > limit:
         raise StorageBodyError(413)
     body = bytearray()
     async with asyncio.timeout(1.5):
         async for chunk in request.stream():
-            if len(body) + len(chunk) > 70000:
+            if len(body) + len(chunk) > limit:
                 raise StorageBodyError(413)
             body.extend(chunk)
     if expected is not None and len(body) != expected:
@@ -463,7 +468,9 @@ class EdgeProxyMiddleware(BaseHTTPMiddleware):
             body = bytes(payload)
         elif match.service_id == "acl" and request.url.path.startswith(_GRAPH_PREFIXES):
             try:
-                body = await statement_body(request)
+                body = await statement_body(
+                    request, limit=1_400_000 if request.url.path == _CONTACTS_PREFIX + "/write" else 70000
+                )
             except StorageBodyError as exc:
                 return Response(status_code=exc.status)
             except TimeoutError:
